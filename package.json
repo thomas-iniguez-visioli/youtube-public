@@ -1,0 +1,19 @@
+{
+  "name": "youtube-public",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alphaleadership/youtube-public.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/alphaleadership/youtube-public/issues"
+  },
+  "homepage": "https://github.com/alphaleadership/youtube-public#readme"
+}
