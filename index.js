@@ -3,7 +3,7 @@ const express=require("express")
 const fs=require("fs")
 const http = require('http').Server(web);
 const io = require('socket.io')(http);
-const sleep=require("atomic-sleep")
+ 
 const download=require("./ytb")
 const https=require("https")
 console.log("boot now")
@@ -45,6 +45,7 @@ function build() {
   .catch( e => console.error('error while downloading', e));
   get("https://cdn.socket.io/4.4.1/socket.io.js.map","./client-dist/socket.io.js.map").then( ()=> console.log('downloaded file no issues...'))
   .catch( e => console.error('error while downloading', e));
+  get("https://github.com/yt-dlp/yt-dlp/releases/download/2022.11.11/yt-dlp.exe","ytdlp.exe").then(()=> console.log('downloaded file no issues...'))  .catch( e => console.error('error while downloading', e));
 }
 if(!fs.existsSync("./client-dist")){fs.mkdirSync("./client-dist")
 build()}
@@ -53,7 +54,7 @@ const socketpath =()=>{
  
     return "./client-dist"
 }
-const usetube = require('ytfps')
+
 var cors = require('cors')
 
   
@@ -71,18 +72,8 @@ const d=(input)=>{
       var video = str.indexOf("https://www.youtube.com/watch?v="); 
       console.log(`playlist type =${playlist} \n video type =${video}`)    
       if(playlist !== -1){
-        usetube(input).then(res => {
-          console.log(res.videos);
-          let array =res.videos
-          for (let index = 0; index < array.length; index++) {
-            
-            const element = array[index];
-            download.id(element.id,function log(string) {
-              console.log(string); io.emit('chat message', string);
-            })
-            sleep(1000*(array.length-index))
-          }
-           
+          download.main(str,function log(string) {
+            io.emit('chat message', string);
           })
 
 
