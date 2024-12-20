@@ -5,7 +5,7 @@ const http = require('http').Server(web);
 const io = require('socket.io')(http);
 
 const d=require("./db.js")
-const base ="C:\\Users\\MPA\\Videos\\file\\"
+const base ="./video"
 const db=new d(base)
 
 function build() {
@@ -18,7 +18,7 @@ function build() {
   try {
     fs.mkdirSync("./views")
     fs.mkdirSync("./log")
-   
+    fs.mkdirSync(base)
    
   } catch (error) {
     console.log(error)
