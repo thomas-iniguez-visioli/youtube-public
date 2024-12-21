@@ -1,0 +1,26 @@
+{
+  "name": "my-electron-app",
+  "version": "1.0.0",
+  "description": "An Electron application for video streaming with Node.js",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "electron": "^25.0.0",
+    "express": "^4.18.2",
+    "socket.io": "^4.4.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "keywords": [
+    "electron",
+    "video",
+    "streaming",
+    "node"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
+}

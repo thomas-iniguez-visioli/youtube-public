@@ -4,7 +4,7 @@ const fs=require("fs")
 const http = require('http').Server(web);
 const io = require('socket.io')(http);
 
-const d=require("./db.js")
+const d=require("./nextgen/my-electron-app/src/db.js")
 const base ="./video"
 const db=new d(base)
 
@@ -319,7 +319,7 @@ web.listen(8000, function () {
   console.log("Listening on port 8000!");
 });
 
-const download=require("./ytb")
+const download=require("./nextgen/my-electron-app/src/ytb.js")
 const https=require("https")
 console.log("boot now")
 function get(url, dest) {

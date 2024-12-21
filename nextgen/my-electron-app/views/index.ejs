@@ -1,0 +1,42 @@
+
+  <!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Video Streaming With Node</title>
+     <script src="renderer.js"></script>
+    <style>
+      body {
+        max-width: 100%;
+        height: 100vh;
+        background-color: rgb(247, 243, 243);
+        display: flex;
+        margin: auto;
+        align-items: center;
+        justify-content: center;
+      }
+    </style>
+  </head>
+  <body>
+  <form id="commandForm">
+    <label for="commandInput">Enter Parameter:</label>
+    <input type="text" id="commandInput" name="commandInput" required>
+    <button type="submit">Execute</button>
+  </form>
+    <ul>
+      <% results.forEach(function(result){ %>
+        <form action="/watch?id=<%= result.fileUuid %>">
+          <input type="submit" value="Watch" />
+          <img src="https://img.youtube.com/vi/<%=result.yid %>/hqdefault.jpg" alt="Thumbnail for YouTube video">
+
+          <h5><%=result.fileName%></h5>
+        </form>
+      <% }); %>
+    </ul>
+  </body>
+</html>
+
+ 
+
