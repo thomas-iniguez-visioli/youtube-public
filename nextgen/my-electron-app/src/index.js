@@ -47,7 +47,7 @@ function build() {
     console.log(error);
   }
 }
-build()
+
 try {
   fs.writeFileSync(
     './views/index.ejs',
@@ -80,12 +80,9 @@ try {
   </form>
     <ul>
       <% results.forEach(function(result){ %>
-        <form action="/watch?id=<%= result.fileUuid %>">
-          <input type="submit" value="Watch" />
-          <img src="https://img.youtube.com/vi/<%=result.yid %>/hqdefault.jpg" alt="Thumbnail for YouTube video">
-
-          <h5><%=result.fileName%></h5>
-        </form>
+          <a href="/watch?id=<%= result.yid %>">
+            <img src="https://img.youtube.com/vi/<%=result.yid %>/hqdefault.jpg" alt="Thumbnail for YouTube video">
+          </a>
       <% }); %>
     </ul>
   </body>
@@ -164,13 +161,16 @@ function get(url, dest) {
 web.get("/", function (req, res) {
   db.readDatabase()
 db.save()
-db.database.map((item)=>{item.yid})
+
+
+console.log(db.database)
   res.render('index', {
     results: db.database
     
-});
+})
 })
 web.get("/watch", function (req, res) {
+  console.log(req.query)
   res.render('view', {
     code: req.query.id,
     videos:db.database
@@ -187,8 +187,8 @@ web.get("/video", function (req, res) {
   if (!range) {
     res.status(400).send("Requires Range header");
   }
-
-  const videoPath =base+ db.getFile( req.query.id).fileName
+  console.log(db.getFile( req.query.id))
+  const videoPath =base+"/"+ db.getFile( req.query.id).fileName
   console.log(videoPath)
   console.log(req.query.id)
   const videoSize = fs.statSync(videoPath).size;

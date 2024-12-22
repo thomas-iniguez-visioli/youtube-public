@@ -83,7 +83,7 @@ const parser=(array)=>{
             }
             
          })
-
+         console.log(this.database)
      }
      save(){
         let data=[]
@@ -91,7 +91,7 @@ const parser=(array)=>{
         fs.writeFileSync('./parsed.txt',data.join("\n"))
      }
      getFile(uuid) {
-         return this.database.filter(file => file.fileUuid === uuid)[0]
+         return this.database.filter(file => file.yid === uuid)[0]
      }
  
      // La méthode getUuids retourne la liste des UUID de tous les fichiers de la base de données

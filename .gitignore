@@ -2,3 +2,4 @@
 node_modules/*
 client-dist/*
 nextgen/my-electron-app/*.mp4*
+nextgen/my-electron-app/sessions/*

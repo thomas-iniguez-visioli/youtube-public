@@ -27,12 +27,9 @@
   </form>
     <ul>
       <% results.forEach(function(result){ %>
-        <form action="/watch?id=<%= result.fileUuid %>">
-          <input type="submit" value="Watch" />
-          <img src="https://img.youtube.com/vi/<%=result.yid %>/hqdefault.jpg" alt="Thumbnail for YouTube video">
-
-          <h5><%=result.fileName%></h5>
-        </form>
+          <a href="/watch?id=<%= result.yid %>">watch
+            <img src="https://img.youtube.com/vi/<%=result.yid %>/hqdefault.jpg" alt="Thumbnail for YouTube video">
+          </a>
       <% }); %>
     </ul>
   </body>
