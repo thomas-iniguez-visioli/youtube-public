@@ -123,7 +123,7 @@ try {
     <video id="videoPlayer" width="70%" controls autoplay muted="false">
       <source src="/video/?id=<%= code %>" type="video/mp4" />
     </video>
-    <a href="http://127.0.0.1:8000>retour a la page principale </a>
+    <a href="http://127.0.0.1:8000">retour a la page principale </a>
   </body>
 </html>`
   );
