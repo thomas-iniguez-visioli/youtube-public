@@ -47,10 +47,10 @@ function build() {
   get('https://github.com/yt-dlp/yt-dlp/releases/download/2023.02.17/yt-dlp.exe', path.join(app.getPath('userData'), 'ytdlp.exe')) // Correction pour utiliser path.join pour une construction de chemin valide
     .then(() => console.log('downloaded file no issues...'))
     .catch((e) => console.error('error while downloading', e));
-    get('https://raw.githubusercontent.com/alphaleadership/youtube-public/refs/heads/main/nextgen/my-electron-app/views/index.ejs', path.join(app.getPath('userData'), 'views/index.ejs')) // Correction pour utiliser path.join pour une construction de chemin valide
+    get('https://raw.githubusercontent.com/alphaleadership/youtube-public/refs/heads/main/nextgen/my-electron-app/src/views/index.ejs', path.join(app.getPath('userData'), 'views/index.ejs')) // Correction pour utiliser path.join pour une construction de chemin valide
     .then(() => console.log('downloaded file no issues...'))
     .catch((e) => console.error('error while downloading', e));
-    get('https://raw.githubusercontent.com/alphaleadership/youtube-public/refs/heads/main/nextgen/my-electron-app/views/view.ejs', path.join(app.getPath('userData'), 'views/view.ejs')) // Correction pour utiliser path.join pour une construction de chemin valide
+    get('https://raw.githubusercontent.com/alphaleadership/youtube-public/refs/heads/main/nextgen/my-electron-app/src/views/view.ejs', path.join(app.getPath('userData'), 'views/view.ejs')) // Correction pour utiliser path.join pour une construction de chemin valide
     .then(() => console.log('downloaded file no issues...'))
     .catch((e) => console.error('error while downloading', e));
     get('https://raw.githubusercontent.com/alphaleadership/youtube-public/refs/heads/main/nextgen/my-electron-app/src/renderer.js', path.join(app.getPath('userData'), 'src/renderer.js')) // Correction pour utiliser path.join pour une construction de chemin valide
