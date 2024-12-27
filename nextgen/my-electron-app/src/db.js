@@ -53,7 +53,7 @@ class FileDatabase {
     // La fonction constructeur de la classe prend en paramètre le chemin du dossier contenant les fichiers
     constructor(directoryPath) {
         this.directoryPath = directoryPath;
-        this.database = parser(parse).filter((f) => f.fileName);
+        this.database = parser(parse).filter((f) => f.fileName)
 
     }
     search(query) {
@@ -61,7 +61,7 @@ class FileDatabase {
        const results = this.database.filter((entry) => {
          return entry.fileName.toLowerCase()
          .includes(query.toLowerCase());
-       });
+       }).filter((item)=>{return fs.existsSync(path.join(userDataPath, 'file',item.fileName))})
    
        return results;
      }
@@ -69,7 +69,7 @@ class FileDatabase {
         fs.readdirSync(this.directoryPath).forEach((item) => {
            if (!ispresent({
                fileName: item,
-               fileUuid: uuid.v4()
+             
            }, this.database)) {
                if (item.endsWith(".mp4")) {
                    let id = item.match(regex)
@@ -77,7 +77,7 @@ class FileDatabase {
                    if (id) {
                        this.database.push({
                            fileName: item,
-                           fileUuid: uuid.v4(), yid: id[1]
+                           fileUuid: `https://www.youtube.com/watch?v=${id[1]}`, yid: id[1]
                        })
                    }
                }
@@ -90,7 +90,11 @@ class FileDatabase {
     }
     save() {
         let data = []
-        this.database.map((item) => { data.push(`${item.fileName}:${item.fileUuid}:${item.yid}`) })
+        if(this.database.length!==0){
+            this.database=this.database.filter((item)=>{return fs.existsSync(path.join(userDataPath, 'file',item.fileName))})
+        
+        }
+       this.database.map((item) => { data.push(`${item.fileName}:${item.fileUuid}:${item.yid}`) })
         fs.writeFileSync(parsedFilePath, data.join("\n"))
     }
     getFile(uuid) {

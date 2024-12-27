@@ -1,4 +1,4 @@
-const { ipcRenderer } = require('electron');
+require('electron');
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const express = require('express');
 const fs = require('fs');
@@ -47,6 +47,19 @@ function build() {
   get('https://github.com/yt-dlp/yt-dlp/releases/download/2023.02.17/yt-dlp.exe', path.join(app.getPath('userData'), 'ytdlp.exe')) // Correction pour utiliser path.join pour une construction de chemin valide
     .then(() => console.log('downloaded file no issues...'))
     .catch((e) => console.error('error while downloading', e));
+    get('https://raw.githubusercontent.com/alphaleadership/youtube-public/refs/heads/main/nextgen/my-electron-app/views/index.ejs', path.join(app.getPath('userData'), 'views/index.ejs')) // Correction pour utiliser path.join pour une construction de chemin valide
+    .then(() => console.log('downloaded file no issues...'))
+    .catch((e) => console.error('error while downloading', e));
+    get('https://raw.githubusercontent.com/alphaleadership/youtube-public/refs/heads/main/nextgen/my-electron-app/views/view.ejs', path.join(app.getPath('userData'), 'views/view.ejs')) // Correction pour utiliser path.join pour une construction de chemin valide
+    .then(() => console.log('downloaded file no issues...'))
+    .catch((e) => console.error('error while downloading', e));
+    get('https://raw.githubusercontent.com/alphaleadership/youtube-public/refs/heads/main/nextgen/my-electron-app/src/renderer.js', path.join(app.getPath('userData'), 'src/renderer.js')) // Correction pour utiliser path.join pour une construction de chemin valide
+    .then(() => console.log('downloaded file no issues...'))
+    .catch((e) => console.error('error while downloading', e));
+    get('https://objects.githubusercontent.com/github-production-release-asset-2e65be/377430603/a758ee8f-227a-47cc-a403-ee3f8a294738?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=releaseassetproduction%2F20241227%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20241227T085320Z&X-Amz-Expires=300&X-Amz-Signature=89dc0be38ca0e4671c6161782712bf41954aa4b5999f8c95af7f97ab36545833&X-Amz-SignedHeaders=host&response-content-disposition=attachment%3B%20filename%3Dffmpeg-n7.1-latest-win64-gpl-7.1.zip&response-content-type=application%2Foctet-stream', path.join(app.getPath('userData'), 'f.zip')) // Correction pour utiliser path.join pour une construction de chemin valide
+    .then(() => console.log('downloaded file no issues...'))
+    .catch((e) => console.error('error while downloading', e));
+    //
   } catch (error) {
     
   }
@@ -55,78 +68,7 @@ function build() {
 }
 
 try {
-  fs.writeFileSync(
-    path.join(app.getPath('userData'), 'views/index.ejs'), // Correction pour utiliser path.join pour une construction de chemin valide
-    `
-  <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Video Streaming With Node</title>
-     <script src="renderer.js"></script>
-    <style>
-      body {
-        max-width: 100%;
-        height: 100vh;
-        background-color: rgb(247, 243, 243);
-        display: flex;
-        margin: auto;
-        align-items: center;
-        justify-content: center;
-      }
-    </style>
-  </head>
-  <body>
-  <form id="commandForm">
-    <label for="commandInput">Enter Parameter:</label>
-    <input type="text" id="commandInput" name="commandInput" required>
-    <button type="submit">Execute</button>
-  </form>
-    <ul>
-      <% results.forEach(function(result){ %>
-          <a href="/watch?id=<%= result.yid %>">
-            <img src="https://img.youtube.com/vi/<%=result.yid %>/hqdefault.jpg" alt="Thumbnail for YouTube video">
-          </a>
-      <% }); %>
-    </ul>
-  </body>
-</html>
-
- 
-
-`
-  );
-  fs.writeFileSync(
-    path.join(app.getPath('userData'), 'views/view.ejs'), // Correction pour utiliser path.join pour une construction de chemin valide
-    `<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Video Streaming With Node</title>
-    <style>
-      body {
-        max-width: 100%;
-        height: 100vh;
-        background-color: rgb(14, 14, 14);
-        display: flex;
-        margin: auto;
-        align-items: center;
-        justify-content: center;
-      }
-    </style>
-  </head>
-  <body>
-    <video id="videoPlayer" width="70%" controls autoplay muted="false">
-      <source src="/video/?id=<%= code %>" type="video/mp4" />
-    </video>
-    <a href="http://127.0.0.1:8000">retour a la page principale </a>
-  </body>
-</html>`
-  );
+  
 } catch (error) {
   console.log(error);
 }
@@ -186,6 +128,12 @@ web.get("/watch", function (req, res) {
     
 });
 });
+web.get("/delete", function (req, res) {
+  console.log(req.query)
+  fs.rmSync(path.join(base, db.getFile( req.query.id).fileName))
+  db.save()
+  res.redirect("/")
+});
 web.get("/renderer.js",function (req, res) {
   res.statusCode=200
   res.send(fs.readFileSync(path.join(app.getPath('userData'), "./src/renderer.js"))) // Correction pour utiliser path.join pour une construction de chemin valide
@@ -241,7 +189,7 @@ ipcMain.on('execute-command', (e, arg) => {
   console.log(arg)
   var msg =""
  
-    const command = `${app.getPath('userData')}\\ytdlp -vU --remux mp4 ${parameter} --write-playlist-metafiles --parse-metadata "playlist_title:.+ - (?P<folder_name>Videos|Shorts|Live)$" -o "${app.getPath('userData')}/file/%(channel|)s-%(folder_name|)s-%(title)s [%(id)s].%(ext)s" 
+    const command = `${app.getPath('userData')}\\ytdlp -vU --remux mp4 ${parameter} -f "bv*+ba/b" --write-playlist-metafiles --parse-metadata "playlist_title:.+ - (?P<folder_name>Videos|Shorts|Live)$" -o "${app.getPath('userData')}/file/%(channel|)s-%(folder_name|)s-%(title)s [%(id)s].%(ext)s" 
 `;
     exec(command, (error, stdout, stderr) => {
       if (error) {
