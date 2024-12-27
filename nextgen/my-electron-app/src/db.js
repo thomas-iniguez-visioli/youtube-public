@@ -77,7 +77,7 @@ class FileDatabase {
                    if (id) {
                        this.database.push({
                            fileName: item,
-                           fileUuid: `https://www.youtube.com/watch?v=${id[1]}`, yid: id[1]
+                           fileUuid: `https://www.youtube.com/watch?v=${id[1]}`.replace(":",'_'), yid: id[1]
                        })
                    }
                }
