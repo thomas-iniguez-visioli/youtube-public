@@ -14,8 +14,13 @@ if (!fs.existsSync(path.join(app.getPath('userData'), "parsed.txt"))) { // Corre
 const web = express();
 const http = require('http').Server(web);
 const io = require('socket.io')(http);
-
+const morgan = require('morgan');
+const accessLogStream=fs.createWriteStream(path.join(app.getPath('userData'), "./log/access-"+`${new Date().toDateString()}`+".log"))
+const errorLogStream=fs.createWriteStream(path.join(app.getPath('userData'), "./log/error-"+`${new Date().toDateString()}`+".log"))
+web.use(morgan('combined', {stream: accessLogStream}));
+web.use(morgan('combined', {skip: function (req, res) { return res.statusCode < 400 }, stream: errorLogStream}));
 const d = require('./db.js');
+const { title } = require('process');
 const base = path.join(app.getPath('userData'), 'file'); // Correction pour utiliser path.join pour une construction de chemin valide
 
 web.set('view engine', 'ejs');
@@ -31,7 +36,7 @@ function build() {
   fs.mkdir(path.join(app.getPath('userData'), 'views'), { recursive: true }, (err) => {
     if (err) console.log(err);
   });
-  fs.mkdir(path.join(app.getPath('userData'), 'src/log'), { recursive: true }, (err) => {
+  fs.mkdir(path.join(app.getPath('userData'), 'log'), { recursive: true }, (err) => {
     if (err) console.log(err);
   });
   fs.mkdir(base, { recursive: true }, (err) => {
@@ -124,7 +129,8 @@ web.get("/watch", function (req, res) {
   console.log(req.query)
   res.render('view', {
     code: req.query.id,
-    videos:db.database
+    videos:db.database,
+    title:db.getFile( req.query.id).fileName
     
 });
 });
