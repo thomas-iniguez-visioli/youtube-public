@@ -43,27 +43,25 @@ function build() {
     if (err) console.log(err);
   });
   try {
-    get('https://cdn.socket.io/4.4.1/socket.io.js', path.join(app.getPath('userData'), 'src/client-dist/socket.io.js')) // Correction pour utiliser path.join pour une construction de chemin valide
+    gupdateFile('https://cdn.socket.io/4.4.1/socket.io.js', path.join(app.getPath('userData'), 'src/client-dist/socket.io.js')) // Correction pour utiliser path.join pour une construction de chemin valide
     .then(() => console.log('downloaded file no issues...'))
     .catch((e) => console.error('error while downloading', e));
-  get('https://cdn.socket.io/4.4.1/socket.io.js.map', path.join(app.getPath('userData'), 'src/client-dist/socket.io.js.map')) // Correction pour utiliser path.join pour une construction de chemin valide
+    updateFile('https://cdn.socket.io/4.4.1/socket.io.js.map', path.join(app.getPath('userData'), 'src/client-dist/socket.io.js.map')) // Correction pour utiliser path.join pour une construction de chemin valide
     .then(() => console.log('downloaded file no issues...'))
     .catch((e) => console.error('error while downloading', e));
-  get('https://github.com/yt-dlp/yt-dlp/releases/download/2023.02.17/yt-dlp.exe', path.join(app.getPath('userData'), 'ytdlp.exe')) // Correction pour utiliser path.join pour une construction de chemin valide
+    updateFile('https://github.com/yt-dlp/yt-dlp/releases/download/2023.02.17/yt-dlp.exe', path.join(app.getPath('userData'), 'ytdlp.exe')) // Correction pour utiliser path.join pour une construction de chemin valide
     .then(() => console.log('downloaded file no issues...'))
     .catch((e) => console.error('error while downloading', e));
-    get('https://raw.githubusercontent.com/alphaleadership/youtube-public/refs/heads/main/nextgen/my-electron-app/src/views/index.ejs', path.join(app.getPath('userData'), 'views/index.ejs')) // Correction pour utiliser path.join pour une construction de chemin valide
+    updateFile('https://raw.githubusercontent.com/alphaleadership/youtube-public/refs/heads/main/nextgen/my-electron-app/src/views/index.ejs', path.join(app.getPath('userData'), 'views/index.ejs')) // Correction pour utiliser path.join pour une construction de chemin valide
     .then(() => console.log('downloaded file no issues...'))
     .catch((e) => console.error('error while downloading', e));
-    get('https://raw.githubusercontent.com/alphaleadership/youtube-public/refs/heads/main/nextgen/my-electron-app/src/views/view.ejs', path.join(app.getPath('userData'), 'views/view.ejs')) // Correction pour utiliser path.join pour une construction de chemin valide
+    updateFile('https://raw.githubusercontent.com/alphaleadership/youtube-public/refs/heads/main/nextgen/my-electron-app/src/views/view.ejs', path.join(app.getPath('userData'), 'views/view.ejs')) // Correction pour utiliser path.join pour une construction de chemin valide
     .then(() => console.log('downloaded file no issues...'))
     .catch((e) => console.error('error while downloading', e));
-    get('https://raw.githubusercontent.com/alphaleadership/youtube-public/refs/heads/main/nextgen/my-electron-app/src/renderer.js', path.join(app.getPath('userData'), 'src/renderer.js')) // Correction pour utiliser path.join pour une construction de chemin valide
+    updateFile('https://raw.githubusercontent.com/alphaleadership/youtube-public/refs/heads/main/nextgen/my-electron-app/src/renderer.js', path.join(app.getPath('userData'), 'src/renderer.js')) // Correction pour utiliser path.join pour une construction de chemin valide
     .then(() => console.log('downloaded file no issues...'))
     .catch((e) => console.error('error while downloading', e));
-    get('https://objects.githubusercontent.com/github-production-release-asset-2e65be/377430603/a758ee8f-227a-47cc-a403-ee3f8a294738?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=releaseassetproduction%2F20241227%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20241227T085320Z&X-Amz-Expires=300&X-Amz-Signature=89dc0be38ca0e4671c6161782712bf41954aa4b5999f8c95af7f97ab36545833&X-Amz-SignedHeaders=host&response-content-disposition=attachment%3B%20filename%3Dffmpeg-n7.1-latest-win64-gpl-7.1.zip&response-content-type=application%2Foctet-stream', path.join(app.getPath('userData'), 'f.zip')) // Correction pour utiliser path.join pour une construction de chemin valide
-    .then(() => console.log('downloaded file no issues...'))
-    .catch((e) => console.error('error while downloading', e));
+    
     //
   } catch (error) {
     
@@ -87,6 +85,27 @@ web.listen(8000, function () {
 
 //const download = require('./ytb');
 console.log('boot now');
+function updateFile(url, dest) {
+  const tempDest = `${dest}.tmp`;
+  return get(url, tempDest)
+    .then(() => {
+      const originalFile = fs.readFileSync(dest);
+      const newFile = fs.readFileSync(tempDest);
+      if (originalFile.equals(newFile)) {
+        fs.unlinkSync(tempDest);
+        return Promise.reject('File contents are the same');
+      } else {
+        fs.renameSync(tempDest, dest);
+        return Promise.resolve();
+      }
+    })
+    .catch((err) => {
+      fs.unlinkSync(tempDest);
+      return Promise.reject(err);
+    });
+}
+
+
 
 function get(url, dest) {
   return new Promise((resolve, reject) => {
