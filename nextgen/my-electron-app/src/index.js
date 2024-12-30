@@ -43,7 +43,7 @@ function build() {
     if (err) console.log(err);
   });
   try {
-    gupdateFile('https://cdn.socket.io/4.4.1/socket.io.js', path.join(app.getPath('userData'), 'src/client-dist/socket.io.js')) // Correction pour utiliser path.join pour une construction de chemin valide
+    updateFile('https://cdn.socket.io/4.4.1/socket.io.js', path.join(app.getPath('userData'), 'src/client-dist/socket.io.js')) // Correction pour utiliser path.join pour une construction de chemin valide
     .then(() => console.log('downloaded file no issues...'))
     .catch((e) => console.error('error while downloading', e));
     updateFile('https://cdn.socket.io/4.4.1/socket.io.js.map', path.join(app.getPath('userData'), 'src/client-dist/socket.io.js.map')) // Correction pour utiliser path.join pour une construction de chemin valide
@@ -64,7 +64,7 @@ function build() {
     
     //
   } catch (error) {
-    
+    console.log(error)
   }
 
  
@@ -100,7 +100,7 @@ function updateFile(url, dest) {
       }
     })
     .catch((err) => {
-      fs.unlinkSync(tempDest);
+     // fs.unlinkSync(tempDest);
       return Promise.reject(err);
     });
 }
@@ -138,7 +138,7 @@ web.get("/", function (req, res) {
 db.save()
 
 
-console.log(db.database)
+//console.log(db.database)
   res.render('index', {
     results: db.database
     
@@ -198,6 +198,7 @@ web.get("/video", function (req, res) {
   videoStream.pipe(res);
 });
 function createWindow() {
+  build()
   const mainWindow = new BrowserWindow({
     width: 800,
     height: 600,

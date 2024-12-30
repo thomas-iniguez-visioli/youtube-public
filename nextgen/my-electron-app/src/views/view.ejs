@@ -18,10 +18,15 @@
     </style>
   </head>
   <body>
-    <video id="videoPlayer" width="70%" controls autoplay muted="false">
+    <video id="videoPlayer" width="70%" controls autoplay >
       <source src="/video/?id=<%= code %>" type="video/mp4" />
     </video>
     <a href="/"> retour au menu principale </a>
     <a href="/delete?id=<%= code %>"> supprimée </a>
   </body>
+  <script>
+  document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('videoPlayer').muted = false;
+  });
+  </script>
 </html>
