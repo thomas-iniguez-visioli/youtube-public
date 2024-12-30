@@ -18,7 +18,7 @@
     </style>
   </head>
   <body>
-    <video id="videoPlayer" width="70%" controls autoplay >
+    <video id="videoPlayer" width="70%" controls autoplay=false >
       <source src="/video/?id=<%= code %>" type="video/mp4" />
     </video>
     <a href="/"> retour au menu principale </a>
@@ -27,6 +27,7 @@
   <script>
   document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('videoPlayer').muted = false;
+  document.getElementById('videoPlayer').play();
   });
   </script>
 </html>
