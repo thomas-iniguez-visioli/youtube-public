@@ -11,6 +11,28 @@ if (!fs.existsSync(path.join(__dirname))) { // Correction pour utiliser path.joi
 if (!fs.existsSync(path.join(app.getPath('userData'), "parsed.txt"))) { // Correction pour utiliser path.join pour une construction de chemin valide
   fs.writeFileSync(path.join(app.getPath('userData'), "parsed.txt"), "") // Correction pour utiliser path.join pour une construction de chemin valide
 }
+function extractUrls(text) {
+  const urlRegex = /https?:\/\/(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+/g;
+  return text.match(urlRegex) || [];
+}
+
+
+
+const download=(parameter)=>{
+  const command = `${app.getPath('userData')}\\ytdlp -vU --write-info-json --remux mp4 ${parameter} -f "bv*+ba/b" --write-playlist-metafiles --parse-metadata "playlist_title:.+ - (?P<folder_name>Videos|Shorts|Live)$" -o "${app.getPath('userData')}/file/%(channel|)s-%(folder_name|)s-%(title)s [%(id)s].%(ext)s" 
+`;
+    exec(command, (error, stdout, stderr) => {
+      if (error) {
+        msg=`exec error: ${error}`;
+        console.log(msg)
+        return msg;
+      }
+     msg=`stdout: ${stdout}`;
+      msg+=`stderr: ${stderr}`;
+      console.log(msg)
+    });
+    return msg
+}
 const web = express();
 const http = require('http').Server(web);
 const io = require('socket.io')(http);
@@ -148,6 +170,11 @@ db.save()
 })
 })
 web.get("/watch", function (req, res) {
+  if(db.getFile( req.query.id)==[]){
+    download(`https://www.youtube.com/watch?v=${req.query.id}`)
+  }
+  let link=extractUrls(require(path.join(app.getPath('userData'), 'file',db.getFile( req.query.id).fileName.replace(".mp4",".info.json"))).description)
+  fs.appendFileSync(path.join(app.getPath('userData'), "detected.txt"),link.join("\n"))
   console.log(req.query)
   res.render('view', {
     code: req.query.id,
@@ -217,20 +244,9 @@ function createWindow() {
 ipcMain.on('execute-command', (e, arg) => {
   const  parameter  = arg;
   console.log(arg)
-  var msg =""
+  var msg =download(parameter)
  
-    const command = `${app.getPath('userData')}\\ytdlp -vU --write-info-json --remux mp4 ${parameter} -f "bv*+ba/b" --write-playlist-metafiles --parse-metadata "playlist_title:.+ - (?P<folder_name>Videos|Shorts|Live)$" -o "${app.getPath('userData')}/file/%(channel|)s-%(folder_name|)s-%(title)s [%(id)s].%(ext)s" 
-`;
-    exec(command, (error, stdout, stderr) => {
-      if (error) {
-        msg=`exec error: ${error}`;
-        console.log(msg)
-        return ;
-      }
-     msg=`stdout: ${stdout}`;
-      msg+=`stderr: ${stderr}`;
-      console.log(msg)
-    });
+    
     return msg
   
 });

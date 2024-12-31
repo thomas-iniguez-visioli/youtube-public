@@ -11,9 +11,11 @@
         height: 100vh;
         background-color: rgb(14, 14, 14);
         display: flex;
+        flex-direction: column;
         margin: auto;
         align-items: center;
         justify-content: center;
+        color: #ffffff; /* Change la couleur du texte à blanc */
       }
     </style>
   </head>
@@ -21,14 +23,14 @@
     <video id="videoPlayer" width="70%" controls autoplay=false >
       <source src="/video/?id=<%= code %>" type="video/mp4" />
     </video>
-    <a href="/"> retour au menu principale </a>
-    <a href="/delete?id=<%= code %>"> supprimée </a>
-    <p><%= videodata.description%></p>
+    <a href="/" style="color: #ffffff;">Retour au menu principal</a>
+    <a href="/delete?id=<%= code %>" style="color: #ffffff;">Supprimer</a>
+    <p style="color: #ffffff;"><%= videodata.description%></p>
   </body>
   <script>
   document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('videoPlayer').muted = false;
-  document.getElementById('videoPlayer').play();
+    document.getElementById('videoPlayer').play();
   });
   </script>
 </html>
