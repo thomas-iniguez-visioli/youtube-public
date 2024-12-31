@@ -149,7 +149,8 @@ web.get("/watch", function (req, res) {
   res.render('view', {
     code: req.query.id,
     videos:db.database,
-    title:db.getFile( req.query.id).fileName
+    title:db.getFile( req.query.id).fileName,
+    videodata:require(path.join(app.getPath('userData'), 'file',db.getFile( req.query.id).fileName.replace(".mp4",".info.json")))
     
 });
 });
@@ -169,10 +170,10 @@ web.get("/video", function (req, res) {
   if (!range) {
     res.status(400).send("Requires Range header");
   }
-  console.log(db.getFile( req.query.id))
+ // console.log(db.getFile( req.query.id))
   const videoPath = path.join(base, db.getFile( req.query.id).fileName) // Correction pour utiliser path.join pour une construction de chemin valide
-  console.log(videoPath)
-  console.log(req.query.id)
+//  console.log(videoPath)
+ // console.log(req.query.id)
   const videoSize = fs.statSync(videoPath).size;
 
   const CHUNK_SIZE = 10 ** 6; // 1MB
@@ -215,7 +216,7 @@ ipcMain.on('execute-command', (e, arg) => {
   console.log(arg)
   var msg =""
  
-    const command = `${app.getPath('userData')}\\ytdlp -vU --remux mp4 ${parameter} -f "bv*+ba/b" --write-playlist-metafiles --parse-metadata "playlist_title:.+ - (?P<folder_name>Videos|Shorts|Live)$" -o "${app.getPath('userData')}/file/%(channel|)s-%(folder_name|)s-%(title)s [%(id)s].%(ext)s" 
+    const command = `${app.getPath('userData')}\\ytdlp -vU --write-info-json --remux mp4 ${parameter} -f "bv*+ba/b" --write-playlist-metafiles --parse-metadata "playlist_title:.+ - (?P<folder_name>Videos|Shorts|Live)$" -o "${app.getPath('userData')}/file/%(channel|)s-%(folder_name|)s-%(title)s [%(id)s].%(ext)s" 
 `;
     exec(command, (error, stdout, stderr) => {
       if (error) {
