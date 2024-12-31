@@ -5,7 +5,7 @@
   "main": "src/index.js",
   "scripts": {
     "start": "electron .",
-    "build": "tsc"
+    "build": "npx electron-builder"
   },
   "dependencies": {
     "ejs": "^3.1.10",
