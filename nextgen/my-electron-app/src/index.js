@@ -89,15 +89,18 @@ function updateFile(url, dest) {
   const tempDest = `${dest}.tmp`;
   return get(url, tempDest)
     .then(() => {
-      const originalFile = fs.readFileSync(dest);
-      const newFile = fs.readFileSync(tempDest);
-      if (originalFile.equals(newFile)) {
-        fs.unlinkSync(tempDest);
-        return Promise.reject('File contents are the same');
-      } else {
-        fs.renameSync(tempDest, dest);
-        return Promise.resolve();
-      }
+      if(fs.existsSync(dest)){const originalFile = fs.readFileSync(dest);
+        const newFile = fs.readFileSync(tempDest);
+        if (originalFile.equals(newFile)) {
+          fs.unlinkSync(tempDest);
+          return Promise.reject('File contents are the same');
+        } else {
+          
+        }}else{
+          fs.renameSync(tempDest, dest);
+          return Promise.resolve();
+        }
+      
     })
     .catch((err) => {
      // fs.unlinkSync(tempDest);
