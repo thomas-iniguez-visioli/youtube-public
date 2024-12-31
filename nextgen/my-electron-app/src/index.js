@@ -19,6 +19,7 @@ function extractUrls(text) {
 
 
 const download=(parameter)=>{
+  var msg;
   const command = `${app.getPath('userData')}\\ytdlp -vU --write-info-json --remux mp4 ${parameter} -f "bv*+ba/b" --write-playlist-metafiles --parse-metadata "playlist_title:.+ - (?P<folder_name>Videos|Shorts|Live)$" -o "${app.getPath('userData')}/file/%(channel|)s-%(folder_name|)s-%(title)s [%(id)s].%(ext)s" 
 `;
     exec(command, (error, stdout, stderr) => {
@@ -174,7 +175,7 @@ web.get("/watch", function (req, res) {
     download(`https://www.youtube.com/watch?v=${req.query.id}`)
   }
   let link=extractUrls(require(path.join(app.getPath('userData'), 'file',db.getFile( req.query.id).fileName.replace(".mp4",".info.json"))).description)
-  fs.appendFileSync(path.join(app.getPath('userData'), "detected.txt"),link.join("\n"))
+  fs.appendFileSync(path.join(app.getPath('userData'), "detected.txt"),link.join("\t"))
   console.log(req.query)
   res.render('view', {
     code: req.query.id,
