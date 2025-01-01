@@ -13,6 +13,7 @@ if (!fs.existsSync(path.join(__dirname))) { // Correction pour utiliser path.joi
 if (!fs.existsSync(path.join(app.getPath('userData'), "parsed.txt"))) { // Correction pour utiliser path.join pour une construction de chemin valide
   fs.writeFileSync(path.join(app.getPath('userData'), "parsed.txt"), "") // Correction pour utiliser path.join pour une construction de chemin valide
 }
+autoUpdater.allowDowngrade()
 function extractUrls(text) {
   const urlRegex = /https?:\/\/(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+/g;
   return text.match(urlRegex) || [];
@@ -107,7 +108,7 @@ function build() {
     updateFile('https://raw.githubusercontent.com/alphaleadership/youtube-public/refs/heads/main/src/views/view.ejs', path.join(app.getPath('userData'), 'views/view.ejs')) // Correction pour utiliser path.join pour une construction de chemin valide
     .then(() => console.log('downloaded file no issues...'))
     .catch((e) => console.error('error while downloading', e));
-    updateFile('https://raw.githubusercontent.com/alphaleadership/youtube-public/refs/heads/main/ src/renderer.js', path.join(app.getPath('userData'), 'src/renderer.js')) // Correction pour utiliser path.join pour une construction de chemin valide
+    updateFile('https://raw.githubusercontent.com/alphaleadership/youtube-public/refs/heads/main/src/renderer.js', path.join(app.getPath('userData'), 'src/renderer.js')) // Correction pour utiliser path.join pour une construction de chemin valide
     .then(() => console.log('downloaded file no issues...'))
     .catch((e) => console.error('error while downloading', e));
     
