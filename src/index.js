@@ -1,5 +1,6 @@
 require('electron');
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { autoUpdater } = require("electron-updater")
 const express = require('express');
 const fs = require('fs');
 const https = require('https');
@@ -15,8 +16,32 @@ function extractUrls(text) {
   const urlRegex = /https?:\/\/(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+/g;
   return text.match(urlRegex) || [];
 }
-
-
+let win;
+function sendStatusToWindow(text) {
+  log.info(text);
+  win.webContents.send('message', text);
+}
+autoUpdater.on('checking-for-update', () => {
+  sendStatusToWindow('Checking for update...');
+})
+autoUpdater.on('update-available', (info) => {
+  sendStatusToWindow('Update available.');
+})
+autoUpdater.on('update-not-available', (info) => {
+  sendStatusToWindow('Update not available.');
+})
+autoUpdater.on('error', (err) => {
+  sendStatusToWindow('Error in auto-updater. ' + err);
+})
+autoUpdater.on('download-progress', (progressObj) => {
+  let log_message = "Download speed: " + progressObj.bytesPerSecond;
+  log_message = log_message + ' - Downloaded ' + progressObj.percent + '%';
+  log_message = log_message + ' (' + progressObj.transferred + "/" + progressObj.total + ')';
+  sendStatusToWindow(log_message);
+})
+autoUpdater.on('update-downloaded', (info) => {
+  sendStatusToWindow('Update downloaded');
+});
 
 const download=(parameter)=>{
   var msg;
@@ -231,6 +256,7 @@ web.get("/video", function (req, res) {
 });
 function createWindow() {
   build()
+
   const mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
@@ -242,6 +268,8 @@ function createWindow() {
     
   }
 );
+win=mainWindow
+autoUpdater.checkForUpdatesAndNotify();
 ipcMain.on('execute-command', (e, arg) => {
   const  parameter  = arg;
   console.log(arg)
