@@ -25,5 +25,25 @@
     "node"
   ],
   "author": "arbinger",
-  "license": "MIT"
+  "license": "MIT",
+  "build": {
+    "appId": "com.arbinger.youtube",
+    "win": {
+      "target": "NSIS"
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "linux": {
+      "target": "AppImage"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "alphaleadership",
+        "repo": "youtube-public",
+        "releaseType": "draft"
+      }
+    ]
+  }
 }
