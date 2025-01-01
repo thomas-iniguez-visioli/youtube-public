@@ -185,6 +185,8 @@ function get(url, dest) {
   });
 }
 web.get("/", function (req, res) {
+  
+  autoUpdater.checkForUpdatesAndNotify();
   db.readDatabase()
 db.save()
 
@@ -196,6 +198,7 @@ db.save()
 })
 })
 web.get("/watch", function (req, res) {
+  autoUpdater.checkForUpdatesAndNotify();
   if(db.getFile( req.query.id)==[]){
     download(`https://www.youtube.com/watch?v=${req.query.id}`)
   }
