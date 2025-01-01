@@ -5,7 +5,7 @@
   "main": "src/index.js",
   "scripts": {
     "start": "electron .",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "npx electron-builder --publish always"
   },
   "dependencies": {
     "ejs": "^3.1.10",
