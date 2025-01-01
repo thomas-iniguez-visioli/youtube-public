@@ -29,16 +29,19 @@
   "build": {
     "appId": "com.arbinger.youtube",
     "win": {
-      "target": "NSIS"
+      "target": "NSIS",
+      "publish":"always"
     },
     "mac": {
-      "target": "dmg"
+      "target": "dmg",
+      "publish":"always"
     },
     "linux": {
-      "target": "AppImage"
+      "target": "AppImage",
+      "publish":"always"
     },
     "publish": [
-      {
+      { 
         "provider": "github",
         "owner": "alphaleadership",
         "repo": "youtube-public",
