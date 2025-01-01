@@ -30,15 +30,15 @@
     "appId": "com.arbinger.youtube",
     "win": {
       "target": "NSIS",
-      "publish":"always"
+      "publish": ["github"]
     },
     "mac": {
       "target": "dmg",
-      "publish":"always"
+      "publish": ["github"]
     },
     "linux": {
       "target": "AppImage",
-      "publish":"always"
+      "publish": ["github"]
     },
     "publish": [
       { 
