@@ -4,8 +4,7 @@
   "description": "youtube local",
   "main": "src/index.js",
   "scripts": {
-    "start": "electron .",
-    "build": "npx electron-builder --publish always"
+    "start": "electron ."
   },
   "dependencies": {
     "ejs": "^3.1.10",
