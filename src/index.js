@@ -70,7 +70,7 @@ const errorLogStream=fs.createWriteStream(path.join(app.getPath('userData'), "./
 web.use(morgan('combined', {stream: accessLogStream}));
 web.use(morgan('combined', {skip: function (req, res) { return res.statusCode < 400 }, stream: errorLogStream}));
 const d = require('./db.js');
-const { title } = require('process');
+
 const base = path.join(app.getPath('userData'), 'file'); // Correction pour utiliser path.join pour une construction de chemin valide
 
 web.set('view engine', 'ejs');
@@ -189,15 +189,20 @@ function get(url, dest) {
 web.get("/", function (req, res) {
   
   autoUpdater.checkForUpdatesAndNotify();
-  db.readDatabase()
-db.save()
+  db.readDatabase();
+  db.save();
 
+  // Algorithme de référencement simplifié
+  const database = db.database;
+  const referencement = database.map(item => {
+    const infoJson = require(path.join(app.getPath('userData'), 'file', item.fileName.replace(".mp4", ".info.json")));
+    const score = infoJson.view_count * 0.5 + infoJson.like_count * 0.3 + infoJson.comment_count * 0.2;
+    return { ...item, score };
+  }).sort((a, b) => b.score - a.score);
 
-//console.log(db.database)
   res.render('index', {
-    results: db.database
-    
-})
+    results: referencement
+  });
 })
 web.get("/watch", function (req, res) {
   autoUpdater.checkForUpdatesAndNotify();
