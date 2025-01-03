@@ -212,20 +212,25 @@ function updateFile(url, dest) {
   const tempDest = `${dest}.tmp`;
   return get(url, tempDest)
     .then(() => {
-      if(fs.existsSync(dest)){const originalFile = fs.readFileSync(dest);
-        const newFile = fs.readFileSync(tempDest);
-        if (originalFile.equals(newFile)) {
-          if(fs.existsSync(tempDest)){
-            fs.unlinkSync(tempDest);
-           } 
-          return Promise.reject('File contents are the same');
-        } else {
-          
-        }}else{
-          fs.unlinkSync(dest)
-          fs.renameSync(tempDest, dest);
-          return Promise.resolve();
-        }
+      if(fs.existsSync(tempDest)){
+        if(fs.existsSync(dest)){
+          const originalFile = fs.readFileSync(dest);
+          const newFile = fs.readFileSync(tempDest);
+          if (originalFile.equals(newFile)) {
+            if(fs.existsSync(tempDest)){
+              fs.unlinkSync(tempDest);
+             } 
+            return Promise.reject('File contents are the same');
+          } else {
+            
+          }}else{
+            fs.unlinkSync(dest)
+            fs.renameSync(tempDest, dest);
+            return Promise.resolve();
+          }
+      }
+      return Promise.resolve();
+     
       
     })
     .catch((err) => {
