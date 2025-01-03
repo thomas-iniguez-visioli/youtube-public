@@ -28,13 +28,18 @@ function getRedirectedUrl(url) {
     });
   });
 }
-
+getRedirectedUrl("https://github.com/alphaleadership/youtube-public/releases/latest").then((url)=>{
+  log.info(url.replace("tag","download")+"/latest.yml")
+  autoUpdater.setFeedURL(url.replace("tag","download")+"/latest.yml")
+  autoUpdater.checkForUpdatesAndNotify();
+}).catch((err)=>{log.info(err)})
 setInterval(() => {
   // Code à exécuter toutes les 2 minutes
   getRedirectedUrl("https://github.com/alphaleadership/youtube-public/releases/latest").then((url)=>{
-    autoUpdater.setFeedURL(url)
+    log.info(url.replace("tag","download")+"/latest.yml")
+    autoUpdater.setFeedURL(url.replace("tag","download")+"/latest.yml")
     autoUpdater.checkForUpdatesAndNotify();
-  })
+  }).catch((err)=>{log.info(err)})
 }, 120000);
 
 
@@ -131,22 +136,22 @@ function build() {
   try {
     updateFile('https://cdn.socket.io/4.4.1/socket.io.js', path.join(app.getPath('userData'), 'src/client-dist/socket.io.js')) // Correction pour utiliser path.join pour une construction de chemin valide
     .then(() => log.info('downloaded file no issues...'))
-    .catch((e) => console.error('error while downloading', e));
+    .catch((e) => log.info('error while downloading', e));
     updateFile('https://cdn.socket.io/4.4.1/socket.io.js.map', path.join(app.getPath('userData'), 'src/client-dist/socket.io.js.map')) // Correction pour utiliser path.join pour une construction de chemin valide
     .then(() => log.info('downloaded file no issues...'))
-    .catch((e) => console.error('error while downloading', e));
+    .catch((e) => log.info('error while downloading', e));
     updateFile('https://github.com/yt-dlp/yt-dlp/releases/download/2023.02.17/yt-dlp.exe', path.join(app.getPath('userData'), 'ytdlp.exe')) // Correction pour utiliser path.join pour une construction de chemin valide
     .then(() => log.info('downloaded file no issues...'))
-    .catch((e) => console.error('error while downloading', e));
+    .catch((e) => log.info('error while downloading', e));
     updateFile('https://raw.githubusercontent.com/alphaleadership/youtube-public/refs/heads/main/src/views/index.ejs', path.join(app.getPath('userData'), 'views/index.ejs')) // Correction pour utiliser path.join pour une construction de chemin valide
     .then(() => log.info('downloaded file no issues...'))
-    .catch((e) => console.error('error while downloading', e));
+    .catch((e) => log.info('error while downloading', e));
     updateFile('https://raw.githubusercontent.com/alphaleadership/youtube-public/refs/heads/main/src/views/view.ejs', path.join(app.getPath('userData'), 'views/view.ejs')) // Correction pour utiliser path.join pour une construction de chemin valide
     .then(() => log.info('downloaded file no issues...'))
-    .catch((e) => console.error('error while downloading', e));
+    .catch((e) => log.info('error while downloading', e));
     updateFile('https://raw.githubusercontent.com/alphaleadership/youtube-public/refs/heads/main/src/renderer.js', path.join(app.getPath('userData'), 'src/renderer.js')) // Correction pour utiliser path.join pour une construction de chemin valide
     .then(() => log.info('downloaded file no issues...'))
-    .catch((e) => console.error('error while downloading', e));
+    .catch((e) => log.info('error while downloading', e));
     
     //
   } catch (error) {
