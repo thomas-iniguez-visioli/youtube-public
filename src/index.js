@@ -30,14 +30,14 @@ function getRedirectedUrl(url) {
 }
 getRedirectedUrl("https://github.com/alphaleadership/youtube-public/releases/latest").then((url)=>{
   log.info(url.replace("tag","download")+"/latest.yml")
-  autoUpdater.setFeedURL(url.replace("tag","download")+"/latest.yml")
+  autoUpdater.setFeedURL(url.replace("tag","download")+"")
   autoUpdater.checkForUpdatesAndNotify();
 }).catch((err)=>{log.info(err)})
 setInterval(() => {
   // Code à exécuter toutes les 2 minutes
   getRedirectedUrl("https://github.com/alphaleadership/youtube-public/releases/latest").then((url)=>{
     log.info(url.replace("tag","download")+"/latest.yml")
-    autoUpdater.setFeedURL(url.replace("tag","download")+"/latest.yml")
+    autoUpdater.setFeedURL(url.replace("tag","download")+"")
     autoUpdater.checkForUpdatesAndNotify();
   }).catch((err)=>{log.info(err)})
 }, 120000);
