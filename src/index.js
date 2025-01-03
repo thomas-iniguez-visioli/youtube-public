@@ -183,13 +183,16 @@ function updateFile(url, dest) {
         } else {
           
         }}else{
+          fs.unlinkSync(dest)
           fs.renameSync(tempDest, dest);
           return Promise.resolve();
         }
       
     })
     .catch((err) => {
-     // fs.unlinkSync(tempDest);
+     if(fs.existsSync(tempDest)){
+      fs.unlinkSync(tempDest);
+     } 
       return Promise.reject(err);
     });
 }
