@@ -1,5 +1,5 @@
 require('electron');
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog,Menu } = require('electron');
 const { autoUpdater } = require("electron-updater")
 const express = require('express');
 const fs = require('fs');
@@ -14,6 +14,7 @@ if (!fs.existsSync(path.join(app.getPath('userData'), "parsed.txt"))) { // Corre
   fs.writeFileSync(path.join(app.getPath('userData'), "parsed.txt"), "") // Correction pour utiliser path.join pour une construction de chemin valide
 }
 autoUpdater.allowDowngrade=true
+log.info(autoUpdater)
 function extractUrls(text) {
   const urlRegex = /https?:\/\/(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+/g;
   return text.match(urlRegex) || [];
@@ -27,6 +28,7 @@ autoUpdater.on('checking-for-update', () => {
   sendStatusToWindow('Checking for update...');
 })
 autoUpdater.on('update-available', (info) => {
+  
   sendStatusToWindow('Update available.');
 })
 autoUpdater.on('update-not-available', (info) => {
@@ -39,6 +41,7 @@ autoUpdater.on('download-progress', (progressObj) => {
   let log_message = "Download speed: " + progressObj.bytesPerSecond;
   log_message = log_message + ' - Downloaded ' + progressObj.percent + '%';
   log_message = log_message + ' (' + progressObj.transferred + "/" + progressObj.total + ')';
+ 
   sendStatusToWindow(log_message);
 })
 autoUpdater.on('update-downloaded', (info) => {
@@ -46,6 +49,7 @@ autoUpdater.on('update-downloaded', (info) => {
 });
 
 const download=(parameter)=>{
+  fs.appendFileSync(path.join(app.getPath('userData'),'historic.txt'),`${parameter}\n`)
   var msg;
   const command = `${app.getPath('userData')}\\ytdlp -vU --write-info-json --remux mp4 ${parameter} -f "bv*+ba/b" --write-playlist-metafiles --parse-metadata "playlist_title:.+ - (?P<folder_name>Videos|Shorts|Live)$" -o "${app.getPath('userData')}/file/%(channel|)s-%(folder_name|)s-%(title)s [%(id)s].%(ext)s" 
 `;
@@ -132,6 +136,38 @@ db.save()
 web.listen(8000, function () {
   console.log('Listening on port 8000!');
 });
+let  promptResponse;
+ipcMain.on('prompt', function(eventRet, arg) {
+   promptResponse = null
+  var promptWindow = new BrowserWindow({
+    width: 200,
+    height: 100,
+    show: false,
+    resizable: false,
+    movable: false,
+    alwaysOnTop: true,
+    frame: false
+  })
+  arg.val = arg.val || ''
+  const promptHtml = '<label for="val">' + arg.title + '</label>\
+  <input id="val" value="' + arg.val + '" autofocus />\
+  <button onclick="require(\'electron\').ipcRenderer.send(\'prompt-response\', document.getElementById(\'val\').value);window.close()">Ok</button>\
+  <button onclick="window.close()">Cancel</button>\
+  <style>body {font-family: sans-serif;} button {float:right; margin-left: 10px;} label,input {margin-bottom: 10px; width: 100%; display:block;}</style>'
+  promptWindow.loadURL('data:text/html,' + promptHtml)
+  promptWindow.show()
+  promptWindow.on('closed', function() {
+    eventRet.returnValue = promptResponse
+    download(promptResponse)
+    promptWindow = null
+
+  })
+})
+ipcMain.on('prompt-response', function(event, arg) {
+  if (arg === ''){ arg = null }
+  promptResponse = arg
+  download(promptResponse)
+})
 
 //const download = require('./ytb');
 console.log('boot now');
@@ -211,7 +247,7 @@ web.get("/watch", function (req, res) {
   }
   let link=extractUrls(require(path.join(app.getPath('userData'), 'file',db.getFile( req.query.id).fileName.replace(".mp4",".info.json"))).description)
   fs.appendFileSync(path.join(app.getPath('userData'), "detected.txt"),link.join("\t"))
-  console.log(req.query)
+  //console.log(req.query)
   res.render('view', {
     code: req.query.id,
     videos:db.database,
@@ -221,7 +257,7 @@ web.get("/watch", function (req, res) {
 });
 });
 web.get("/delete", function (req, res) {
-  console.log(req.query)
+ // console.log(req.query)
   fs.rmSync(path.join(base, db.getFile( req.query.id).fileName))
   db.save()
   res.redirect("/")
@@ -266,7 +302,6 @@ web.get("/video", function (req, res) {
 });
 function createWindow() {
   build()
-
   const mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
@@ -275,9 +310,80 @@ function createWindow() {
       contextIsolation: true,
       enableRemoteModule: false,
     },
-    
-  }
-);
+  });
+
+  const menu = Menu.buildFromTemplate([
+    {
+      label: 'Fichier',
+      submenu: [
+        {
+          label: 'Télécharger une vidéo',
+          click() {
+            const { dialog } = require('electron');
+            console.log(dialog)
+         
+          }
+        },
+        { type: 'separator' },
+        { role: 'quit' }
+      ]
+    },
+    {
+      label: 'Édition',
+      submenu: [
+        { role: 'undo' },
+        { role: 'redo' },
+        { type: 'separator' },
+        { role: 'cut' },
+        { role: 'copy' },
+        { role: 'paste' },
+        { role: 'delete' },
+        { role: 'selectall' }
+      ]
+    },
+    {
+      label: 'Affichage',
+      submenu: [
+        { role: 'reload' },
+        { role: 'forcereload' },
+        { role: 'toggledevtools' },
+        { type: 'separator' },
+        { role: 'resetzoom' },
+        { role: 'zoomin' },
+        { role: 'zoomout' },
+        { type: 'separator' },
+        { role: 'togglefullscreen' }
+      ]
+    },
+    {
+      role: 'window',
+      label: 'Fenêtre',
+      submenu: [
+        { role: 'minimize' },
+        { role: 'close' }
+      ]
+    },
+    {
+      role: 'help',
+      label: 'Aide',
+      submenu: [
+        {
+          label: 'A propos de l\'application',
+          click() {
+            dialog.showMessageBox({
+              type: 'info',
+              icon: path.join(__dirname, 'assets/icon.png'),
+              title: 'A propos de l\'application',
+              message: 'Ceci est une application de téléchargement de vidéos.',
+              buttons: ['OK']
+            });
+          }
+        }
+      ]
+    }
+  ]);
+
+ // mainWindow.setMenu(menu);
 win=mainWindow
 autoUpdater.checkForUpdatesAndNotify();
 ipcMain.on('execute-command', (e, arg) => {

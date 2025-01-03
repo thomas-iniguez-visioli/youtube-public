@@ -26,7 +26,12 @@
     <input type="text" id="commandInput" name="commandInput" required>
     <button type="submit">Execute</button>
   </form>
-  <ul>
+  <form id="searchForm">
+    <label for="searchInput">Rechercher un titre:</label>
+    <input type="text" id="searchInput" name="searchInput" required>
+    <button type="submit">Rechercher</button>
+  </form>
+  <ul id="resultsList">
     <% results.forEach(function(result){ %>
     <a href="/watch?id=<%= result.yid %>">
       <img src="https://img.youtube.com/vi/<%=result.yid %>/hqdefault.jpg" alt="Thumbnail for YouTube video">
@@ -37,6 +42,18 @@
     </a>
     <% }); %>
   </ul>
+  <script>
+    const searchForm = document.getElementById('searchForm');
+    const resultsList = document.getElementById('resultsList');
+    const resultsHtml = resultsList.innerHTML;
+    searchForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const searchInput = document.getElementById('searchInput').value;
+      const filteredResultsHtml = resultsHtml.split('</a>').filter((result) => result.includes(searchInput.toLowerCase()));
+      const html = filteredResultsHtml.map((result) => result + '</a>').join('');
+      resultsList.innerHTML = html;
+    });
+  </script>
 </body>
 
 </html>
