@@ -7,13 +7,39 @@ const https = require('https');
 const path = require('path');
 const { exec } = require('child_process');
 const log=require("electron-log")
+
 if (!fs.existsSync(path.join(__dirname))) { // Correction pour utiliser path.join pour une construction de chemin valide
   fs.mkdirSync(path.join(__dirname)) // Correction pour utiliser path.join pour une construction de chemin valide
 }
 if (!fs.existsSync(path.join(app.getPath('userData'), "parsed.txt"))) { // Correction pour utiliser path.join pour une construction de chemin valide
   fs.writeFileSync(path.join(app.getPath('userData'), "parsed.txt"), "") // Correction pour utiliser path.join pour une construction de chemin valide
 }
-autoUpdater.allowDowngrade=true
+//autoUpdater.allowDowngrade=true
+function getRedirectedUrl(url) {
+  return new Promise((resolve, reject) => {
+    https.get(url, (res) => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        resolve(res.headers.location);
+      } else {
+        reject(new Error('No redirection found'));
+      }
+    }).on('error', (err) => {
+      reject(err);
+    });
+  });
+}
+
+setInterval(() => {
+  // Code à exécuter toutes les 2 minutes
+  getRedirectedUrl("https://github.com/alphaleadership/youtube-public/releases/latest").then((url)=>{
+    autoUpdater.setFeedURL(url)
+    autoUpdater.checkForUpdatesAndNotify();
+  })
+}, 120000);
+
+
+
+
 log.info(autoUpdater)
 function extractUrls(text) {
   const urlRegex = /https?:\/\/(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+/g;
