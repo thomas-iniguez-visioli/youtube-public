@@ -53,15 +53,21 @@ const download=(parameter)=>{
   var msg;
   const command = `${app.getPath('userData')}\\ytdlp -vU --write-info-json --remux mp4 ${parameter} -f "bv*+ba/b" --write-playlist-metafiles --parse-metadata "playlist_title:.+ - (?P<folder_name>Videos|Shorts|Live)$" -o "${app.getPath('userData')}/file/%(channel|)s-%(folder_name|)s-%(title)s [%(id)s].%(ext)s" 
 `;
-    exec(command, (error, stdout, stderr) => {
-      if (error) {
-        msg=`exec error: ${error}`;
-        console.log(msg)
-        return msg;
+    const child = require('child_process');
+    const childProcess = child.spawn(command, { shell: true });
+    childProcess.stdout.on('data', (data) => {
+      msg = `stdout: ${data}`;
+      log.info(msg);
+    });
+    childProcess.stderr.on('data', (data) => {
+      msg = `stderr: ${data}`;
+      log.info(msg);
+    });
+    childProcess.on('close', (code) => {
+      if (code !== 0) {
+        msg = `exec error: ${code}`;
+       log.info(msg);
       }
-     msg=`stdout: ${stdout}`;
-      msg+=`stderr: ${stderr}`;
-      console.log(msg)
     });
     return msg
 }
@@ -82,43 +88,43 @@ web.set('views', path.join(app.getPath('userData'), 'views'));
 
 function build() {
   fs.mkdir(path.join(app.getPath('userData'), "src/"), { recursive: true }, (err) => {
-    if (err) console.log(err);
+    if (err) log.info(err);
   });
   fs.mkdir(path.join(app.getPath('userData'), "src/client-dist"), { recursive: true }, (err) => {
-    if (err) console.log(err);
+    if (err) log.info(err);
   });
   fs.mkdir(path.join(app.getPath('userData'), 'views'), { recursive: true }, (err) => {
-    if (err) console.log(err);
+    if (err) log.info(err);
   });
   fs.mkdir(path.join(app.getPath('userData'), 'log'), { recursive: true }, (err) => {
-    if (err) console.log(err);
+    if (err) log.info(err);
   });
   fs.mkdir(base, { recursive: true }, (err) => {
-    if (err) console.log(err);
+    if (err) log.info(err);
   });
   try {
     updateFile('https://cdn.socket.io/4.4.1/socket.io.js', path.join(app.getPath('userData'), 'src/client-dist/socket.io.js')) // Correction pour utiliser path.join pour une construction de chemin valide
-    .then(() => console.log('downloaded file no issues...'))
+    .then(() => log.info('downloaded file no issues...'))
     .catch((e) => console.error('error while downloading', e));
     updateFile('https://cdn.socket.io/4.4.1/socket.io.js.map', path.join(app.getPath('userData'), 'src/client-dist/socket.io.js.map')) // Correction pour utiliser path.join pour une construction de chemin valide
-    .then(() => console.log('downloaded file no issues...'))
+    .then(() => log.info('downloaded file no issues...'))
     .catch((e) => console.error('error while downloading', e));
     updateFile('https://github.com/yt-dlp/yt-dlp/releases/download/2023.02.17/yt-dlp.exe', path.join(app.getPath('userData'), 'ytdlp.exe')) // Correction pour utiliser path.join pour une construction de chemin valide
-    .then(() => console.log('downloaded file no issues...'))
+    .then(() => log.info('downloaded file no issues...'))
     .catch((e) => console.error('error while downloading', e));
     updateFile('https://raw.githubusercontent.com/alphaleadership/youtube-public/refs/heads/main/src/views/index.ejs', path.join(app.getPath('userData'), 'views/index.ejs')) // Correction pour utiliser path.join pour une construction de chemin valide
-    .then(() => console.log('downloaded file no issues...'))
+    .then(() => log.info('downloaded file no issues...'))
     .catch((e) => console.error('error while downloading', e));
     updateFile('https://raw.githubusercontent.com/alphaleadership/youtube-public/refs/heads/main/src/views/view.ejs', path.join(app.getPath('userData'), 'views/view.ejs')) // Correction pour utiliser path.join pour une construction de chemin valide
-    .then(() => console.log('downloaded file no issues...'))
+    .then(() => log.info('downloaded file no issues...'))
     .catch((e) => console.error('error while downloading', e));
     updateFile('https://raw.githubusercontent.com/alphaleadership/youtube-public/refs/heads/main/src/renderer.js', path.join(app.getPath('userData'), 'src/renderer.js')) // Correction pour utiliser path.join pour une construction de chemin valide
-    .then(() => console.log('downloaded file no issues...'))
+    .then(() => log.info('downloaded file no issues...'))
     .catch((e) => console.error('error while downloading', e));
     
     //
   } catch (error) {
-    console.log(error)
+    log.info(error)
   }
 
  
@@ -127,14 +133,14 @@ function build() {
 try {
   
 } catch (error) {
-  console.log(error);
+  log.info(error);
 }
 build()
 const db = new d(base);
 db.readDatabase()
 db.save()
 web.listen(8000, function () {
-  console.log('Listening on port 8000!');
+  log.info('Listening on port 8000!');
 });
 let  promptResponse;
 ipcMain.on('prompt', function(eventRet, arg) {
@@ -170,7 +176,7 @@ ipcMain.on('prompt-response', function(event, arg) {
 })
 
 //const download = require('./ytb');
-console.log('boot now');
+log.info('boot now');
 function updateFile(url, dest) {
   const tempDest = `${dest}.tmp`;
   return get(url, tempDest)
@@ -250,7 +256,7 @@ web.get("/watch", function (req, res) {
   }
   let link=extractUrls(require(path.join(app.getPath('userData'), 'file',db.getFile( req.query.id).fileName.replace(".mp4",".info.json"))).description)
   fs.appendFileSync(path.join(app.getPath('userData'), "detected.txt"),link.join("\t"))
-  //console.log(req.query)
+  //log.info(req.query)
   res.render('view', {
     code: req.query.id,
     videos:db.database,
@@ -260,7 +266,7 @@ web.get("/watch", function (req, res) {
 });
 });
 web.get("/delete", function (req, res) {
- // console.log(req.query)
+ // log.info(req.query)
   fs.rmSync(path.join(base, db.getFile( req.query.id).fileName))
   db.save()
   res.redirect("/")
@@ -275,10 +281,10 @@ web.get("/video", function (req, res) {
   if (!range) {
     res.status(400).send("Requires Range header");
   }
- // console.log(db.getFile( req.query.id))
+ // log.info(db.getFile( req.query.id))
   const videoPath = path.join(base, db.getFile( req.query.id).fileName) // Correction pour utiliser path.join pour une construction de chemin valide
-//  console.log(videoPath)
- // console.log(req.query.id)
+//  log.info(videoPath)
+ // log.info(req.query.id)
   const videoSize = fs.statSync(videoPath).size;
 
   const CHUNK_SIZE = 10 ** 6; // 1MB
@@ -323,7 +329,7 @@ function createWindow() {
           label: 'Télécharger une vidéo',
           click() {
             const { dialog } = require('electron');
-            console.log(dialog)
+            log.info(dialog)
          
           }
         },
@@ -391,7 +397,7 @@ win=mainWindow
 autoUpdater.checkForUpdatesAndNotify();
 ipcMain.on('execute-command', (e, arg) => {
   const  parameter  = arg;
-  console.log(arg)
+  log.info(arg)
   var msg =download(parameter)
  
     
