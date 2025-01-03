@@ -215,7 +215,9 @@ function updateFile(url, dest) {
       if(fs.existsSync(dest)){const originalFile = fs.readFileSync(dest);
         const newFile = fs.readFileSync(tempDest);
         if (originalFile.equals(newFile)) {
-          fs.unlinkSync(tempDest);
+          if(fs.existsSync(tempDest)){
+            fs.unlinkSync(tempDest);
+           } 
           return Promise.reject('File contents are the same');
         } else {
           
