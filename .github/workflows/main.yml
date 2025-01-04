@@ -32,3 +32,8 @@ jobs:
           # release the app after building
           release: ${{ startsWith(github.ref, 'refs/tags/') }}
           args: "--publish always"
+      - name: Publish release
+        uses: thomas-iniguez-visioli/publish-release@v0.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
