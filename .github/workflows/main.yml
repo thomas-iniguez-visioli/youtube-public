@@ -1,7 +1,9 @@
 name: Build/release
 
 on: push
-
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
 jobs:
   release:
     runs-on: ${{ matrix.os }}
