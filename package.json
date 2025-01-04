@@ -4,7 +4,8 @@
   "description": "youtube local",
   "main": "src/index.js","private":true,
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "test":"echo reussi"
   },
   "dependencies": {
     "ejs": "^3.1.10",
