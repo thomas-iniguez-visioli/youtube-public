@@ -1,6 +1,6 @@
 {
   "name": "youtube",
-  "version": "1.0.5-16",
+  "version": "1.0.5-17",
   "description": "youtube local",
   "main": "src/index.js",
   "private": true,
@@ -55,10 +55,7 @@
         "provider": "github",
         "owner": "alphaleadership",
         "repo": "youtube-public",
-        "releaseType": 
-        
-          "draft"
-        
+        "releaseType": "draft"
       }
     ]
   }
