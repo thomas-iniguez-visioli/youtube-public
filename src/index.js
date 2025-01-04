@@ -314,6 +314,7 @@ web.get("/renderer.js",function (req, res) {
   res.send(fs.readFileSync(path.join(app.getPath('userData'), "./src/renderer.js"))) // Correction pour utiliser path.join pour une construction de chemin valide
 })
 web.get("/video", function (req, res) {
+  log.info(req.query)  
   // Ensure there is a range given for the video
   const range = req.headers.range;
   if (!range) {
