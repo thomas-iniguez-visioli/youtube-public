@@ -315,6 +315,7 @@ web.get("/renderer.js",function (req, res) {
 })
 web.get("/video", function (req, res) {
   log.info(req.query)  
+  log.info(req.headers)
   // Ensure there is a range given for the video
   const range = req.headers.range;
   if (!range) {
