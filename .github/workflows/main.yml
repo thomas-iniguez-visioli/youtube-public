@@ -36,4 +36,6 @@ jobs:
         uses: thomas-iniguez-visioli/publish-release@0.0.3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          id: "test"
         
