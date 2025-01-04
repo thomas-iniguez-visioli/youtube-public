@@ -55,10 +55,10 @@
         "provider": "github",
         "owner": "alphaleadership",
         "repo": "youtube-public",
-        "releaseType": [
-          "release",
+        "releaseType": 
+        
           "draft"
-        ]
+        
       }
     ]
   }
