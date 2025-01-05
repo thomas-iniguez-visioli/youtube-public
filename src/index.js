@@ -82,7 +82,7 @@ autoUpdater.on('update-downloaded', (info) => {
 const download=(parameter)=>{
   fs.appendFileSync(path.join(app.getPath('userData'),'historic.txt'),`${parameter}\n`)
   var msg;
-  const command = `${app.getPath('userData')}\\ytdlp -vU --write-info-json --write-comments --remux mp4 ${parameter} -f "bv*+ba/b" --write-playlist-metafiles --parse-metadata "playlist_title:.+ - (?P<folder_name>Videos|Shorts|Live)$" -o "${app.getPath('userData')}/file/%(channel|)s-%(folder_name|)s-%(title)s [%(id)s].%(ext)s" 
+  const command = `${app.getPath('userData')}\\ytdlp -vU --write-info-json  --remux mp4 ${parameter} -f "bv*+ba/b" --write-playlist-metafiles --parse-metadata "playlist_title:.+ - (?P<folder_name>Videos|Shorts|Live)$" -o "${app.getPath('userData')}/file/%(channel|)s-%(folder_name|)s-%(title)s [%(id)s].%(ext)s" 
 `;
     const child = require('child_process');
     const childProcess = child.spawn(command, { shell: true });
@@ -105,7 +105,7 @@ const download=(parameter)=>{
 const downloaddata=(parameter)=>{
   fs.appendFileSync(path.join(app.getPath('userData'),'historic.txt'),`${parameter}\n`)
   var msg;
-  const command = `${app.getPath('userData')}\\ytdlp -vU --write-info-json --simulate --write-comments --remux mp4 ${parameter} -f "bv*+ba/b" --write-playlist-metafiles --parse-metadata "playlist_title:.+ - (?P<folder_name>Videos|Shorts|Live)$" -o "${app.getPath('userData')}/file/%(channel|)s-%(folder_name|)s-%(title)s [%(id)s].%(ext)s" 
+  const command = `${app.getPath('userData')}\\ytdlp -vU --write-info-json --simulate  --no-clean-info-json --remux mp4 ${parameter} -f "bv*+ba/b" --write-playlist-metafiles --parse-metadata "playlist_title:.+ - (?P<folder_name>Videos|Shorts|Live)$" -o "${app.getPath('userData')}/file/%(channel|)s-%(folder_name|)s-%(title)s [%(id)s].%(ext)s -J" 
 `;
     const child = require('child_process');
     const childProcess = child.spawn(command, { shell: true });
@@ -193,8 +193,8 @@ build()
 const db = new d(base);
 db.readDatabase()
 db.save()
-db.database.map((item)=>{
-  downloaddata(require(path.join(base,item.fileName.replace(".mp4",".info.json"))).webpage_url)
+db.database.forEach((item)=>{
+  
 })
 web.listen(8000, function () {
   log.info('Listening on port 8000!');
@@ -318,6 +318,7 @@ web.get("/watch", function (req, res) {
   if(db.getFile( req.query.id)==[]){
     download(`https://www.youtube.com/watch?v=${req.query.id}`)
   }
+  downloaddata(require(path.join(base,db.getFile( req.query.id).fileName.replace(".mp4",".info.json"))).webpage_url)
   let link=extractUrls(require(path.join(app.getPath('userData'), 'file',db.getFile( req.query.id).fileName.replace(".mp4",".info.json"))).description)
   fs.appendFileSync(path.join(app.getPath('userData'), "detected.txt"),link.join("\t"))
   //log.info(req.query)
