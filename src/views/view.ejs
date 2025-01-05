@@ -38,5 +38,8 @@
     document.getElementById('videoPlayer').muted = false;
     document.getElementById('videoPlayer').play();
   });
+  document.getElementById('videoPlayer').addEventListener('ended', function() {
+    window.location.href = "/watch?id=" + "<%= nextVideo.id %>";
+  });
   </script>
 </html>

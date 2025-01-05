@@ -322,12 +322,17 @@ web.get("/watch", function (req, res) {
   let link=extractUrls(require(path.join(app.getPath('userData'), 'file',db.getFile( req.query.id).fileName.replace(".mp4",".info.json"))).description)
   fs.appendFileSync(path.join(app.getPath('userData'), "detected.txt"),link.join("\t"))
   //log.info(req.query)
+  const referencement = database.map(item => {
+    const infoJson = require(path.join(app.getPath('userData'), 'file', item.fileName.replace(".mp4", ".info.json")));
+    const score = infoJson.view_count * 0.5 + infoJson.like_count * 0.3 + infoJson.comment_count * 0.2;
+    return { ...item, score };
+  }).sort((a, b) => b.score - a.score);
   res.render('view', {
     code: req.query.id,
     videos:db.database,
     title:db.getFile( req.query.id).fileName,
-    videodata:require(path.join(app.getPath('userData'), 'file',db.getFile( req.query.id).fileName.replace(".mp4",".info.json")))
-    
+    videodata:require(path.join(app.getPath('userData'), 'file',db.getFile( req.query.id).fileName.replace(".mp4",".info.json"))),
+    nextVideo: referencement[referencement.findIndex(item => item.id === req.query.id) + 1]
 });
 });
 web.get("/delete", function (req, res) {
