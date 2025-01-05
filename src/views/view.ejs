@@ -26,6 +26,12 @@
     <a href="/" style="color: #ffffff;">Retour au menu principal</a>
     <a href="/delete?id=<%= code %>" style="color: #ffffff;">Supprimer</a>
     <p style="color: #ffffff;"><%= videodata.description%></p>
+  <div style="margin-top: 20px;">
+    <h2>Commentaires</h2>
+    <% videodata.comments.forEach(comment => { %>
+      <p style="color: #ffffff;"><%= comment %></p>
+    <% }); %>
+  </div>
   </body>
   <script>
   document.addEventListener('DOMContentLoaded', function() {
