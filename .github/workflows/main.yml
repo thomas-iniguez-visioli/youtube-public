@@ -1,7 +1,9 @@
 name: Build/release
 
 on: push
-
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
 jobs:
   release:
     runs-on: ${{ matrix.os }}
@@ -29,4 +31,19 @@ jobs:
           # If the commit is tagged with a version (e.g. "v1.0.0"),
           # release the app after building
           release: ${{ startsWith(github.ref, 'refs/tags/') }}
+        
           args: "--publish always"
+  publish:
+    runs-on: ${{ matrix.os }}
+    needs: release
+    strategy:
+      matrix:
+        os: [ windows-latest]
+    steps:
+      - name: Publish release
+        uses: thomas-iniguez-visioli/publish-release@0.0.4
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          id: "test"
+        
