@@ -263,7 +263,7 @@ function updateFile(url, dest) {
      if(fs.existsSync(tempDest)){
       fs.unlinkSync(tempDest);
      } 
-      return Promise.reject(err);
+      return Promise.reject(dest +":"+err);
     });
 }
 
