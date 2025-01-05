@@ -250,12 +250,12 @@ function updateFile(url, dest) {
           } else {
             
           }}else{
-            fs.unlinkSync(dest)
+            //fs.unlinkSync(dest)
             fs.renameSync(tempDest, dest);
             return Promise.resolve();
           }
-      }
-      return Promise.resolve();
+      }else{return updateFile(url,dest)}
+      //return Promise.resolve();
      
       
     })
