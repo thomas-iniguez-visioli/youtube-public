@@ -39,7 +39,7 @@
       ]
     },
     "mac": {
-      "target": ["dmg","portable"],
+      "target": "dmg",
       "publish": [
         "github"
       ]
