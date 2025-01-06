@@ -332,7 +332,7 @@ web.get("/watch", function (req, res) {
     videos:db.database,
     title:db.getFile( req.query.id).fileName,
     videodata:require(path.join(app.getPath('userData'), 'file',db.getFile( req.query.id).fileName.replace(".mp4",".info.json"))),
-    nextVideo: referencement[referencement.findIndex(item => item.id === req.query.id) + 1]
+    nextVideo: referencement.findIndex(item => item.id === req.query.id) === referencement.length - 1 ? referencement[0] : referencement[referencement.findIndex(item => item.id === req.query.id) + 1]
 });
 });
 web.get("/delete", function (req, res) {
