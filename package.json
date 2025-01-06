@@ -45,7 +45,7 @@
       ]
     },
     "linux": {
-      "target": ["AppImage","portable"],
+      "target": "AppImage",
       "publish": [
         "github"
       ]
