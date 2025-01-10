@@ -1,4 +1,4 @@
-require('./sentry.js');
+//require('./sentry.js');
 const Sentry = require("@sentry/node");
 const { app, BrowserWindow, ipcMain, dialog,Menu } = require('electron');
 const { autoUpdater } = require("electron-updater")
@@ -9,7 +9,7 @@ const path = require('path');
 const { exec } = require('child_process');
 const log=require("electron-log")
 const eSentry=require("@sentry/electron/main")
-
+console.log(eSentry)
 eSentry.init({
   dsn: "https://57d94ff25757e9923caba57bf1f2869f@o4508613620924416.ingest.de.sentry.io/4508619258331216",
 });
@@ -34,14 +34,14 @@ function getRedirectedUrl(url) {
   });
 }
 getRedirectedUrl("https://github.com/alphaleadership/youtube-public/releases/latest").then((url)=>{
-  log.info(url.replace("tag","download")+"/latest.yml")
+ // log.info(url.replace("tag","download")+"/latest.yml")
   autoUpdater.setFeedURL(url.replace("tag","download")+"")
   autoUpdater.checkForUpdatesAndNotify();
 }).catch((err)=>{log.info(err)})
 setInterval(() => {
   // Code à exécuter toutes les 2 minutes
   getRedirectedUrl("https://github.com/alphaleadership/youtube-public/releases/latest").then((url)=>{
-    log.info(url.replace("tag","download")+"/latest.yml")
+  //  log.info(url.replace("tag","download")+"/latest.yml")
     autoUpdater.setFeedURL(url.replace("tag","download")+"")
     autoUpdater.checkForUpdatesAndNotify();
   }).catch((err)=>{log.info(err)})
@@ -50,14 +50,14 @@ setInterval(() => {
 
 
 
-log.info(autoUpdater)
+//log.info(autoUpdater)
 function extractUrls(text) {
   const urlRegex = /https?:\/\/(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+/g;
   return text.match(urlRegex) || [];
 }
 let win;
 function sendStatusToWindow(text) {
-  log.info(text);
+//  log.info(text);
   win.webContents.send('message', text);
 }
 autoUpdater.on('checking-for-update', () => {
@@ -93,16 +93,16 @@ const download=(parameter)=>{
     const childProcess = child.spawn(command, { shell: true });
     childProcess.stdout.on('data', (data) => {
       msg = `stdout: ${data}`;
-      log.info(msg);
+    //  log.info(msg);
     });
     childProcess.stderr.on('data', (data) => {
       msg = `stderr: ${data}`;
-      log.info(msg);
+   //   log.info(msg);
     });
     childProcess.on('close', (code) => {
       if (code !== 0) {
         msg = `exec error: ${code}`;
-       log.info(msg);
+   //    log.info(msg);
       }
     });
     return msg
@@ -116,22 +116,22 @@ const downloaddata=(parameter)=>{
     const childProcess = child.spawn(command, { shell: true });
     childProcess.stdout.on('data', (data) => {
       msg = `stdout: ${data}`;
-      log.info(msg);
+   //   log.info(msg);
     });
     childProcess.stderr.on('data', (data) => {
       msg = `stderr: ${data}`;
-      log.info(msg);
+   //   log.info(msg);
     });
     childProcess.on('close', (code) => {
       if (code !== 0) {
         msg = `exec error: ${code}`;
-       log.info(msg);
+     //  log.info(msg);
       }
     });
     return msg
 }
 const web = express();  
-Sentry.setupExpressErrorHandler(web);
+eSentry.setupExpressErrorHandler(web);
 const http = require('http').Server(web);
 const io = require('socket.io')(http);
 const morgan = require('morgan');
