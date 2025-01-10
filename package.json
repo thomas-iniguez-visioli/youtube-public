@@ -9,6 +9,10 @@
     "test": "echo reussi"
   },
   "dependencies": {
+    "@sentry/cli": "^2.40.0",
+    "@sentry/electron": "^5.9.0",
+    "@sentry/node": "^8.48.0",
+    "@sentry/profiling-node": "^8.48.0",
     "ejs": "^3.1.10",
     "electron-log": "^5.2.4",
     "electron-updater": "^6.3.9",

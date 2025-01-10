@@ -1,4 +1,5 @@
-require('electron');
+require('./sentry.js');
+const Sentry = require("@sentry/node");
 const { app, BrowserWindow, ipcMain, dialog,Menu } = require('electron');
 const { autoUpdater } = require("electron-updater")
 const express = require('express');
@@ -7,7 +8,11 @@ const https = require('https');
 const path = require('path');
 const { exec } = require('child_process');
 const log=require("electron-log")
+const eSentry=require("@sentry/electron")
 
+eSentry.init({
+  dsn: "https://57d94ff25757e9923caba57bf1f2869f@o4508613620924416.ingest.de.sentry.io/4508619258331216",
+});
 if (!fs.existsSync(path.join(__dirname))) { // Correction pour utiliser path.join pour une construction de chemin valide
   fs.mkdirSync(path.join(__dirname)) // Correction pour utiliser path.join pour une construction de chemin valide
 }
@@ -125,7 +130,8 @@ const downloaddata=(parameter)=>{
     });
     return msg
 }
-const web = express();
+const web = express();  
+Sentry.setupExpressErrorHandler(web);
 const http = require('http').Server(web);
 const io = require('socket.io')(http);
 const morgan = require('morgan');
