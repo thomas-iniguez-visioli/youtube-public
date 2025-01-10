@@ -309,6 +309,7 @@ web.get("/", function (req, res) {
 
   // Algorithme de référencement simplifié
   const database = db.database;
+  console.log(database)
   const referencement = database.map(item => {
     const infoJson = require(path.join(app.getPath('userData'), 'file', item.fileName.replace(".mp4", ".info.json")));
     const score = infoJson.view_count * 0.5 + infoJson.like_count * 0.3 + infoJson.comment_count * 0.2;
@@ -328,6 +329,7 @@ web.get("/watch", function (req, res) {
   let link=extractUrls(require(path.join(app.getPath('userData'), 'file',db.getFile( req.query.id).fileName.replace(".mp4",".info.json"))).description)
   fs.appendFileSync(path.join(app.getPath('userData'), "detected.txt"),link.join("\t"))
   //log.info(req.query)
+  const database = db.database;
   const referencement = database.map(item => {
     const infoJson = require(path.join(app.getPath('userData'), 'file', item.fileName.replace(".mp4", ".info.json")));
     const score = infoJson.view_count * 0.5 + infoJson.like_count * 0.3 + infoJson.comment_count * 0.2;
