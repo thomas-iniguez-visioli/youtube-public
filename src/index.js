@@ -1,4 +1,4 @@
-require('./sentry.js');
+//require('./sentry.js');
 const Sentry = require("@sentry/node");
 const { app, BrowserWindow, ipcMain, dialog,Menu } = require('electron');
 const { autoUpdater } = require("electron-updater")
@@ -8,7 +8,7 @@ const https = require('https');
 const path = require('path');
 const { exec } = require('child_process');
 const log=require("electron-log")
-const eSentry=require("@sentry/electron")
+const eSentry=require("@sentry/electron/main")
 
 eSentry.init({
   dsn: "https://57d94ff25757e9923caba57bf1f2869f@o4508613620924416.ingest.de.sentry.io/4508619258331216",
@@ -131,7 +131,7 @@ const downloaddata=(parameter)=>{
     return msg
 }
 const web = express();  
-Sentry.setupExpressErrorHandler(web);
+//Sentry.setupExpressErrorHandler(web);
 const http = require('http').Server(web);
 const io = require('socket.io')(http);
 const morgan = require('morgan');
