@@ -7,12 +7,14 @@ const fs = require('fs');
 const https = require('https');
 const path = require('path');
 const { exec } = require('child_process');
-const log=require("electron-log")
+const log={}
+ log.info=(t)=>{return t}
 const eSentry=require("@sentry/electron/main")
 console.log(eSentry)
 eSentry.init({
   dsn: "https://57d94ff25757e9923caba57bf1f2869f@o4508613620924416.ingest.de.sentry.io/4508619258331216",
 });
+eSentry.profiler.startProfiler()
 if (!fs.existsSync(path.join(__dirname))) { // Correction pour utiliser path.join pour une construction de chemin valide
   fs.mkdirSync(path.join(__dirname)) // Correction pour utiliser path.join pour une construction de chemin valide
 }
@@ -44,7 +46,9 @@ setInterval(() => {
   //  log.info(url.replace("tag","download")+"/latest.yml")
     autoUpdater.setFeedURL(url.replace("tag","download")+"")
     autoUpdater.checkForUpdatesAndNotify();
-  }).catch((err)=>{log.info(err)})
+  }).catch((err)=>{
+    //log.info(err)
+  })
 }, 120000);
 
 
@@ -148,19 +152,19 @@ web.set('views', path.join(app.getPath('userData'), 'views'));
 
 function build() {
   fs.mkdir(path.join(app.getPath('userData'), "src/"), { recursive: true }, (err) => {
-    if (err) log.info(err);
+    if (err){} //log.info(err);
   });
   fs.mkdir(path.join(app.getPath('userData'), "src/client-dist"), { recursive: true }, (err) => {
-    if (err) log.info(err);
+    if (err) {}
   });
   fs.mkdir(path.join(app.getPath('userData'), 'views'), { recursive: true }, (err) => {
-    if (err) log.info(err);
+    if (err) {}
   });
   fs.mkdir(path.join(app.getPath('userData'), 'log'), { recursive: true }, (err) => {
-    if (err) log.info(err);
+    if (err) {}
   });
   fs.mkdir(base, { recursive: true }, (err) => {
-    if (err) log.info(err);
+    if (err) {}
   });
   try {
     updateFile('https://cdn.socket.io/4.4.1/socket.io.js', path.join(app.getPath('userData'), 'src/client-dist/socket.io.js')) // Correction pour utiliser path.join pour une construction de chemin valide
@@ -309,7 +313,7 @@ web.get("/", function (req, res) {
 
   // Algorithme de référencement simplifié
   const database = db.database;
-  console.log(database)
+ // console.log(database)
   const referencement = database.map(item => {
     const infoJson = require(path.join(app.getPath('userData'), 'file', item.fileName.replace(".mp4", ".info.json")));
     const score = infoJson.view_count * 0.5 + infoJson.like_count * 0.3 + infoJson.comment_count * 0.2;
