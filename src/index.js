@@ -1,4 +1,4 @@
-//require('./sentry.js');
+require('./sentry.js');
 const Sentry = require("@sentry/node");
 const { app, BrowserWindow, ipcMain, dialog,Menu } = require('electron');
 const { autoUpdater } = require("electron-updater")
@@ -131,7 +131,7 @@ const downloaddata=(parameter)=>{
     return msg
 }
 const web = express();  
-//Sentry.setupExpressErrorHandler(web);
+Sentry.setupExpressErrorHandler(web);
 const http = require('http').Server(web);
 const io = require('socket.io')(http);
 const morgan = require('morgan');
