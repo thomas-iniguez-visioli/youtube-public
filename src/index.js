@@ -8,8 +8,10 @@ eSentry.profiler.startProfiler()
 const { app, BrowserWindow, ipcMain, dialog,Menu } = require('electron');
 const { autoUpdater } = require("electron-updater")
 const express = require('express');
+const RateLimit = require('express-rate-limit');
 const fs = require('fs');
 const https = require('https');
+
 const path = require('path');
 const { exec } = require('child_process');
 const log={}
