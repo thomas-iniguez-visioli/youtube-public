@@ -93,25 +93,33 @@ autoUpdater.on('update-downloaded', (info) => {
 const download=(parameter)=>{
   fs.appendFileSync(path.join(app.getPath('userData'),'historic.txt'),`${parameter}\n`)
   var msg;
-  const command = `${app.getPath('userData')}\\ytdlp -vU --write-info-json  --remux mp4 ${parameter} -f "bv*+ba/b" --write-playlist-metafiles --parse-metadata "playlist_title:.+ - (?P<folder_name>Videos|Shorts|Live)$" -o "${app.getPath('userData')}/file/%(channel|)s-%(folder_name|)s-%(title)s [%(id)s].%(ext)s" 
-`;
-    const child = require('child_process');
-    const childProcess = child.spawn(command, { shell: true });
-    childProcess.stdout.on('data', (data) => {
-      msg = `stdout: ${data}`;
+  const args = [
+    '-vU',
+    '--write-info-json',
+    '--remux', 'mp4',
+    parameter,
+    '-f', 'bv*+ba/b',
+    '--write-playlist-metafiles',
+    '--parse-metadata', 'playlist_title:.+ - (?P<folder_name>Videos|Shorts|Live)$',
+    '-o', `${app.getPath('userData')}/file/%(channel|)s-%(folder_name|)s-%(title)s [%(id)s].%(ext)s`
+  ];
+  const child = require('child_process');
+  const childProcess = child.spawn(`${app.getPath('userData')}\\ytdlp`, args);
+  childProcess.stdout.on('data', (data) => {
+    msg = `stdout: ${data}`;
     //  log.info(msg);
-    });
-    childProcess.stderr.on('data', (data) => {
-      msg = `stderr: ${data}`;
-   //   log.info(msg);
-    });
-    childProcess.on('close', (code) => {
-      if (code !== 0) {
-        msg = `exec error: ${code}`;
-   //    log.info(msg);
-      }
-    });
-    return msg
+  });
+  childProcess.stderr.on('data', (data) => {
+    msg = `stderr: ${data}`;
+    //   log.info(msg);
+  });
+  childProcess.on('close', (code) => {
+    if (code !== 0) {
+      msg = `exec error: ${code}`;
+      //    log.info(msg);
+    }
+  });
+  return msg
 }
 const downloaddata=(parameter)=>{
   fs.appendFileSync(path.join(app.getPath('userData'),'historic.txt'),`${parameter}\n`)
