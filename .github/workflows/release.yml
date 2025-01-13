@@ -41,4 +41,4 @@ jobs:
       
           
       - name: RSS Build
-        run: npx np prerelease
+        run: npx np prerelease --any-branch
