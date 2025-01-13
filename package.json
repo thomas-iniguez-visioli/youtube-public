@@ -5,7 +5,7 @@
   "main": "src/index.js",
   "private": true,
   "scripts": {
-    "build": "npx np prerelease ",
+    "build": "npx electron-rebuild -y  ",
     "start": "electron .",
     "test": "echo reusso"
   },
