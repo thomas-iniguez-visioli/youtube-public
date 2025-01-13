@@ -37,8 +37,8 @@ jobs:
             cache: 'npm'
       
       - name: Install dependencies
-        run: npm i
+        run: npm i -g np 
       
           
-      - name: RSS Build
-        run: npx np prerelease --any-branch
+      - name: update
+        run:  np prerelease --any-branch
