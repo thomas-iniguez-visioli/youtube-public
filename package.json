@@ -7,7 +7,7 @@
   "scripts": {
     "build": "npx electron-rebuild -y ",
     "start": "electron .",
-    "test": "echo reussi"
+    "test": "git config user.name np"
   },
   "dependencies": {
     "@sentry/cli": "^2.40.0",
