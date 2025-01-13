@@ -30,15 +30,4 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
           MERGE_LABELS: "automerge,dependencies"
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-            node-version: 23.6.0
-            cache: 'npm'
-      
-      - name: Install dependencies
-        run: npm i -g np 
-      
-          
-      - name: update
-        run:  np prerelease --any-branch --branch main
+     
