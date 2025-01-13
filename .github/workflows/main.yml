@@ -1,6 +1,8 @@
 name: Build/release
 
-on: push
+on: 
+  push:
+    branches: main
 concurrency:
   group: "pages"
   cancel-in-progress: true
