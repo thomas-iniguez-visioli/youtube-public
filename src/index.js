@@ -10,6 +10,12 @@ const { autoUpdater } = require("electron-updater")
 const express = require('express');
 const RateLimit = require('express-rate-limit');
 const fs = require('fs');
+
+// set up rate limiter: maximum of 100 requests per 15 minutes
+const limiter = RateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // max 100 requests per windowMs
+});
 const https = require('https');
 
 const path = require('path');
@@ -369,7 +375,7 @@ web.get("/renderer.js",function (req, res) {
   res.statusCode=200
   res.send(fs.readFileSync(path.join(app.getPath('userData'), "./src/renderer.js"))) // Correction pour utiliser path.join pour une construction de chemin valide
 })
-web.get("/video", function (req, res) {
+web.get("/video", limiter, function (req, res) {
   log.info(req.query)  
   log.info(req.headers)
   // Ensure there is a range given for the video
