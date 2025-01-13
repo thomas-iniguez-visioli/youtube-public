@@ -5,9 +5,9 @@
   "main": "src/index.js",
   "private": true,
   "scripts": {
-    "build": "npx electron-rebuild -y ",
+    "build": "npx np prerelease ",
     "start": "electron .",
-    "test": "git config user.name np"
+    "test": "echo reusso"
   },
   "dependencies": {
     "@sentry/cli": "^2.40.0",
