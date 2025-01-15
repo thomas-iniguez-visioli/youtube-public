@@ -1,10 +1,10 @@
-//require('./sentry.js');
+require('./sentry.js');
 const Sentry = require("@sentry/node");
 const eSentry=require("@sentry/electron/main")
-/*eSentry.init({
+eSentry.init({
   dsn: "https://57d94ff25757e9923caba57bf1f2869f@o4508613620924416.ingest.de.sentry.io/4508619258331216",
-});*/
-//eSentry.profiler.startProfiler()
+});
+eSentry.profiler.startProfiler()
 const { app, BrowserWindow, ipcMain, dialog,Menu } = require('electron');
 const {autoUpdater}=require("electron-updater")//require("./autoupdate")
 const express = require('express');
@@ -50,7 +50,7 @@ function getRedirectedUrl(url) {
   });
 }
 getRedirectedUrl("https://github.com/alphaleadership/youtube-public/releases/latest").then((url)=>{
- // log.info(url.replace("tag","download")+"/latest.yml")
+ log.info(url.replace("tag","download")+"/latest.yml")
   autoUpdater.setFeedURL(url.replace("tag","download")+"")
   autoUpdater.checkForUpdatesAndNotify();
 }).catch((err)=>{log.info(err)})
