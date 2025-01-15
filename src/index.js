@@ -6,7 +6,7 @@ const eSentry=require("@sentry/electron/main")
 });*/
 //eSentry.profiler.startProfiler()
 const { app, BrowserWindow, ipcMain, dialog,Menu } = require('electron');
-const { autoUpdater } = require("electron-updater")
+const {autoUpdater}=require("electron-updater")//require("./autoupdate")
 const express = require('express');
 const RateLimit = require('express-rate-limit');
 const fs = require('fs');
