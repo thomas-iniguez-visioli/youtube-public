@@ -1,10 +1,10 @@
 //require('./sentry.js');
 const Sentry = require("@sentry/node");
 const eSentry=require("@sentry/electron/main")
-eSentry.init({
+/*eSentry.init({
   dsn: "https://57d94ff25757e9923caba57bf1f2869f@o4508613620924416.ingest.de.sentry.io/4508619258331216",
-});
-eSentry.profiler.startProfiler()
+});*/
+//eSentry.profiler.startProfiler()
 const { app, BrowserWindow, ipcMain, dialog,Menu } = require('electron');
 const { autoUpdater } = require("electron-updater")
 const express = require('express');
@@ -21,7 +21,11 @@ const https = require('https');
 const path = require('path');
 const { exec } = require('child_process');
 const log={}
- log.info=(t)=>{return t}
+ log.info=(t)=>{
+  console.log(t)
+  eSentry.captureMessage(t);
+  //eSentry.send
+  return t}
 
 console.log(eSentry)
 
@@ -138,22 +142,22 @@ const downloaddata=(parameter)=>{
     const childProcess = child.spawn(command, { shell: true });
     childProcess.stdout.on('data', (data) => {
       msg = `stdout: ${data}`;
-   //   log.info(msg);
+      log.info(msg);
     });
     childProcess.stderr.on('data', (data) => {
       msg = `stderr: ${data}`;
-   //   log.info(msg);
+      log.info(msg);
     });
     childProcess.on('close', (code) => {
       if (code !== 0) {
         msg = `exec error: ${code}`;
-     //  log.info(msg);
+      log.info(msg);
       }
     });
     return msg
 }
 const web = express();  
-eSentry.setupExpressErrorHandler(web);
+//eSentry.setupExpressErrorHandler(web);
 const http = require('http').Server(web);
 const io = require('socket.io')(http);
 const morgan = require('morgan');
@@ -346,6 +350,8 @@ web.get("/watch", function (req, res) {
   autoUpdater.checkForUpdatesAndNotify();
   if(db.getFile( req.query.id)==[]){
     download(`https://www.youtube.com/watch?v=${req.query.id}`)
+    res.redirect("/")
+    return 
   }
   downloaddata(require(path.join(base,db.getFile( req.query.id).fileName.replace(".mp4",".info.json"))).webpage_url)
   let link=extractUrls(require(path.join(app.getPath('userData'), 'file',db.getFile( req.query.id).fileName.replace(".mp4",".info.json"))).description)
@@ -362,7 +368,7 @@ web.get("/watch", function (req, res) {
     videos:db.database,
     title:db.getFile( req.query.id).fileName,
     videodata:require(path.join(app.getPath('userData'), 'file',db.getFile( req.query.id).fileName.replace(".mp4",".info.json"))),
-    nextVideo: referencement.findIndex(item => item.id === req.query.id) === referencement.length - 1 ? referencement[0] : referencement[referencement.findIndex(item => item.id === req.query.id) + 1]
+    nextVideo: referencement.findIndex(item => item.yid === req.query.id) === referencement.length - 1 ? referencement[0] : referencement[referencement.findIndex(item => item.yid === req.query.id) + 1]
 });
 });
 web.get("/delete", function (req, res) {
