@@ -1,4 +1,4 @@
-require('./sentry.js');
+//require('./sentry.js');
 const Sentry = require("@sentry/node");
 const eSentry=require("@sentry/electron/main")
 eSentry.init({
@@ -6,6 +6,8 @@ eSentry.init({
 });
 eSentry.profiler.startProfiler()
 const { app, BrowserWindow, ipcMain, dialog,Menu } = require('electron');
+const e=require("electron")
+
 const {autoUpdater}=require("electron-updater")//require("./autoupdate")
 const express = require('express');
 const RateLimit = require('express-rate-limit');
@@ -328,7 +330,7 @@ function get(url, dest) {
   });
 }
 web.get("/", function (req, res) {
-  
+  fs.writeFileSync("./log.txt",app.getPath('exe').split(path.sep)[app.getPath('exe').split(path.sep).length-1])
   autoUpdater.checkForUpdatesAndNotify();
   db.readDatabase();
   db.save();
@@ -419,6 +421,7 @@ web.get("/video", limiter, function (req, res) {
 });
 function createWindow() {
   build()
+  
   const mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
@@ -428,7 +431,7 @@ function createWindow() {
       enableRemoteModule: false,
     },
   });
-
+  
   const menu = Menu.buildFromTemplate([
     {
       label: 'Fichier',
