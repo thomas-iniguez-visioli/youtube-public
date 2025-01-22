@@ -284,7 +284,10 @@ function updateFile(url, dest) {
           } else {
             
           }}else{
-            //fs.unlinkSync(dest)
+            if(fs.existsSync(dest)){
+              fs.unlinkSync(dest)
+            }
+            
             fs.renameSync(tempDest, dest);
             return Promise.resolve();
           }
