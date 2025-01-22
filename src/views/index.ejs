@@ -29,7 +29,7 @@
   <form id="searchForm">
     <label for="searchInput">Rechercher un titre:</label>
     <input type="text" id="searchInput" name="searchInput" required>
-    <% let tags = results.flatMap(result => result.tag); %>
+    <% let tags = results.flatMap(result => result.tags); %>
     <% tags = [...new Set(tags)]; %>
     <% tags.forEach(function(tag){ %>
     <label for="tagInput"><input type="checkbox" id="tagInput" name="tagInput" value="<%= tag %>"> <%= tag %></label>
@@ -42,7 +42,7 @@
     <a href="/watch?id=<%= result.yid %>">
       <img src="https://img.youtube.com/vi/<%=result.yid %>/hqdefault.jpg" alt="Thumbnail for YouTube video">
       <p><%=result.fileName %></p>
-      <% result.tag.forEach(function(tag){ %>
+      <% result.tags.forEach(function(tag){ %>
 <p id ="tag "><%= tag %></p>
         <% }); %>
     </a>
