@@ -34,7 +34,7 @@
     <% tags.forEach(function(tag){ %>
     <label for="tagInput"><input type="checkbox" id="tagInput" name="tagInput" value="<%= tag %>"> <%= tag %></label>
     <% }); %>
-    <input type="text" id="tagInput" name="tagInput" required>
+    <input type="text" id="tagInput" name="tagInput" >
     <button type="submit">Rechercher</button>
   </form>
   <ul id="resultsList">
