@@ -28,7 +28,7 @@
   </form>
   <form id="searchForm">
     <label for="searchInput">Rechercher un titre:</label>
-    <input type="text" id="searchInput" name="searchInput" required>
+    <input type="text" id="searchInput" name="searchInput" >
     <% let tags = results.flatMap(result => result.tags); %>
     <% tags = [...new Set(tags)]; %>
     <% tags.forEach(function(tag){ %>
@@ -55,7 +55,7 @@
     const searchForm = document.getElementById('searchForm');
     const resultsList = document.getElementById('resultsList');
     const resultsHtml = resultsList.innerHTML;
-    searchForm.addEventListener('submit', (e) => {
+while(true){
       e.preventDefault();
       const searchInput = document.getElementById('searchInput').value;
       const tagInputs = document.querySelectorAll('input[name="tagInput"]:checked');
@@ -68,7 +68,7 @@
       });
       const html = filteredResultsHtml.map((result) => result + '</a>').join('');
       resultsList.innerHTML = html;
-    });
+    };
   </script>
   <!--Start of Tawk.to Script-->
 <script type="text/javascript">
