@@ -145,6 +145,7 @@ class FileDatabase {
         const file = this.database.find(file => file.yid === uuid);
         if (file) {
             file.tags.push(tag);
+            file.tags=[...new Set(file.tags)]
             this.saveDatabase(); // Sauvegarde la base de données après ajout d'un tag
         }
     }

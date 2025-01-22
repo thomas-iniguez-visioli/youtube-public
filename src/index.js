@@ -344,6 +344,7 @@ web.get("/", function (req, res) {
  // console.log(database)
   const referencement = database.map(item => {
     const infoJson = require(path.join(app.getPath('userData'), 'file', item.fileName.replace(".mp4", ".info.json")));
+    db.addTag(infoJson.display_id,infoJson.uploader)
     const score = infoJson.view_count * 0.5 + infoJson.like_count * 0.3 + infoJson.comment_count * 0.2;
     return { ...item, score };
   }).sort((a, b) => b.score - a.score);
@@ -383,7 +384,7 @@ web.post("/tag", function (req, res) {
   const videoData = db.getFile(videoId);
   if (videoData) {
     if (!videoData.tags.includes(tag)) {
-      videoData.tags.push(tag);
+      db.addTag(videoId,tag)
       db.save();
       res.send(`Tag "${tag}" added to video ${videoId}`);
     } else {

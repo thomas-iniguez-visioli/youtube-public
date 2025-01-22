@@ -29,7 +29,11 @@
   <form id="searchForm">
     <label for="searchInput">Rechercher un titre:</label>
     <input type="text" id="searchInput" name="searchInput" required>
-    <label for="tagInput">Filtrer par tag:</label>
+    <% let tags = results.flatMap(result => result.tag); %>
+    <% tags = [...new Set(tags)]; %>
+    <% tags.forEach(function(tag){ %>
+    <label for="tagInput"><input type="checkbox" id="tagInput" name="tagInput" value="<%= tag %>"> <%= tag %></label>
+    <% }); %>
     <input type="text" id="tagInput" name="tagInput" required>
     <button type="submit">Rechercher</button>
   </form>
@@ -39,7 +43,7 @@
       <img src="https://img.youtube.com/vi/<%=result.yid %>/hqdefault.jpg" alt="Thumbnail for YouTube video">
       <p><%=result.fileName %></p>
       <% result.tag.forEach(function(tag){ %>
-<p><%= result.yid %></p>
+<p id ="tag "><%= tag %></p>
         <% }); %>
     </a>
     <a href="/delete?id=<%= result.yid %>">
@@ -54,10 +58,13 @@
     searchForm.addEventListener('submit', (e) => {
       e.preventDefault();
       const searchInput = document.getElementById('searchInput').value;
-      const tagInput = document.getElementById('tagInput').value;
+      const tagInputs = document.querySelectorAll('input[name="tagInput"]:checked');
+      const tagValues = Array.from(tagInputs).map(input => input.value.toLowerCase());
       const filteredResultsHtml = resultsHtml.split('</a>').filter((result) => {
+        const pTags = result.match(/<p id="tag ">(.*?)<\/p>/g);
+        const tags = pTags ? pTags.map(tag => tag.replace(/<p id="tag ">(.*?)<\/p>/, '$1')) : [];
         return result.includes(searchInput.toLowerCase()) && 
-        (tagInput === '' || result.includes(tagInput.toLowerCase()));
+        (tagValues.length === 0 || tagValues.every(tag => tags.includes(tag)));
       });
       const html = filteredResultsHtml.map((result) => result + '</a>').join('');
       resultsList.innerHTML = html;
