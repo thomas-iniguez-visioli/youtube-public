@@ -29,6 +29,8 @@
   <form id="searchForm">
     <label for="searchInput">Rechercher un titre:</label>
     <input type="text" id="searchInput" name="searchInput" required>
+    <label for="tagInput">Filtrer par tag:</label>
+    <input type="text" id="tagInput" name="tagInput" required>
     <button type="submit">Rechercher</button>
   </form>
   <ul id="resultsList">
@@ -36,6 +38,9 @@
     <a href="/watch?id=<%= result.yid %>">
       <img src="https://img.youtube.com/vi/<%=result.yid %>/hqdefault.jpg" alt="Thumbnail for YouTube video">
       <p><%=result.fileName %></p>
+      <% result.tag.forEach(function(tag){ %>
+<p><%= result.yid %></p>
+        <% }); %>
     </a>
     <a href="/delete?id=<%= result.yid %>">
       <p>supprimée</p>
@@ -49,7 +54,11 @@
     searchForm.addEventListener('submit', (e) => {
       e.preventDefault();
       const searchInput = document.getElementById('searchInput').value;
-      const filteredResultsHtml = resultsHtml.split('</a>').filter((result) => result.includes(searchInput.toLowerCase()));
+      const tagInput = document.getElementById('tagInput').value;
+      const filteredResultsHtml = resultsHtml.split('</a>').filter((result) => {
+        return result.includes(searchInput.toLowerCase()) && 
+        (tagInput === '' || result.includes(tagInput.toLowerCase()));
+      });
       const html = filteredResultsHtml.map((result) => result + '</a>').join('');
       resultsList.innerHTML = html;
     });

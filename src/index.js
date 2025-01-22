@@ -77,7 +77,7 @@ function extractUrls(text) {
 }
 let win;
 function sendStatusToWindow(text) {
-//  log.info(text);
+  log.info(text);
   win.webContents.send('message', text);
 }
 autoUpdater.on('checking-for-update', () => {
@@ -294,6 +294,7 @@ function updateFile(url, dest) {
       
     })
     .catch((err) => {
+      sendStatusToWindow(err)
      if(fs.existsSync(tempDest)){
       fs.unlinkSync(tempDest);
      } 
@@ -373,6 +374,24 @@ web.get("/watch", function (req, res) {
     nextVideo: referencement.findIndex(item => item.yid === req.query.id) === referencement.length - 1 ? referencement[0] : referencement[referencement.findIndex(item => item.yid === req.query.id) + 1]
 });
 });
+web.post("/tag", function (req, res) {
+  const videoId = req.body.videoId;
+  const tag = req.body.tag;
+  const videoData = db.getFile(videoId);
+  if (videoData) {
+    if (!videoData.tags.includes(tag)) {
+      videoData.tags.push(tag);
+      db.save();
+      res.send(`Tag "${tag}" added to video ${videoId}`);
+    } else {
+      res.send(`Tag "${tag}" already exists for video ${videoId}`);
+    }
+  } else {
+    res.status(404).send(`Video ${videoId} not found`);
+  }
+});
+
+
 web.get("/delete", function (req, res) {
  // log.info(req.query)
   fs.rmSync(path.join(base, db.getFile( req.query.id).fileName))

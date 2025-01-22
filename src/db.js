@@ -3,8 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const app = require('electron').app;
 const userDataPath = app.getPath('userData');
-const parsedFilePath = path.join(userDataPath, 'parsed.txt');
-const parse = fs.readFileSync(parsedFilePath).toString().split("\n")
+const databaseFilePath = path.join(userDataPath, 'database.json');
 const regex = /\[(.*?)\]/;
 const getid = (nam) => {
     let input = nam
@@ -41,7 +40,8 @@ const parser = (array) => {
             retour.push({
                 fileName: data[0],
                 fileUuid: data[1],
-                yid: data[2]
+                yid: data[2],
+                tags: [] // Ajout d'un champ tags vide pour chaque entrée
             })
         }
        
@@ -53,8 +53,11 @@ class FileDatabase {
     // La fonction constructeur de la classe prend en paramètre le chemin du dossier contenant les fichiers
     constructor(directoryPath) {
         this.directoryPath = directoryPath;
-        this.database = parser(parse).filter((f) => f.fileName)
-
+        this.database = [];
+        this.loadDatabase(); // Charge la base de données JSON au démarrage
+        if (this.database.length === 0) {
+            this.createDatabase(); // Crée la base de données si elle est vide
+        }
     }
     search(query) {
        // Recherchez les entrées qui correspondent à la requête
@@ -77,7 +80,9 @@ class FileDatabase {
                    if (id) {
                        this.database.push({
                            fileName: item,
-                           fileUuid: `https://www.youtube.com/watch?v=${id[1]}`.replace(":",'_'), yid: require(this.directoryPath+"/"+item.replace(".mp4",".info.json")).display_id
+                           fileUuid: `https://www.youtube.com/watch?v=${id[1]}`.replace(":",'_'), 
+                           yid: require(this.directoryPath+"/"+item.replace(".mp4",".info.json")).display_id,
+                           tags: [] // Ajout d'un champ tags vide pour chaque nouvelle entrée
                        })
                    }
                }
@@ -87,6 +92,7 @@ class FileDatabase {
            
         })
         console.log(this.database)
+        this.saveDatabase(); // Sauvegarde la base de données JSON après chaque lecture
     }
     save() {
         let data = []
@@ -94,8 +100,8 @@ class FileDatabase {
             this.database=this.database.filter((item)=>{return fs.existsSync(path.join(userDataPath, 'file',item.fileName))})
         
         }
-       this.database.map((item) => { data.push(`${item.fileName}:${item.fileUuid}:${item.yid}`) })
-        fs.writeFileSync(parsedFilePath, data.join("\n"))
+       this.database.map((item) => { data.push(`${item.fileName}:${item.fileUuid}:${item.yid}:${item.tags.join(",")}`) })
+        fs.writeFileSync(databaseFilePath, JSON.stringify(this.database));
     }
     getFile(uuid) {
         return this.database.filter(file => file.yid === uuid)[0]
@@ -114,5 +120,46 @@ class FileDatabase {
 
         // Retournez la liste des UUID
         return uuids;
+    }
+
+    // Charge la base de données JSON
+    loadDatabase() {
+        if (fs.existsSync(databaseFilePath)) {
+            this.database = JSON.parse(fs.readFileSync(databaseFilePath));
+        }
+    }
+
+    // Sauvegarde la base de données JSON
+    saveDatabase() {
+        fs.writeFileSync(databaseFilePath, JSON.stringify(this.database));
+    }
+
+    // Crée la base de données si elle est vide
+    createDatabase() {
+        this.database = [];
+        fs.writeFileSync(databaseFilePath, JSON.stringify(this.database));
+    }
+
+    // Ajoute un tag à un fichier spécifié par son UUID
+    addTag(uuid, tag) {
+        const file = this.database.find(file => file.yid === uuid);
+        if (file) {
+            file.tags.push(tag);
+            this.saveDatabase(); // Sauvegarde la base de données après ajout d'un tag
+        }
+    }
+
+    // Retirer un tag d'un fichier spécifié par son UUID
+    removeTag(uuid, tag) {
+        const file = this.database.find(file => file.yid === uuid);
+        if (file) {
+            file.tags = file.tags.filter(t => t !== tag);
+            this.saveDatabase(); // Sauvegarde la base de données après retrait d'un tag
+        }
+    }
+
+    // Récupère les fichiers qui ont un tag spécifique
+    getByTag(tag) {
+        return this.database.filter(file => file.tags.includes(tag));
     }
 }

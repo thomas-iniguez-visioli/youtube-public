@@ -31,6 +31,12 @@
     <% videodata.comments.forEach(comment => { %>
       <p style="color: #ffffff;"><%= comment %></p>
     <% }); %>
+  <form action="/tag" method="post">
+    <label for="tagInput">Ajouter un tag:</label>
+    <input type="text" id="tagInput" name="tag" required>
+    <input type="hidden" name="videoId" value="<%= code %>">
+    <button type="submit">Taguer</button>
+  </form>
   </div>
   </body>
   <script>
