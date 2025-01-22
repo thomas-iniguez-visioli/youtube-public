@@ -297,7 +297,12 @@ function updateFile(url, dest) {
             fs.renameSync(tempDest, dest);
             return Promise.resolve();
           }
-      }else{return updateFile(url,dest)}
+      }else{
+        if(fs.existsSync(tempDest)){
+          fs.unlinkSync(tempDest);
+         } 
+        return updateFile(url,dest)
+      }
       //return Promise.resolve();
      
       
@@ -309,6 +314,7 @@ function updateFile(url, dest) {
      } 
       return Promise.reject(dest +":"+err);
     });
+
 }
 
 
