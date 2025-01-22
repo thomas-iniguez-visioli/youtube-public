@@ -270,6 +270,9 @@ ipcMain.on('prompt-response', function(event, arg) {
 log.info('boot now');
 function updateFile(url, dest) {
   const tempDest = `${dest}.tmp`;
+  if(fs.existsSync(dest)){
+    fs.unlinkSync(dest)
+  }
   return get(url, tempDest)
     .then(() => {
       if(fs.existsSync(tempDest)){
