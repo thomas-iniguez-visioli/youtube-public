@@ -282,8 +282,14 @@ function updateFile(url, dest) {
              } 
             return Promise.reject('File contents are the same');
           } else {
+            if(fs.existsSync(dest)){
+              fs.unlinkSync(dest)
+            }
             
-          }}else{
+            fs.renameSync(tempDest, dest);
+            return Promise.resolve();
+          }}
+          else{
             if(fs.existsSync(dest)){
               fs.unlinkSync(dest)
             }
