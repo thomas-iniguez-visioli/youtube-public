@@ -394,6 +394,7 @@ web.get("/watch", function (req, res) {
 });
 });
 web.post("/tag", function (req, res) {
+  console.log(req.body)
   const videoId = req.body.videoId;
   const tag = req.body.tag;
   const videoData = db.getFile(videoId);

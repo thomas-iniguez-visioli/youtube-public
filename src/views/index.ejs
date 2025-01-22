@@ -55,35 +55,35 @@
     const searchForm = document.getElementById('searchForm');
     const resultsList = document.getElementById('resultsList');
     const resultsHtml = resultsList.innerHTML;
-while(true){
-     // e.preventDefault();
-      setTimeout(() => {
+    const tagInputs = document.querySelectorAll('input[name="tagInput"]');
+    tagInputs.forEach(tagInput => {
+      tagInput.addEventListener('input', function() {
         const searchInput = document.getElementById('searchInput').value;
-        const tagInputs = document.querySelectorAll('input[name="tagInput"]:checked');
-        const tagValues = Array.from(tagInputs).map(input => input.value.toLowerCase());
+        const tagValues = Array.from(tagInputs).filter(input => input.checked).map(input => input.value.toLowerCase());
         const filteredResultsHtml = resultsHtml.split('</a>').filter((result) => {
-          const pTags = result.match(/<p id="tag ">(.*?)<\/p>/g);
-          const tags = pTags ? pTags.map(tag => tag.replace(/<p id="tag ">(.*?)<\/p>/, '$1')) : [];
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(result, 'text/html');
+          const pTags = Array.from(doc.querySelectorAll('p[id="tag "]'));
+          const tags = pTags ? pTags.map(tag => tag.textContent) : [];
           return result.includes(searchInput.toLowerCase()) && 
           (tagValues.length === 0 || tagValues.every(tag => tags.includes(tag)));
         });
         const html = filteredResultsHtml.map((result) => result + '</a>').join('');
         resultsList.innerHTML = html;
-      }, 10000);
-     
-    };
+      });
+    });
   </script>
   <!--Start of Tawk.to Script-->
 <script type="text/javascript">
-  var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
-  (function(){
-  var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
-  s1.async=true;
-  s1.src='https://embed.tawk.to/673f4ae72480f5b4f5a1dbce/1id7jp68o';
-  s1.charset='UTF-8';
-  s1.setAttribute('crossorigin','*');
-  s0.parentNode.insertBefore(s1,s0);
-  })();
+    var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
+    (function(){
+    var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
+    s1.async=true;
+    s1.src='https://embed.tawk.to/673f4ae72480f5b4f5a1dbce/1id7jp68o';
+    s1.charset='UTF-8';
+    s1.setAttribute('crossorigin','*');
+    s0.parentNode.insertBefore(s1,s0);
+    })();
   </script>
   <!--End of Tawk.to Script-->
 </body>
