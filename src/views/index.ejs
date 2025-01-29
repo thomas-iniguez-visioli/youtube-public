@@ -64,9 +64,9 @@
           const parser = new DOMParser();
           const doc = parser.parseFromString(result, 'text/html');
           const pTags = Array.from(doc.querySelectorAll('p[id="tag "]'));
-          const tags = pTags ? pTags.map(tag => tag.textContent) : [];
-          return result.includes(searchInput.toLowerCase()) && 
-          (tagValues.length === 0 || tagValues.every(tag => tags.includes(tag)));
+          const tags = pTags ? pTags.map(tag => tag.textContent.toLowerCase()) : [];
+          return result.includes(searchInput.toLowerCase()) || 
+          (tagValues.length > 0 && tagValues.some(tag => tags.includes(tag)));
         });
         const html = filteredResultsHtml.map((result) => result + '</a>').join('');
         resultsList.innerHTML = html;

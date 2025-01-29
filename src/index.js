@@ -1,13 +1,13 @@
 //require('./sentry.js');
-const Sentry = require("@sentry/node");
+/*const Sentry = require("@sentry/node");
 const eSentry=require("@sentry/electron/main")
 eSentry.init({
   dsn: "https://57d94ff25757e9923caba57bf1f2869f@o4508613620924416.ingest.de.sentry.io/4508619258331216",
-});
-eSentry.profiler.startProfiler()
+});*/
+//eSentry.profiler.startProfiler()
 const { app, BrowserWindow, ipcMain, dialog,Menu } = require('electron');
 const e=require("electron")
-
+var booted=false
 const {autoUpdater}=require("electron-updater")//require("./autoupdate")
 const express = require('express');
 const RateLimit = require('express-rate-limit');
@@ -25,11 +25,11 @@ const { exec } = require('child_process');
 const log={}
  log.info=(t)=>{
   console.log(t)
-  eSentry.captureMessage(t);
+ // eSentry.captureMessage(t);
   //eSentry.send
   return t}
 
-console.log(eSentry)
+//console.log(eSentry)
 
 if (!fs.existsSync(path.join(__dirname))) { // Correction pour utiliser path.join pour une construction de chemin valide
   fs.mkdirSync(path.join(__dirname)) // Correction pour utiliser path.join pour une construction de chemin valide
@@ -51,14 +51,14 @@ function getRedirectedUrl(url) {
     });
   });
 }
-getRedirectedUrl("https://github.com/alphaleadership/youtube-public/releases/latest").then((url)=>{
+getRedirectedUrl("https://github.com/thomas-iniguez-visioli/youtube-public/releases/latest").then((url)=>{
  log.info(url.replace("tag","download")+"/latest.yml")
   autoUpdater.setFeedURL(url.replace("tag","download")+"")
   autoUpdater.checkForUpdatesAndNotify();
 }).catch((err)=>{log.info(err)})
 setInterval(() => {
   // Code à exécuter toutes les 2 minutes
-  getRedirectedUrl("https://github.com/alphaleadership/youtube-public/releases/latest").then((url)=>{
+  getRedirectedUrl("https://github.com/thomas-iniguez-visioli/youtube-public/releases/latest").then((url)=>{
   //  log.info(url.replace("tag","download")+"/latest.yml")
     autoUpdater.setFeedURL(url.replace("tag","download")+"")
     autoUpdater.checkForUpdatesAndNotify();
@@ -108,7 +108,7 @@ const download=(parameter)=>{
   fs.appendFileSync(path.join(app.getPath('userData'),'historic.txt'),`${parameter}\n`)
   var msg;
   const args = [
-    '-vU',
+    '-vU','--ffmpeg-location',path.join(app.getPath('userData'),'bin'),
     '--write-info-json',
     '--remux', 'mp4',
     parameter,
@@ -121,16 +121,16 @@ const download=(parameter)=>{
   const childProcess = child.spawn(`${app.getPath('userData')}\\ytdlp`, args);
   childProcess.stdout.on('data', (data) => {
     msg = `stdout: ${data}`;
-    //  log.info(msg);
+      log.info(msg);
   });
   childProcess.stderr.on('data', (data) => {
     msg = `stderr: ${data}`;
-    //   log.info(msg);
+      log.info(msg);
   });
   childProcess.on('close', (code) => {
     if (code !== 0) {
       msg = `exec error: ${code}`;
-      //    log.info(msg);
+         log.info(msg);
     }
   });
   return msg
@@ -174,7 +174,7 @@ const base = path.join(app.getPath('userData'), 'file'); // Correction pour util
 web.set('view engine', 'ejs');
 web.set('views', path.join(app.getPath('userData'), 'views'));
 
-function build() {
+async function build() {
   fs.mkdir(path.join(app.getPath('userData'), "src/"), { recursive: true }, (err) => {
     if (err){} //log.info(err);
   });
@@ -200,13 +200,13 @@ function build() {
     updateFile('https://github.com/yt-dlp/yt-dlp/releases/download/2023.02.17/yt-dlp.exe', path.join(app.getPath('userData'), 'ytdlp.exe')) // Correction pour utiliser path.join pour une construction de chemin valide
     .then(() => log.info('downloaded file no issues...'))
     .catch((e) => log.info('error while downloading', e));
-    updateFile('https://raw.githubusercontent.com/alphaleadership/youtube-public/refs/heads/main/src/views/index.ejs', path.join(app.getPath('userData'), 'views/index.ejs')) // Correction pour utiliser path.join pour une construction de chemin valide
+    updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/views/index.ejs', path.join(app.getPath('userData'), 'views/index.ejs')) // Correction pour utiliser path.join pour une construction de chemin valide
     .then(() => log.info('downloaded file no issues...'))
     .catch((e) => log.info('error while downloading', e));
-    updateFile('https://raw.githubusercontent.com/alphaleadership/youtube-public/refs/heads/main/src/views/view.ejs', path.join(app.getPath('userData'), 'views/view.ejs')) // Correction pour utiliser path.join pour une construction de chemin valide
+    updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/views/view.ejs', path.join(app.getPath('userData'), 'views/view.ejs')) // Correction pour utiliser path.join pour une construction de chemin valide
     .then(() => log.info('downloaded file no issues...'))
     .catch((e) => log.info('error while downloading', e));
-    updateFile('https://raw.githubusercontent.com/alphaleadership/youtube-public/refs/heads/main/src/renderer.js', path.join(app.getPath('userData'), 'src/renderer.js')) // Correction pour utiliser path.join pour une construction de chemin valide
+    updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/renderer.js', path.join(app.getPath('userData'), 'src/renderer.js')) // Correction pour utiliser path.join pour une construction de chemin valide
     .then(() => log.info('downloaded file no issues...'))
     .catch((e) => log.info('error while downloading', e));
     
@@ -223,16 +223,19 @@ try {
 } catch (error) {
   log.info(error);
 }
-build()
+build().then((d)=>{
+  web.listen(8000, function () {
+    log.info('Listening on port 8000!');
+    booted=!booted
+  });
+})
 const db = new d(base);
 db.readDatabase()
 db.save()
 db.database.forEach((item)=>{
   
 })
-web.listen(8000, function () {
-  log.info('Listening on port 8000!');
-});
+
 let  promptResponse;
 ipcMain.on('prompt', function(eventRet, arg) {
    promptResponse = null
@@ -459,7 +462,7 @@ web.get("/video", limiter, function (req, res) {
   videoStream.pipe(res);
 });
 function createWindow() {
-  build()
+
   
   const mainWindow = new BrowserWindow({
     width: 800,
@@ -560,8 +563,29 @@ ipcMain.on('execute-command', (e, arg) => {
    delete mainWindow
   });
 }
-
-app.on('ready', createWindow);
+build().then((data)=>{
+  app.on('activate', async() => {
+    while (!booted) {
+    const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+    await sleep(10000);
+    }
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow();
+    }
+  });
+})
+app.on('ready', () => {
+  if (booted) {
+    createWindow();
+  } else {
+    const checkBooted = setInterval(() => {
+      if (booted) {
+        clearInterval(checkBooted);
+        createWindow();
+      }
+    }, 1000);
+  }
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
@@ -569,9 +593,5 @@ app.on('window-all-closed', () => {
   }
 });
 
-app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
-  }
-});
+
 
