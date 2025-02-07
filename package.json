@@ -67,9 +67,6 @@
         "repo": "youtube-public",
         "releaseType": "draft"
       }
-    ],
-    "directories": {
-      "bin": "bin"
-    }
+    ]
   }
 }
