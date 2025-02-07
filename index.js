@@ -3,10 +3,17 @@ const express=require("express")
 const fs=require("fs")
 const http = require('http').Server(web);
 const io = require('socket.io')(http);
+const rateLimit = require('express-rate-limit');
 
 const d=require("./src/db.js")
 const base ="./video"
 const db=new d(base)
+
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100 // limit each IP to 100 requests per windowMs
+});
+web.use(limiter);
 
 function build() {
   get("https://cdn.socket.io/4.4.1/socket.io.js","./client-dist/socket.io.js")
@@ -33,10 +40,9 @@ if(!fs.existsSync("./client-dist")){fs.mkdirSync("./client-dist")
 build()}
 
 const socketpath =()=>{
- 
+
     return "./client-dist"
 }
-
 
 
 const morgan = require('morgan');
@@ -49,7 +55,7 @@ db.save()
 db.database.map((item)=>{item.yid})
 web.set('view engine', 'ejs');
 web.get("/", function (req, res) {
- 
+
   res.render('index', {
     results: db.database
     
@@ -117,11 +123,11 @@ web.get("/video", function (req, res) {
   res.writeHead(206, headers);
 
   // Create a new entry in the database for this video session
- 
+
 
   // Enregistrez les données mises à jour dans le fichier
   
-
+  
   // create video read stream for this particular chunk
   const videoStream = fs.createReadStream(videoPath, { start, end });
 
@@ -137,7 +143,6 @@ web.get("/video", function (req, res) {
   
   });
 });
-
 
 web.listen(8000, function () {
   console.log("Listening on port 8000!");
@@ -164,7 +169,7 @@ function get(url, dest) {
                 else fs.unlink(dest, () => reject(err.message)); // Delete temp file
               });
               response.pipe(file);
-            } else if (response.statusCode === 302 || response.statusCode === 301) {
+            } else if (response.statusCode === 302 or response.statusCode === 301) {
               //Recursively follow redirects, only a 200 will resolve.
               get(response.headers.location, dest).then(() => resolve());
             } else {
@@ -219,9 +224,6 @@ db.save()
       }
   
 }
-
-
-//console.log(download)
 const port = process.env.PORT || 3040;
 
 
@@ -236,7 +238,6 @@ io.on('connection', (socket) => {
     io.emit('chat message', msg);
   });
 });
-
 
 
 const { app, BrowserWindow } = require('electron')
@@ -273,6 +274,4 @@ http.listen(port, () => {
      }
     })
    })
- });
-
-  
+});
