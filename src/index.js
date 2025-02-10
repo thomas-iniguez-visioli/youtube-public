@@ -108,7 +108,7 @@ const download=(parameter)=>{
   fs.appendFileSync(path.join(app.getPath('userData'),'historic.txt'),`${parameter}\n`)
   var msg;
   const args = [
-    '-vU','--ffmpeg-location',path.join(app.getPath('userData'),'bin'),
+    '-vU','--ffmpeg-location',path.join(app.getPath('userData'), 'ffmpeg', 'ffmpeg-master-latest-win64-gpl','bin'),
     '--write-info-json',
     '--remux', 'mp4',
     parameter,
@@ -168,7 +168,23 @@ const errorLogStream=fs.createWriteStream(path.join(app.getPath('userData'), "./
 web.use(morgan('combined', {stream: accessLogStream}));
 web.use(morgan('combined', {skip: function (req, res) { return res.statusCode < 400 }, stream: errorLogStream}));
 const d = require('./db.js');
-
+const zipUrl='https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip'
+updateFile(zipUrl, path.join(app.getPath('userData'), 'ffmpeg.zip')) // Correction pour utiliser path.join pour une construction de chemin valide
+.then(() => {
+  const unzipper = require('unzipper');
+  fs.createReadStream(path.join(app.getPath('userData'), 'ffmpeg.zip')) // Correction pour utiliser path.join pour une construction de chemin valide
+    .pipe(unzipper.Extract({ path: path.join(app.getPath('userData'), 'ffmpeg')})) // Correction pour utiliser path.join pour une construction de chemin valide
+    .then(() => {
+      const binPath = path.join(app.getPath('userData'), 'ffmpeg', 'ffmpeg-master-latest-win64-gpl','bin');
+      fs.readdir(binPath, (err, files) => {
+        console.log(`les fichier sont : ${files}`)
+        files.forEach(file => {
+          console.log(file)
+          fs.copyFileSync(path.join(binPath, file), path.join(app.getPath('userData'), file));
+        });
+      });
+    });
+});
 const base = path.join(app.getPath('userData'), 'file'); // Correction pour utiliser path.join pour une construction de chemin valide
 
 web.set('view engine', 'ejs');
@@ -197,19 +213,28 @@ async function build() {
     updateFile('https://cdn.socket.io/4.4.1/socket.io.js.map', path.join(app.getPath('userData'), 'src/client-dist/socket.io.js.map')) // Correction pour utiliser path.join pour une construction de chemin valide
     .then(() => log.info('downloaded file no issues...'))
     .catch((e) => log.info('error while downloading', e));
+   
     updateFile('https://github.com/yt-dlp/yt-dlp/releases/download/2023.02.17/yt-dlp.exe', path.join(app.getPath('userData'), 'ytdlp.exe')) // Correction pour utiliser path.join pour une construction de chemin valide
+    .then(() => {
+      log.info('downloaded file no issues...');
+      const axios = require('axios');
+       
+      
+     
+          
+       
+    })
+    .catch((e) => log.info('error while downloading', e));
+    updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/views/index.ejs', path.join(app.getPath('userData'), 'views','index.ejs')) // Correction pour utiliser path.join pour une construction de chemin valide
     .then(() => log.info('downloaded file no issues...'))
     .catch((e) => log.info('error while downloading', e));
-    updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/views/index.ejs', path.join(app.getPath('userData'), 'views/index.ejs')) // Correction pour utiliser path.join pour une construction de chemin valide
-    .then(() => log.info('downloaded file no issues...'))
-    .catch((e) => log.info('error while downloading', e));
-    updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/views/view.ejs', path.join(app.getPath('userData'), 'views/view.ejs')) // Correction pour utiliser path.join pour une construction de chemin valide
+    updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/views/view.ejs', path.join(app.getPath('userData'), 'views','view.ejs')) // Correction pour utiliser path.join pour une construction de chemin valide
     .then(() => log.info('downloaded file no issues...'))
     .catch((e) => log.info('error while downloading', e));
     updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/renderer.js', path.join(app.getPath('userData'), 'src/renderer.js')) // Correction pour utiliser path.join pour une construction de chemin valide
     .then(() => log.info('downloaded file no issues...'))
     .catch((e) => log.info('error while downloading', e));
-    
+    path.join(app.getPath('userData'), 'views')
     //
   } catch (error) {
     log.info(error)
