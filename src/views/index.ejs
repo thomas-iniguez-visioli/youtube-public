@@ -57,6 +57,43 @@
     <button type="submit">Envoyer les tags</button>
   </form>
   <script>
+     function openModal(modalId) {
+      const modal = document.getElementById(modalId);
+      if (!modal) {
+        const modalContent = document.createElement('div');
+        modalContent.innerHTML = `
+          <div class="modal-content">
+            <span class="close" onclick="closeModal('${modalId}');">&times;</span>
+            <iframe width="80%" height="70%" src="/watch?id=${modalId}" frameborder="1" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" ></iframe>
+            <button class="delete-modal" onclick="deleteModal('${modalId}');">Supprimer la modale</button>
+          </div>
+        `;
+        modalContent.id = modalId;
+        modalContent.className = 'modal';
+        modalContent.addEventListener('keypress', function(event) {
+        console.log(event)
+        if (event.key === 'Escape') {
+          closeModal(modalId);
+        }
+      });
+        document.body.appendChild(modalContent);
+      }
+      document.getElementById(modalId).style.display = "block";
+      document.addEventListener('keypress', function(event) {
+        console.log(event)
+        if (event.key === 'Escape') {
+          closeModal(modalId);
+        }
+      });
+    }
+    function closeModal(modalId) {
+      document.getElementById(modalId).style.display = "none";
+      deleteModal(modalId)
+    }
+    function deleteModal(modalId) {
+      const modal = document.getElementById(modalId);
+      modal.parentNode.removeChild(modal);
+    }
     const tagForm = document.getElementById('tagForm');
     tagForm.addEventListener('submit', (e) => {
       e.preventDefault();
@@ -85,43 +122,7 @@
       })
       .catch(error => console.error(error));
     });
-    function openModal(modalId) {
-      const modal = document.getElementById(modalId);
-      if (!modal) {
-        const modalContent = document.createElement('div');
-        modalContent.innerHTML = `
-          <div class="modal-content">
-            <span class="close" onclick="closeModal('${modalId}');">&times;</span>
-            <iframe width="80%" height="70%" src="/watch?id=${modalId}" frameborder="1" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-            <button class="delete-modal" onclick="deleteModal('${modalId}');">Supprimer la modale</button>
-          </div>
-        `;
-        modalContent.id = modalId;
-        modalContent.className = 'modal';
-        modalContent.addEventListener('keypress', function(event) {
-        console.log(event)
-        if (event.key === 'x') {
-          closeModal(modalId);
-        }
-      });
-        document.body.appendChild(modalContent);
-      }
-      document.getElementById(modalId).style.display = "block";
-      document.addEventListener('keypress', function(event) {
-        console.log(event)
-        if (event.key === 'x') {
-          closeModal(modalId);
-        }
-      });
-    }
-    function closeModal(modalId) {
-      document.getElementById(modalId).style.display = "none";
-      deleteModal(modalId)
-    }
-    function deleteModal(modalId) {
-      const modal = document.getElementById(modalId);
-      modal.parentNode.removeChild(modal);
-    }
+   
   </script>
   <ul id="resultsList">
     <% results.forEach(function(result){ %>
