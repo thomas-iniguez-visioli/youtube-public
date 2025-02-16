@@ -43,14 +43,31 @@
     tagForm.addEventListener('submit', (e) => {
       e.preventDefault();
       const selectedTags = Array.from(document.getElementById('tagSelect').selectedOptions).map(option => option.value);
-      fetch('/api/search', {
-        method: 'GET',
-        params: {
-          tags: selectedTags
-        }
+      fetch(`/api/search?tags=${selectedTags.join(',')}`, {
+        method: 'GET'
       })
       .then(response => response.json())
-      .then(data => console.log(data))
+      .then(data => {
+        const resultsList = document.getElementById('resultsList');
+        resultsList.innerHTML = '';
+        data.forEach(function(result){
+          const videoDiv = document.createElement('div');
+          videoDiv.innerHTML = `
+            <a href="/watch?id=${result.yid}">
+              <img src="https://img.youtube.com/vi/${result.yid}/hqdefault.jpg" alt="Thumbnail for YouTube video">
+              <p>${result.fileName}</p>
+              ${result.tags.map(tag => `<p id="tag">${tag}</p>`).join('')}
+            </a>
+            <a href="/delete?id=${result.yid}">
+              <p>supprimée</p>
+            </a>
+            <video width="70%" controls autoplay=false>
+              <source src="/video/?id=${result.yid}" type="video/mp4" />
+            </video>
+          `;
+          resultsList.appendChild(videoDiv);
+        });
+      })
       .catch(error => console.error(error));
     });
   </script>

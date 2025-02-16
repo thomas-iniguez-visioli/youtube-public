@@ -447,10 +447,15 @@ web.get("/delete", function (req, res) {
   res.redirect("/")
 });
 web.get("/api/search", function (req, res) {
+  console.log(req.query)
   const tags = req.query.tags;
   const database = db.database;
   const results = database.filter(item => {
-    return tags.every(tag => item.tags.includes(tag));
+    if (typeof tags === 'string') {
+      return item.tags.includes(tags);
+    } else if (Array.isArray(tags)) {
+      return tags.some(tag => item.tags.includes(tag));
+    }
   });
   console.log(results)
   res.json(results);
