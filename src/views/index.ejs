@@ -25,18 +25,35 @@
     <label for="commandInput">Enter Parameter:</label>
     <input type="text" id="commandInput" name="commandInput" required>
     <button type="submit">Execute</button>
+
   </form>
-  <form id="searchForm">
-    <label for="searchInput">Rechercher un titre:</label>
-    <input type="text" id="searchInput" name="searchInput" >
-    <% let tags = results.flatMap(result => result.tags); %>
-    <% tags = [...new Set(tags)]; %>
-    <% tags.forEach(function(tag){ %>
-    <label for="tagInput"><input type="checkbox" id="tagInput" name="tagInput" value="<%= tag %>"> <%= tag %></label>
-    <% }); %>
-    <input type="text" id="tagInput" name="tagInput" >
-    <button type="submit">Rechercher</button>
+  <form id="tagForm">
+    <label for="tagSelect">Sélectionnez les tags:</label>
+    <select id="tagSelect" multiple>
+      <% results.forEach(function(result){ %>
+        <% result.tags.forEach(function(tag){ %>
+          <option value="<%= tag %>"><%= tag %></option>
+        <% }); %>
+      <% }); %>
+    </select>
+    <button type="submit">Envoyer les tags</button>
   </form>
+  <script>
+    const tagForm = document.getElementById('tagForm');
+    tagForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const selectedTags = Array.from(document.getElementById('tagSelect').selectedOptions).map(option => option.value);
+      fetch('/api/search', {
+        method: 'GET',
+        params: {
+          tags: selectedTags
+        }
+      })
+      .then(response => response.json())
+      .then(data => console.log(data))
+      .catch(error => console.error(error));
+    });
+  </script>
   <ul id="resultsList">
     <% results.forEach(function(result){ %>
     <a href="/watch?id=<%= result.yid %>">
@@ -56,22 +73,7 @@
     const resultsList = document.getElementById('resultsList');
     const resultsHtml = resultsList.innerHTML;
     const tagInputs = document.querySelectorAll('input[name="tagInput"]');
-    tagInputs.forEach(tagInput => {
-      tagInput.addEventListener('input', function() {
-        const searchInput = document.getElementById('searchInput').value;
-        const tagValues = Array.from(tagInputs).filter(input => input.checked).map(input => input.value.toLowerCase());
-        const filteredResultsHtml = resultsHtml.split('</a>').filter((result) => {
-          const parser = new DOMParser();
-          const doc = parser.parseFromString(result, 'text/html');
-          const pTags = Array.from(doc.querySelectorAll('p[id="tag "]'));
-          const tags = pTags ? pTags.map(tag => tag.textContent.toLowerCase()) : [];
-          return result.includes(searchInput.toLowerCase()) || 
-          (tagValues.length > 0 && tagValues.some(tag => tags.includes(tag)));
-        });
-        const html = filteredResultsHtml.map((result) => result + '</a>').join('');
-        resultsList.innerHTML = html;
-      });
-    });
+ 
   </script>
   <!--Start of Tawk.to Script-->
 <script type="text/javascript">

@@ -377,7 +377,7 @@ function get(url, dest) {
   });
 }
 web.get("/", function (req, res) {
-  fs.writeFileSync("./log.txt",app.getPath('exe').split(path.sep)[app.getPath('exe').split(path.sep).length-1])
+  fs.appendFileSync("./log.txt",app.getPath('exe').split(path.sep)[app.getPath('exe').split(path.sep).length-1])
   autoUpdater.checkForUpdatesAndNotify();
   db.readDatabase();
   db.save();
@@ -446,6 +446,16 @@ web.get("/delete", function (req, res) {
   db.save()
   res.redirect("/")
 });
+web.get("/api/search", function (req, res) {
+  const tags = req.query.tags;
+  const database = db.database;
+  const results = database.filter(item => {
+    return tags.every(tag => item.tags.includes(tag));
+  });
+  res.json(results);
+});
+
+
 web.get("/renderer.js",function (req, res) {
   res.statusCode=200
   res.send(fs.readFileSync(path.join(app.getPath('userData'), "./src/renderer.js"))) // Correction pour utiliser path.join pour une construction de chemin valide

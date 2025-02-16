@@ -28,9 +28,7 @@
     <p style="color: #ffffff;"><%= videodata.description%></p>
   <div style="margin-top: 20px;">
     <h2>Commentaires</h2>
-    <% videodata.comments.forEach(comment => { %>
-      <p style="color: #ffffff;"><%= comment %></p>
-    <% }); %>
+
   <form action="/tag" method="post">
     <label for="tagInput">Ajouter un tag:</label>
     <input type="text" id="tagInput" name="tag" required>
@@ -47,6 +45,7 @@
   document.getElementById('videoPlayer').addEventListener('ended', function() {
     window.location.href = "/watch?id=" + "<%= nextVideo.id %>";
   });
+  
   </script>
   <!--Start of Tawk.to Script-->
 <script type="text/javascript">
