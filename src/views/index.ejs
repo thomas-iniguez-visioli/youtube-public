@@ -110,9 +110,10 @@
           videoDiv.innerHTML = `
             <button onclick="openModal('modal${result.yid}')">
               <img src="https://img.youtube.com/vi/${result.yid}/hqdefault.jpg" alt="Thumbnail for YouTube video">
+            
+            </button>
               <p>${result.fileName}</p>
               ${result.tags.map(tag => `<p id="tag">${tag}</p>`).join('')}
-            </button>
             <button onclick="window.location.href='/delete?id=${result.yid}'">
               <p>supprimée</p>
             </button>
