@@ -108,14 +108,14 @@
         data.forEach(function(result){
           const videoDiv = document.createElement('div');
           videoDiv.innerHTML = `
-            <a href="/watch?id=${result.yid}" onclick="openModal('modal${result.yid}')">
+            <button onclick="openModal('modal${result.yid}')">
               <img src="https://img.youtube.com/vi/${result.yid}/hqdefault.jpg" alt="Thumbnail for YouTube video">
               <p>${result.fileName}</p>
               ${result.tags.map(tag => `<p id="tag">${tag}</p>`).join('')}
-            </a>
-            <a href="/delete?id=${result.yid}">
+            </button>
+            <button onclick="window.location.href='/delete?id=${result.yid}'">
               <p>supprimée</p>
-            </a>
+            </button>
           `;
           resultsList.appendChild(videoDiv);
         });
@@ -126,16 +126,16 @@
   </script>
   <ul id="resultsList">
     <% results.forEach(function(result){ %>
-    <a href="/watch?id=<%= result.yid %>" onclick="openModal('modal<%= result.yid %>')">
+    <button onclick="openModal('modal<%= result.yid %>')">
       <img src="https://img.youtube.com/vi/<%=result.yid %>/hqdefault.jpg" alt="Thumbnail for YouTube video">
       <p><%=result.fileName %></p>
       <% result.tags.forEach(function(tag){ %>
 <p id ="tag "><%= tag %></p>
         <% }); %>
-    </a>
-    <a href="/delete?id=<%= result.yid %>">
+    </button>
+    <button onclick="window.location.href='/delete?id=<%= result.yid %>'">
       <p>supprimée</p>
-    </a>
+    </button>
     <% }); %>
   </ul>
   <script>
