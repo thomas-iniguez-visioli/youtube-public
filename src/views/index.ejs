@@ -79,12 +79,6 @@
             <a href="/delete?id=${result.yid}">
               <p>supprimée</p>
             </a>
-            <div id="modal${result.yid}" class="modal">
-              <div class="modal-content">
-                <span class="close" onclick="closeModal('modal${result.yid}')">&times;</span>
-                <iframe width="100%" height="100%" src="/watch?id=${result.yid}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-              </div>
-            </div>
           `;
           resultsList.appendChild(videoDiv);
         });
@@ -92,10 +86,28 @@
       .catch(error => console.error(error));
     });
     function openModal(modalId) {
+      const modal = document.getElementById(modalId);
+      if (!modal) {
+        const modalContent = document.createElement('div');
+        modalContent.innerHTML = `
+          <div class="modal-content">
+            <span class="close" onclick="closeModal('${modalId}')">&times;</span>
+            <iframe width="100%" height="100%" src="/watch?id=${modalId}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+            <button class="delete-modal" onclick="deleteModal('${modalId}')">Supprimer la modale</button>
+          </div>
+        `;
+        modalContent.id = modalId;
+        modalContent.className = 'modal';
+        document.body.appendChild(modalContent);
+      }
       document.getElementById(modalId).style.display = "block";
     }
     function closeModal(modalId) {
       document.getElementById(modalId).style.display = "none";
+    }
+    function deleteModal(modalId) {
+      const modal = document.getElementById(modalId);
+      modal.parentNode.removeChild(modal);
     }
   </script>
   <ul id="resultsList">
@@ -110,12 +122,6 @@
     <a href="/delete?id=<%= result.yid %>">
       <p>supprimée</p>
     </a>
-    <div id="modal<%= result.yid %>" class="modal">
-      <div class="modal-content">
-        <span class="close" onclick="closeModal('modal<%= result.yid %>')">&times;</span>
-        <iframe width="100%" height="100%" src="/watch?id=<%= result.yid %>" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-      </div>
-    </div>
     <% }); %>
   </ul>
   <script>
