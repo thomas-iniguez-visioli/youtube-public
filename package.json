@@ -1,6 +1,6 @@
 {
   "name": "youtube",
-  "version": "1.1.6-26",
+  "version": "1.1.6-27",
   "description": "youtube local",
   "main": "src/index.js",
   "private": true,
