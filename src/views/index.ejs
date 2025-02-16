@@ -48,7 +48,7 @@
   <form id="tagForm">
     <label for="tagSelect">Sélectionnez les tags:</label>
     <select id="tagSelect" multiple>
-      <% results.forEach(function(result){ %>
+      <% [... new Set(results)].forEach(function(result){ %>
         <% result.tags.forEach(function(tag){ %>
           <option value="<%= tag %>"><%= tag %></option>
         <% }); %>
