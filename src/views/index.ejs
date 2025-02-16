@@ -98,10 +98,17 @@
         `;
         modalContent.id = modalId;
         modalContent.className = 'modal';
+        modalContent.addEventListener('keypress', function(event) {
+        console.log(event)
+        if (event.key === 'x') {
+          closeModal(modalId);
+        }
+      });
         document.body.appendChild(modalContent);
       }
       document.getElementById(modalId).style.display = "block";
       document.addEventListener('keypress', function(event) {
+        console.log(event)
         if (event.key === 'x') {
           closeModal(modalId);
         }
