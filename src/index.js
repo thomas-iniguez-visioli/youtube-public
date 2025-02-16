@@ -452,6 +452,7 @@ web.get("/api/search", function (req, res) {
   const results = database.filter(item => {
     return tags.every(tag => item.tags.includes(tag));
   });
+  console.log(results)
   res.json(results);
 });
 
