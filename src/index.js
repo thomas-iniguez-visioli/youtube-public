@@ -397,6 +397,7 @@ web.get("/", function (req, res) {
   });
 })
 web.get("/watch", function (req, res) {
+  console.log(req.query)
   autoUpdater.checkForUpdatesAndNotify();
   if(db.getFile( req.query.id)==[]){
     download(`https://www.youtube.com/watch?v=${req.query.id}`)
