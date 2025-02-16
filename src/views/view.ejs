@@ -40,12 +40,12 @@
   <script>
   document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('videoPlayer').muted = false;
-    document.getElementById('videoPlayer').play();
+    //document.getElementById('videoPlayer').play();
   });
   document.getElementById('videoPlayer').addEventListener('ended', function() {
     window.location.href = "/watch?id=" + "<%= nextVideo.id %>";
   });
-  
+
   </script>
   <!--Start of Tawk.to Script-->
 <script type="text/javascript">

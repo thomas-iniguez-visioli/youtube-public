@@ -448,14 +448,10 @@ web.get("/delete", function (req, res) {
 });
 web.get("/api/search", function (req, res) {
   console.log(req.query)
-  const tags = req.query.tags;
+  const tags = req.query.tags.split(',');
   const database = db.database;
   const results = database.filter(item => {
-    if (typeof tags === 'string') {
-      return item.tags.includes(tags);
-    } else if (Array.isArray(tags)) {
-      return tags.some(tag => item.tags.includes(tag));
-    }
+    return tags.some(tag => item.tags.includes(tag.trim()));
   });
   console.log(results)
   res.json(results);
