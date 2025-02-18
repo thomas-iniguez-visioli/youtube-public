@@ -45,10 +45,9 @@
   <form id="tagForm" style="border: none;">
     <label for="tagSelect">Sélectionnez les tags:</label>
     <select id="tagSelect" multiple>
-      <% [... new Set(results)].forEach(function(result){ %>
-        <% result.tags.forEach(function(tag){ %>
-          <option value="<%= tag %>"><%= tag %></option>
-        <% }); %>
+      <% const uniqueTags = [... new Set(results.reduce((acc, result) => acc.concat(result.tags), []))]; %>
+      <% uniqueTags.forEach(function(tag){ %>
+        <option value="<%= tag %>"><%= tag %></option>
       <% }); %>
     </select>
     <button type="submit">Envoyer les tags</button>

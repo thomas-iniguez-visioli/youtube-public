@@ -384,10 +384,25 @@ web.get("/", function (req, res) {
 
   // Algorithme de référencement simplifié
   const database = db.database;
- // console.log(database)
   const referencement = database.map(item => {
-    const infoJson = require(path.join(app.getPath('userData'), 'file', item.fileName.replace(".mp4", ".info.json")));
-    db.addTag(infoJson.display_id,infoJson.uploader)
+    const infoJsonPath = path.join(app.getPath('userData'), 'file', item.fileName.replace(".mp4", ".info.json"));
+    const mp4Path = path.join(app.getPath('userData'), 'file', item.fileName);
+    console.log(`fichier ${mp4Path} status ${fs.existsSync(infoJsonPath)}`);
+    if (!fs.existsSync(infoJsonPath)) {
+      db.removeFile(item.yid);
+      fs.unlinkSync(mp4Path);
+      return; // sort de la boucle
+    }
+    let infoJson;
+    try {
+      infoJson = require(infoJsonPath);
+    } catch (error) {
+      console.error(`Erreur lors de la lecture de ${infoJsonPath}: ${error}`);
+      db.removeFile(item.yid);
+      fs.unlinkSync(mp4Path);
+      return; // sort de la boucle
+    }
+    db.addTag(infoJson.display_id, infoJson.uploader);
     const score = infoJson.view_count * 0.5 + infoJson.like_count * 0.3 + infoJson.comment_count * 0.2;
     return { ...item, score };
   }).sort((a, b) => b.score - a.score);
