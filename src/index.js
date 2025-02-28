@@ -1,4 +1,4 @@
-//require('./sentry.js');
+// require('./sentry.js');
 /*const Sentry = require("@sentry/node");
 const eSentry=require("@sentry/electron/main")
 eSentry.init({
