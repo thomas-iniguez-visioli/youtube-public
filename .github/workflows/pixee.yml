@@ -1,0 +1,23 @@
+name: 'Pixee'
+
+on:
+  
+  pull_request:
+    branches:
+      - main
+    types: [opened, reopened, update,synchronize]
+
+jobs:
+  pixee_fix:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: write
+      id-token: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Run Python script to create PR
+        uses: docker://codemodder/ci-integrations
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
