@@ -1,0 +1,36 @@
+name: Analyze with Semgrep and Fix with Pixee
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Semgrep
+        run: |
+          python3 -m pip install semgrep
+
+      - name: Run Semgrep
+        run: |
+          semgrep --config auto --sarif --output semgrep-results.sarif.json 
+
+      - name: Fix with Pixee
+        uses: pixee/upload-tool-results-action@v2
+        with:
+          tool: semgrep
+          file: semgrep-results.sarif.json
