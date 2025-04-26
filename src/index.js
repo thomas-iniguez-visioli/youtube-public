@@ -174,7 +174,9 @@ const downloaddata=(parameter)=>{
     });
     return msg
 }
-const web = express();  
+const web = express();
+const helmet = require('helmet');
+web.use(helmet());
 //eSentry.setupExpressErrorHandler(web);
 const http = require('http').Server(web);
 const io = require('socket.io')(http);
