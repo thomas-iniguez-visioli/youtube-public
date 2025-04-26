@@ -138,10 +138,26 @@ const download=(parameter)=>{
 const downloaddata=(parameter)=>{
   fs.appendFileSync(path.join(app.getPath('userData'),'historic.txt'),`${parameter}\n`)
   var msg;
-  const command = `${app.getPath('userData')}\\ytdlp -vU --write-info-json --simulate  --no-clean-info-json --remux mp4 ${parameter} -f "bv*+ba/b" --write-playlist-metafiles --parse-metadata "playlist_title:.+ - (?P<folder_name>Videos|Shorts|Live)$" -o "${app.getPath('userData')}/file/%(channel|)s-%(folder_name|)s-%(title)s [%(id)s].%(ext)s -J" 
-`;
+  const execPath = `${app.getPath('userData')}\\ytdlp`;
+  const args = [
+    '-vU',
+    '--write-info-json',
+    '--simulate',
+    '--no-clean-info-json',
+    '--remux',
+    'mp4',
+    parameter,
+    '-f',
+    'bv*+ba/b',
+    '--write-playlist-metafiles',
+    '--parse-metadata',
+    'playlist_title:.+ - (?P<folder_name>Videos|Shorts|Live)$',
+    '-o',
+    `${app.getPath('userData')}/file/%(channel|)s-%(folder_name|)s-%(title)s [%(id)s].%(ext)s`,
+    '-J'
+  ];
     const child = require('child_process');
-    const childProcess = child.spawn(command, { shell: true });
+    const childProcess = child.spawn(execPath, args);
     childProcess.stdout.on('data', (data) => {
       msg = `stdout: ${data}`;
       log.info(msg);
