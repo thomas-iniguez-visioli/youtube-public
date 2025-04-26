@@ -487,7 +487,11 @@ web.get("/video", limiter, function (req, res) {
     res.status(400).send("Requires Range header");
   }
  // log.info(db.getFile( req.query.id))
-  const videoPath = path.join(base, db.getFile( req.query.id).fileName) // Correction pour utiliser path.join pour une construction de chemin valide
+  const fileName = db.getFile(req.query.id).fileName;
+  if (fileName.includes('../') || fileName.includes('..\\')) {
+    return res.status(400).send("Invalid file name");
+  }
+  const videoPath = path.join(base, fileName);
 //  log.info(videoPath)
  // log.info(req.query.id)
   const videoSize = fs.statSync(videoPath).size;
