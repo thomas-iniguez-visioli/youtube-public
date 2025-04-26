@@ -1,12 +1,12 @@
 {
   "name": "youtube",
-  "version": "1.1.7-20",
+  "version": "1.1.7-21",
   "description": "youtube local",
   "main": "src/index.js",
   "private": true,
   "packageManager": "pnpm@9.15.4",
   "scripts": {
-    "build": "npx electron-rebuild -y  ",
+    "build": "npm i helmet && npx electron-rebuild -y  ",
     "start": "electron .",
     "test": "echo reusso"
   },
