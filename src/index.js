@@ -7,11 +7,29 @@ eSentry.init({
 //eSentry.profiler.startProfiler()
 const { app, BrowserWindow, ipcMain, dialog,Menu } = require('electron');
 const e=require("electron")
+const cors =require("cors")
 var booted=false
 const {autoUpdater}=require("electron-updater")//require("./autoupdate")
 const express = require('express');
 const RateLimit = require('express-rate-limit');
 const fs = require('fs');
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Autoriser les requêtes sans origine (comme les requêtes locales ou les applications mobiles)
+    if (!origin) return callback(null, true);
+
+    // Autoriser les domaines spécifiques, par exemple YouTube
+    if (origin.includes('youtube.com') || origin.includes('https://www.youtube.com')) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'POST'], // Spécifiez les méthodes HTTP autorisées
+  allowedHeaders: ['Content-Type', 'Authorization'], // Spécifiez les en-têtes autorisés
+  credentials: true, // Autoriser les cookies et les en-têtes d'authentification
+};
+
 
 // set up rate limiter: maximum of 100 requests per 15 minutes
 const limiter = RateLimit({
@@ -177,6 +195,7 @@ const downloaddata=(parameter)=>{
 const web = express();
 const helmet = require('helmet');
 web.use(helmet());
+web.use(cors(corsOptions));
 //eSentry.setupExpressErrorHandler(web);
 const http = require('http').Server(web);
 const io = require('socket.io')(http);
