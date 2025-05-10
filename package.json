@@ -6,7 +6,7 @@
   "private": true,
   "packageManager": "pnpm@9.15.4",
   "scripts": {
-    "build": "npm i helmet && npx electron-rebuild -y  ",
+    "build": "npm i helmet cors && npx electron-rebuild -y  ",
     "start": "electron .",
     "test": "echo reusso"
   },
