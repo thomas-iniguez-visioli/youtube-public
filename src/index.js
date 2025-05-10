@@ -194,8 +194,8 @@ const downloaddata=(parameter)=>{
 }
 const web = express();
 const helmet = require('helmet');
-web.use(helmet());
-web.use(cors(corsOptions));
+//web.use(helmet());
+//web.use(cors(corsOptions));
 //eSentry.setupExpressErrorHandler(web);
 const http = require('http').Server(web);
 const io = require('socket.io')(http);
