@@ -19,7 +19,7 @@ const corsOptions = {
     if (!origin) return callback(null, true);
 
     // Autoriser les domaines spécifiques, par exemple YouTube
-    if (origin.includes('youtube.com') || origin.includes('https://www.youtube.com')) {
+    if (['youtube.com', 'www.youtube.com'].includes(new URL(origin).hostname)) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
@@ -686,6 +686,3 @@ app.on('window-all-closed', () => {
     app.quit();
   }
 });
-
-
-
