@@ -182,7 +182,7 @@ const downloaddata=(parameter)=>{
     '--parse-metadata', 'playlist_title:.+ - (?P<folder_name>Videos|Shorts|Live)$',
     '-o',
     path.join(config.storagePath, config.outputFileFormat),
-    '-J'
+    '-J',"--embed-metadata"
   ];
     const child = require('child_process');
     const childProcess = child.spawn(execPath, args);
