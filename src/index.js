@@ -295,7 +295,7 @@ try {
   log.info(error);
 }
 build().then((d)=>{
-  web.listen(8000, function () {
+  web.listen(8001, function () {
     log.info('Listening on port 8000!');
     booted=!booted
   });
@@ -660,7 +660,7 @@ ipcMain.on('execute-command', (e, arg) => {
     return msg
   
 });
-  mainWindow.loadURL("http://localhost:8000");
+  mainWindow.loadURL("http://localhost:8001");
 
   mainWindow.on('closed', () => {
    delete mainWindow
