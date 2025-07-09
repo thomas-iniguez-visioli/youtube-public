@@ -23,11 +23,12 @@ const getconfig=()=>{
   if(fs.existsSync(path.join(app.getPath('userData'), 'config.json'))){
     return require(path.join(app.getPath('userData'), 'config.json'));
   }
-  return{
-    "storagePath": "${app.getPath('userData')}/file",
+  fs.writeFileSync(path.join(app.getPath('userData'), 'config.json'), JSON.stringify({
+    "storagePath": path.join(app.getPath('userData'), 'file'),
     "videoUrlFormat": "https://www.youtube.com/watch?v=${id}",
     "outputFileFormat": "%(channel|)s-%(folder_name|)s-%(title)s [%(id)s].%(ext)s"
-  }
+  }))
+  return require(path.join(app.getPath('userData'), 'config.json'))
 }
 const config = getconfig();
 const corsOptions = {
