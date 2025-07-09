@@ -15,6 +15,10 @@ const RateLimit = require('express-rate-limit');
 const fs = require('fs');const https = require('https');
 const path = require('path');
 const child = require('child_process');
+const log = require('electron-log');
+log.transports.file.level = 'info';
+log.transports.console.level = 'info';
+log.transports.file.file = path.join(app.getPath('userData'), 'log', 'app.log');
 const getconfig=()=>{
   if(fs.existsSync(path.join(app.getPath('userData'), 'config.json'))){
     return require(path.join(app.getPath('userData'), 'config.json'));
