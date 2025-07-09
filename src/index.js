@@ -13,7 +13,7 @@ const {autoUpdater}=require("electron-updater")//require("./autoupdate")
 const express = require('express');
 const RateLimit = require('express-rate-limit');
 const fs = require('fs');const https = require('https');
-
+const path = require('path');
 const child = require('child_process');
 const corsOptions = {
   origin: function (origin, callback) {
