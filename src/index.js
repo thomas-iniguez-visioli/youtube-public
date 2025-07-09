@@ -15,6 +15,17 @@ const RateLimit = require('express-rate-limit');
 const fs = require('fs');const https = require('https');
 const path = require('path');
 const child = require('child_process');
+const getconfig=()=>{
+  if(fs.existsSync(path.join(app.getPath('userData'), 'config.json'))){
+    return require(path.join(app.getPath('userData'), 'config.json'));
+  }
+  return{
+    "storagePath": "${app.getPath('userData')}/file",
+    "videoUrlFormat": "https://www.youtube.com/watch?v=${id}",
+    "outputFileFormat": "%(channel|)s-%(folder_name|)s-%(title)s [%(id)s].%(ext)s"
+  }
+}
+const config = getconfig();
 const corsOptions = {
   origin: function (origin, callback) {
     // Autoriser les requêtes sans origine (comme les requêtes locales ou les applications mobiles)
