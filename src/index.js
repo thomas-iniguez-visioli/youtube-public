@@ -14,6 +14,7 @@ const express = require('express');
 const RateLimit = require('express-rate-limit');
 const fs = require('fs');const https = require('https');
 const path = require('path');
+
 const child = require('child_process');
 const log = require('electron-log');
 log.transports.file.level = 'info';
@@ -106,7 +107,7 @@ function extractUrls(text) {
 let win;
 function sendStatusToWindow(text) {
   log.info(text);
-  win.webContents.send('message', text);
+  //win.webContents.send('message', text);
 }
 autoUpdater.on('checking-for-update', () => {
   sendStatusToWindow('Checking for update...');
@@ -263,7 +264,7 @@ async function build() {
     updateFile('https://github.com/yt-dlp/yt-dlp/releases/download/2023.02.17/yt-dlp.exe', path.join(app.getPath('userData'), 'ytdlp.exe')) // Correction pour utiliser path.join pour une construction de chemin valide
     .then(() => {
       log.info('downloaded file no issues...');
-      const axios = require('axios');
+
        
       
      
