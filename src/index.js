@@ -12,7 +12,9 @@ var booted=false
 const {autoUpdater}=require("electron-updater")//require("./autoupdate")
 const express = require('express');
 const RateLimit = require('express-rate-limit');
-const fs = require('fs');
+const fs = require('fs');const https = require('https');
+
+const child = require('child_process');
 const corsOptions = {
   origin: function (origin, callback) {
     // Autoriser les requêtes sans origine (comme les requêtes locales ou les applications mobiles)
@@ -36,16 +38,8 @@ const limiter = RateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 10000, // max 100 requests per windowMs
 });
-const https = require('https');
 
-const path = require('path');
-const { exec } = require('child_process');
-const log={}
- log.info=(t)=>{
-  console.log(t)
- // eSentry.captureMessage(t);
-  //eSentry.send
-  return t}
+  
 
 //console.log(eSentry)
 
@@ -133,7 +127,7 @@ const download=(parameter)=>{
     '-f', 'bv*+ba/b',
     '--write-playlist-metafiles',
     '--parse-metadata', 'playlist_title:.+ - (?P<folder_name>Videos|Shorts|Live)$',
-    '-o', `${app.getPath('userData')}/file/%(channel|)s-%(folder_name|)s-%(title)s [%(id)s].%(ext)s`
+    '-o', path.join(config.storagePath, config.outputFileFormat)
   ];
   const child = require('child_process');
   const childProcess = child.spawn(`${app.getPath('userData')}\\ytdlp`, args);
@@ -168,10 +162,9 @@ const downloaddata=(parameter)=>{
     '-f',
     'bv*+ba/b',
     '--write-playlist-metafiles',
-    '--parse-metadata',
-    'playlist_title:.+ - (?P<folder_name>Videos|Shorts|Live)$',
+    '--parse-metadata', 'playlist_title:.+ - (?P<folder_name>Videos|Shorts|Live)$',
     '-o',
-    `${app.getPath('userData')}/file/%(channel|)s-%(folder_name|)s-%(title)s [%(id)s].%(ext)s`,
+    path.join(config.storagePath, config.outputFileFormat),
     '-J'
   ];
     const child = require('child_process');
@@ -222,7 +215,7 @@ updateFile(zipUrl, path.join(app.getPath('userData'), 'ffmpeg.zip')) // Correcti
       });
     });
 });
-const base = path.join(app.getPath('userData'), 'file'); // Correction pour utiliser path.join pour une construction de chemin valide
+const base = config.storagePath;
 
 web.set('view engine', 'ejs');
 web.set('views', path.join(app.getPath('userData'), 'views'));
@@ -452,7 +445,7 @@ web.get("/watch", function (req, res) {
   console.log(req.query)
   autoUpdater.checkForUpdatesAndNotify();
   if(db.getFile( req.query.id)==[]){
-    download(`https://www.youtube.com/watch?v=${req.query.id}`)
+    download(config.videoUrlFormat.replace('${id}', req.query.id))
     res.redirect("/")
     return 
   }

@@ -1,0 +1,5 @@
+{
+  "storagePath": "${app.getPath('userData')}/file",
+  "videoUrlFormat": "https://www.youtube.com/watch?v=${id}",
+  "outputFileFormat": "%(channel|)s-%(folder_name|)s-%(title)s [%(id)s].%(ext)s"
+}
