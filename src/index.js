@@ -195,7 +195,7 @@ function processQueue() {
     processingQueue = false;
   }
 }
-setTimeout(processQueue, 1000);
+setTimeout(processQueue, 10000);
 // Modified download function to use queue
 const processVideoDownload = async (videoId) => {
   return new Promise((resolve, reject) => {
@@ -217,27 +217,11 @@ const processVideoDownload = async (videoId) => {
       '--parse-metadata', 'playlist_title:.+ - (?P<folder_name>Videos|Shorts|Live)$',
       '-o', path.join(config.storagePath, config.outputFileFormat)
     ];
-    const childProcess = child.spawn(`${app.getPath('userData')}\\ytdlp`, args);
+    download(parameter)
+    downloaddata(parameter)
+    resolve('Downloaded');
     
-    childProcess.stdout.on('data', (data) => {
-      msg = `stdout: ${data}`;
-      log.info(msg);
-    });
-    
-    childProcess.stderr.on('data', (data) => {
-      msg = `stderr: ${data}`;
-      log.info(msg);
-    });
-    
-    childProcess.on('close', (code) => {
-      if (code !== 0) {
-        msg = `exec error: ${code}`;
-        log.info(msg);
-        reject(msg);
-      } else {
-        resolve(msg);
-      }
-    });
+  
   });
 }
 autoUpdater.on('checking-for-update', () => {
