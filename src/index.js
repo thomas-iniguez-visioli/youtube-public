@@ -195,7 +195,7 @@ function processQueue() {
     processingQueue = false;
   }
 }
-setTimeout(processQueue, 10000);
+
 // Modified download function to use queue
 const processVideoDownload = async (videoId) => {
   return new Promise((resolve, reject) => {
