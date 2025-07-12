@@ -1,6 +1,6 @@
 {
   "name": "youtube",
-  "version": "1.1.23",
+  "version": "1.1.25",
   "description": "youtube local",
   "main": "src/index.js",
   "private": true,
@@ -11,7 +11,6 @@
     "test": "echo reusso"
   },
   "dependencies": {
-    "ws": "^8.16.0",
     "@sentry/cli": "^2.40.0",
     "axios": "^1.7.9",
     "@sentry/electron": "^5.10.0",

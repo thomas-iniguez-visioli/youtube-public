@@ -5,8 +5,7 @@ eSentry.init({
   dsn: "https://57d94ff25757e9923caba57bf1f2869f@o4508613620924416.ingest.de.sentry.io/4508619258331216",
 });*/
 //eSentry.profiler.startProfiler()
-const { app, BrowserWindow, dialog, Menu } = require('electron');
-const WebSocket = require('ws');
+const { app, BrowserWindow, ipcMain, dialog,Menu } = require('electron');
 const e=require("electron")
 const cors =require("cors")
 var booted=false
@@ -106,125 +105,9 @@ function extractUrls(text) {
   return text.match(urlRegex) || [];
 }
 let win;
-let isDownloading = false;
-let processingQueue = false;
-const QUEUE_FILE = path.join(app.getPath('userData'), 'video-queue.txt');
-
 function sendStatusToWindow(text) {
   log.info(text);
   //win.webContents.send('message', text);
-}
-
-// Queue management functions
-function loadQueue() {
-  try {
-    if (fs.existsSync(QUEUE_FILE)) {
-      const content = fs.readFileSync(QUEUE_FILE, 'utf8');
-      return content.split('\n').filter(id => id.trim());
-    }
-    return [];
-  } catch (error) {
-    log.error('Error loading queue:', error);
-    return [];
-  }
-}
-
-function saveQueue(queue) {
-  try {
-    fs.writeFileSync(QUEUE_FILE, queue.join('\n'));
-  } catch (error) {
-    log.error('Error saving queue:', error);
-  }
-}
-
-function addToQueue(videoId) {
-  const queue = loadQueue();
-  if (!queue.includes(videoId)) {
-    queue.push(videoId);
-    saveQueue(queue);
-    return true;
-  }
-  return false;
-}
-
-function removeFromQueue(videoId) {
-  const queue = loadQueue();
-  const index = queue.indexOf(videoId);
-  if (index > -1) {
-    queue.splice(index, 1);
-    saveQueue(queue);
-    return true;
-  }
-  return false;
-}
-
-function getQueueLength() {
-  return loadQueue().length;
-}
-
-function getNextVideoId() {
-  const queue = loadQueue();
-  if (queue.length > 0) {
-    const videoId = queue[0];
-    removeFromQueue(videoId);
-    return videoId;
-  }
-  return null;
-}
-
-// Function to process the download queue
-function processQueue() {
-  if (isDownloading || processingQueue||getQueueLength()===0) return;
-  
-  processingQueue = true;
-  
-  const videoId = getNextVideoId();
-  if (videoId) {
-    isDownloading = true;
-    
-    processVideoDownload(videoId).then(() => {
-      isDownloading = false;
-      processingQueue = false;
-      processQueue(); // Process next item in queue
-    }).catch((error) => {
-      isDownloading = false;
-      processingQueue = false;
-      log.error('Error processing download:', error);
-      processQueue(); // Continue with next item even if there's an error
-    });
-  } else {
-    processingQueue = false;
-  }
-}
-
-// Modified download function to use queue
-const processVideoDownload = async (videoId) => {
-  return new Promise((resolve, reject) => {
-    if (isDownloading) {
-      addToQueue(videoId);
-      resolve('Added to queue');
-      return;
-    }
-    const parameter=config.videoUrlFormat.replace("${id}",videoId)
-    fs.appendFileSync(path.join(app.getPath('userData'),'historic.txt'),`${parameter}\n`);
-    var msg;
-    const args = [
-      '-vU','--ffmpeg-location',path.join(app.getPath('userData'), 'ffmpeg', 'ffmpeg-master-latest-win64-gpl','bin'),
-      '--write-info-json',
-      '--remux', 'mp4',
-      parameter,
-      '-f', 'bv*+ba/b',
-      '--write-playlist-metafiles',
-      '--parse-metadata', 'playlist_title:.+ - (?P<folder_name>Videos|Shorts|Live)$',
-      '-o', path.join(config.storagePath, config.outputFileFormat)
-    ];
-    download(parameter)
-    downloaddata(parameter)
-    processQueue();
-    resolve('Downloaded');
-    
-  
-  });
 }
 autoUpdater.on('checking-for-update', () => {
   sendStatusToWindow('Checking for update...');
@@ -250,7 +133,7 @@ autoUpdater.on('update-downloaded', (info) => {
   sendStatusToWindow('Update downloaded');
 });
 
-function download(parameter) {
+const download=(parameter)=>{
   fs.appendFileSync(path.join(app.getPath('userData'),'historic.txt'),`${parameter}\n`)
   var msg;
   const args = [
@@ -281,7 +164,7 @@ function download(parameter) {
   });
   return msg
 }
-function downloaddata(parameter) {
+const downloaddata=(parameter)=>{
   fs.appendFileSync(path.join(app.getPath('userData'),'historic.txt'),`${parameter}\n`)
   var msg;
   const execPath = `${app.getPath('userData')}\\ytdlp`;
@@ -320,93 +203,6 @@ function downloaddata(parameter) {
     return msg
 }
 const web = express();
-// WebSocket server
-const wss = new WebSocket.Server({ noServer: true });
-
-// Store connected clients
-const clients = new Set();
-
-// Handle WebSocket connections and messages
-wss.on('connection', (ws) => {
-    clients.add(ws);
-    
-    // Handle incoming messages
-    ws.on('message', (data) => {
-        const message = JSON.parse(data);
-        
-        switch (message.type) {
-            case 'download':
-                handleDownloadRequest(ws, message.data);
-                break;
-            case 'download-data':
-                handleDownloadDataRequest(ws, message.data);
-                break;
-            case 'queue':
-                handleQueueRequest(ws, message.data);
-                break;
-        }
-    });
-    
-    ws.on('close', () => clients.delete(ws));
-});
-
-// Download handlers
-function handleDownloadRequest(ws, url) {
-    sendStatusToWindow('Starting download...');
-    const result = download(url);
-    ws.send(JSON.stringify({
-        type: 'download-result',
-        data: result
-    }));
-}
-
-function handleDownloadDataRequest(ws, url) {
-    const result = downloaddata(url);
-    ws.send(JSON.stringify({
-        type: 'download-data-result',
-        data: result
-    }));
-}
-
-function handleQueueRequest(ws, action) {
-    switch (action.type) {
-        case 'add':
-            addToQueue(action.videoId);
-            ws.send(JSON.stringify({
-                type: 'queue-update',
-                data: { 
-                    type: 'added', 
-                    videoId: action.videoId 
-                }
-            }));
-            break;
-        case 'remove':
-            removeFromQueue(action.videoId);
-            ws.send(JSON.stringify({
-                type: 'queue-update',
-                data: { 
-                    type: 'removed', 
-                    videoId: action.videoId 
-                }
-            }));
-            break;
-        case 'list':
-            const queue = loadQueue();
-            ws.send(JSON.stringify({
-                type: 'queue-list',
-                data: queue
-            }));
-            break;
-    }
-}
-
-// Redirect log messages to WebSocket
-const originalLog = console.log;
-console.log = (...args) => {
-    originalLog.apply(console, args);
-    const message = args.join(' ');
-    clients.forEach(client => client.readyState === WebSocket.OPEN && client.send(message));
-};
 const helmet = require('helmet');
 //web.use(helmet());
 //web.use(cors(corsOptions));
@@ -512,6 +308,40 @@ db.database.forEach((item)=>{
   
 })
 
+let  promptResponse;
+ipcMain.on('prompt', function(eventRet, arg) {
+   promptResponse = null
+  var promptWindow = new BrowserWindow({
+    width: 200,
+    height: 100,
+    show: false,
+    resizable: false,
+    movable: false,
+    alwaysOnTop: true,
+    frame: false
+  })
+  arg.val = arg.val || ''
+  const promptHtml = '<label for="val">' + arg.title + '</label>\
+  <input id="val" value="' + arg.val + '" autofocus />\
+  <button onclick="require(\'electron\').ipcRenderer.send(\'prompt-response\', document.getElementById(\'val\').value);window.close()">Ok</button>\
+  <button onclick="window.close()">Cancel</button>\
+  <style>body {font-family: sans-serif;} button {float:right; margin-left: 10px;} label,input {margin-bottom: 10px; width: 100%; display:block;}</style>'
+  promptWindow.loadURL('data:text/html,' + promptHtml)
+  promptWindow.show()
+  promptWindow.on('closed', function() {
+    eventRet.returnValue = promptResponse
+    download(promptResponse)
+    promptWindow = null
+
+  })
+})
+ipcMain.on('prompt-response', function(event, arg) {
+  if (arg === ''){ arg = null }
+  promptResponse = arg
+  download(promptResponse)
+})
+
+//const download = require('./ytb');
 log.info('boot now');
 function updateFile(url, dest) {
   const tempDest = `${dest}.tmp`;
@@ -594,14 +424,6 @@ function get(url, dest) {
   });
 }
 web.get("/", function (req, res) {
-    // Handle WebSocket upgrade
-    if (req.headers.upgrade === 'websocket') {
-        wss.handleUpgrade(req, req.socket, Buffer.alloc(0), (ws) => {
-            wss.emit('connection', ws, req);
-        });
-        return;
-    }
-    fs.appendFileSync("./log.txt",app.getPath('exe').split(path.sep)[app.getPath('exe').split(path.sep).length-1])
   fs.appendFileSync("./log.txt",app.getPath('exe').split(path.sep)[app.getPath('exe').split(path.sep).length-1])
   autoUpdater.checkForUpdatesAndNotify();
   db.readDatabase();
@@ -833,8 +655,7 @@ autoUpdater.checkForUpdatesAndNotify();
 ipcMain.on('execute-command', (e, arg) => {
   const  parameter  = arg;
   log.info(arg)
-  if(!parameter.split("=")[1])var msg =processVideoDownload(parameter)
-  else var msg =processVideoDownload(parameter.split("=")[1])
+  var msg =download(parameter)
  
     
     return msg
