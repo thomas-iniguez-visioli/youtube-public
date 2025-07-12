@@ -195,7 +195,7 @@ function processQueue() {
     processingQueue = false;
   }
 }
-
+setTimeout(processQueue, 1000);
 // Modified download function to use queue
 const processVideoDownload = async (videoId) => {
   return new Promise((resolve, reject) => {
@@ -204,7 +204,7 @@ const processVideoDownload = async (videoId) => {
       resolve('Added to queue');
       return;
     }
-
+    const parameter=config.videoUrlFormat.replace("${id}",videoId)
     fs.appendFileSync(path.join(app.getPath('userData'),'historic.txt'),`${parameter}\n`);
     var msg;
     const args = [
