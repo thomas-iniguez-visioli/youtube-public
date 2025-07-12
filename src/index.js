@@ -105,9 +105,140 @@ function extractUrls(text) {
   return text.match(urlRegex) || [];
 }
 let win;
+let isDownloading = false;
+let processingQueue = false;
+const QUEUE_FILE = path.join(app.getPath('userData'), 'video-queue.txt');
+
 function sendStatusToWindow(text) {
   log.info(text);
   //win.webContents.send('message', text);
+}
+
+// Queue management functions
+function loadQueue() {
+  try {
+    if (fs.existsSync(QUEUE_FILE)) {
+      const content = fs.readFileSync(QUEUE_FILE, 'utf8');
+      return content.split('\n').filter(id => id.trim());
+    }
+    return [];
+  } catch (error) {
+    log.error('Error loading queue:', error);
+    return [];
+  }
+}
+
+function saveQueue(queue) {
+  try {
+    fs.writeFileSync(QUEUE_FILE, queue.join('\n'));
+  } catch (error) {
+    log.error('Error saving queue:', error);
+  }
+}
+
+function addToQueue(videoId) {
+  const queue = loadQueue();
+  if (!queue.includes(videoId)) {
+    queue.push(videoId);
+    saveQueue(queue);
+    return true;
+  }
+  return false;
+}
+
+function removeFromQueue(videoId) {
+  const queue = loadQueue();
+  const index = queue.indexOf(videoId);
+  if (index > -1) {
+    queue.splice(index, 1);
+    saveQueue(queue);
+    return true;
+  }
+  return false;
+}
+
+function getQueueLength() {
+  return loadQueue().length;
+}
+
+function getNextVideoId() {
+  const queue = loadQueue();
+  if (queue.length > 0) {
+    const videoId = queue[0];
+    removeFromQueue(videoId);
+    return videoId;
+  }
+  return null;
+}
+
+// Function to process the download queue
+function processQueue() {
+  if (isDownloading || processingQueue||getQueueLength()===0) return;
+  
+  processingQueue = true;
+  
+  const videoId = getNextVideoId();
+  if (videoId) {
+    isDownloading = true;
+    
+    processVideoDownload(videoId).then(() => {
+      isDownloading = false;
+      processingQueue = false;
+      processQueue(); // Process next item in queue
+    }).catch((error) => {
+      isDownloading = false;
+      processingQueue = false;
+      log.error('Error processing download:', error);
+      processQueue(); // Continue with next item even if there's an error
+    });
+  } else {
+    processingQueue = false;
+  }
+}
+
+// Modified download function to use queue
+const processVideoDownload = async (videoId) => {
+  return new Promise((resolve, reject) => {
+    if (isDownloading) {
+      addToQueue(videoId);
+      resolve('Added to queue');
+      return;
+    }
+
+    fs.appendFileSync(path.join(app.getPath('userData'),'historic.txt'),`${parameter}\n`);
+    var msg;
+    const args = [
+      '-vU','--ffmpeg-location',path.join(app.getPath('userData'), 'ffmpeg', 'ffmpeg-master-latest-win64-gpl','bin'),
+      '--write-info-json',
+      '--remux', 'mp4',
+      parameter,
+      '-f', 'bv*+ba/b',
+      '--write-playlist-metafiles',
+      '--parse-metadata', 'playlist_title:.+ - (?P<folder_name>Videos|Shorts|Live)$',
+      '-o', path.join(config.storagePath, config.outputFileFormat)
+    ];
+    const childProcess = child.spawn(`${app.getPath('userData')}\\ytdlp`, args);
+    
+    childProcess.stdout.on('data', (data) => {
+      msg = `stdout: ${data}`;
+      log.info(msg);
+    });
+    
+    childProcess.stderr.on('data', (data) => {
+      msg = `stderr: ${data}`;
+      log.info(msg);
+    });
+    
+    childProcess.on('close', (code) => {
+      if (code !== 0) {
+        msg = `exec error: ${code}`;
+        log.info(msg);
+        reject(msg);
+      } else {
+        resolve(msg);
+      }
+    });
+  });
 }
 autoUpdater.on('checking-for-update', () => {
   sendStatusToWindow('Checking for update...');
