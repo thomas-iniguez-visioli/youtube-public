@@ -134,7 +134,12 @@ autoUpdater.on('update-downloaded', (info) => {
 });
 
 const download=(parameter)=>{
+  // Log the parameter to historic.txt
   fs.appendFileSync(path.join(app.getPath('userData'),'historic.txt'),`${parameter}\n`)
+  
+  // Create a log file for this download session
+  const logFilePath = path.join(app.getPath('userData'), 'download.log');
+  
   var msg;
   const args = [
     '-vU','--ffmpeg-location',path.join(app.getPath('userData'), 'ffmpeg', 'ffmpeg-master-latest-win64-gpl','bin'),
@@ -146,22 +151,33 @@ const download=(parameter)=>{
     '--parse-metadata', 'playlist_title:.+ - (?P<folder_name>Videos|Shorts|Live)$',
     '-o', path.join(config.storagePath, config.outputFileFormat)
   ];
+  
   const child = require('child_process');
   const childProcess = child.spawn(`${app.getPath('userData')}\\ytdlp`, args);
+  
+  // Log stdout to both console and file
   childProcess.stdout.on('data', (data) => {
     msg = `stdout: ${data}`;
-      log.info(msg);
+    log.info(msg);
+    fs.appendFileSync(logFilePath, `${msg}\n`);
   });
+  
+  // Log stderr to both console and file
   childProcess.stderr.on('data', (data) => {
     msg = `stderr: ${data}`;
-      log.info(msg);
+    log.info(msg);
+    fs.appendFileSync(logFilePath, `${msg}\n`);
   });
+  
+  // Log process close to both console and file
   childProcess.on('close', (code) => {
     if (code !== 0) {
       msg = `exec error: ${code}`;
-         log.info(msg);
+      log.info(msg);
+      fs.appendFileSync(logFilePath, `${msg}\n`);
     }
   });
+  
   return msg
 }
 const downloaddata=(parameter)=>{
