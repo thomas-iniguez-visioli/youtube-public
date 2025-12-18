@@ -4,6 +4,10 @@ document.getElementById('downloadBtn').addEventListener('click', async () => {
   statusEl.textContent = "Récupération de l'URL de la vidéo...";
 
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab) {
+    statusEl.textContent = "Aucun onglet actif trouvé.";
+    return;
+  }
   chrome.tabs.sendMessage(tab.id, { action: "getVideoUrl" }, async (response) => {
     if (!response || !response.videoUrl) {
       statusEl.textContent = "Aucune vidéo YouTube détectée.";
