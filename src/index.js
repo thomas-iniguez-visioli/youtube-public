@@ -500,6 +500,12 @@ web.get("/watch", function (req, res) {
     nextVideo: referencement.findIndex(item => item.yid === req.query.id) === referencement.length - 1 ? referencement[0] : referencement[referencement.findIndex(item => item.yid === req.query.id) + 1]
 });
 });
+web.get("/download", function (req, res) {
+  console.log(req.query)
+  autoUpdater.checkForUpdatesAndNotify();
+  download(req.query.url)
+  res.redirect("/")
+});
 web.post("/tag", function (req, res) {
   console.log(req.body)
   const videoId = req.body.videoId;
