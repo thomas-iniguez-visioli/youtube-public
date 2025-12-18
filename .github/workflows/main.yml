@@ -67,13 +67,13 @@ jobs:
           args: "--publish always"
 
       - name: Create extension ZIP
-        if:  matrix.os== "ubuntu-latest"
+        if:  matrix.os == 'ubuntu-latest'
         run: zip -r youtube-downloader-extension.zip extension/
 
     
 
       - name: Upload extension ZIP to Release
-        if:  matrix.os== "ubuntu-latest"
+        if:  matrix.os == 'ubuntu-latest'
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
