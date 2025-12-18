@@ -17,6 +17,12 @@ document.getElementById('downloadBtn').addEventListener('click', async () => {
 
     try {
       const apiResponse = await fetch(apiUrl);
+
+      if (!apiResponse.ok) {
+        statusEl.textContent = `Erreur HTTP: ${apiResponse.status} ${apiResponse.statusText}`;
+        return;
+      }
+
       const result = await apiResponse.json();
 
       if (result.status === "success") {
