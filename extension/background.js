@@ -14,7 +14,7 @@ function isValidUrl(url) {
   try {
     const parsedUrl = new URL(url);
     // Only allow HTTPS protocol for security
-    return parsedUrl.protocol === "https:";
+    return parsedUrl.protocol === "http:";
   } catch {
     // Invalid URL format
     return false;
