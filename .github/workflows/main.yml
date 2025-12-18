@@ -59,8 +59,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+               fetch-depth: 0
+      - name: Create extension ZIP
 
+        run: zip -r youtube-downloader-extension.zip extension/
+
+      - name: Upload extension ZIP to release
+
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./youtube-downloader-extension.zip
+          asset_name: youtube-downloader-extension.zip
+          asset_content_type: application/zip
       - name: Publish release
         uses: thomas-iniguez-visioli/publish-release@0.0.4
         env:
