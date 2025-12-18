@@ -83,17 +83,4 @@ jobs:
           asset_name: youtube-downloader-extension.zip
           asset_content_type: application/zip
 
-  publish:
-    runs-on: ubuntu-latest
-    needs: build-and-upload
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Publish release
-        uses: thomas-iniguez-visioli/publish-release@0.0.4
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          id: "test"
+  
