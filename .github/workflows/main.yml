@@ -69,15 +69,7 @@ jobs:
       - name: Create extension ZIP
         run: zip -r youtube-downloader-extension.zip extension/
 
-      - name: Upload Electron app to Release
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.prepare-release.outputs.upload_url }}
-          asset_path: dist/*.exe
-          asset_name: YouTube-Downloader-Setup.exe
-          asset_content_type: application/octet-stream
+    
 
       - name: Upload extension ZIP to Release
         uses: actions/upload-release-asset@v1
