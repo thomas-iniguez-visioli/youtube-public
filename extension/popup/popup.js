@@ -3,12 +3,12 @@ document.getElementById('downloadBtn').addEventListener('click', async () => {
   const statusEl = document.getElementById('status');
   statusEl.textContent = "Récupération de l'URL de la vidéo...";
 
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
   if (!tab) {
     statusEl.textContent = "Aucun onglet actif trouvé.";
     return;
   }
-  chrome.tabs.sendMessage(tab.id, { action: "getVideoUrl" }, async (response) => {
+  browser.tabs.sendMessage(tab.id, { action: "getVideoUrl" }, async (response) => {
     if (!response || !response.videoUrl) {
       statusEl.textContent = "Aucune vidéo YouTube détectée.";
       return;
@@ -32,7 +32,7 @@ document.getElementById('downloadBtn').addEventListener('click', async () => {
       if (result.status === "success") {
         statusEl.textContent = `Téléchargement lancé: ${result.title}`;
         // Ouvre le lien de téléchargement dans un nouvel onglet
-        chrome.tabs.create({ url: `http://localhost:3000/downloads/${result.filename}` });
+        browser.tabs.create({ url: `http://localhost:3000/downloads/${result.filename}` });
       } else {
         statusEl.textContent = `Erreur: ${result.message}`;
       }
