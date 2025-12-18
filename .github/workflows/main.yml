@@ -1,41 +1,55 @@
 name: Build/release
 
-on: 
+on:
   workflow_dispatch:
   push:
     branches: main
+  release:
+    types: [published]
+
 concurrency:
   group: "pages"
   cancel-in-progress: true
+
 jobs:
   release:
     runs-on: ${{ matrix.os }}
 
     strategy:
       matrix:
-        os: [ ubuntu-latest,windows-latest]
+        os: [ubuntu-latest, windows-latest]
 
     steps:
       - name: Check out Git repository
-        uses: actions/checkout@v1
+        uses: actions/checkout@v4
 
       - name: Install Node.js, NPM and Yarn
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v4
         with:
           node-version: 23
-      
+
       - name: Build/release Electron app
         uses: samuelmeuli/action-electron-builder@v1
         with:
-          # GitHub token, automatically provided to the action
-          # (No need to define this secret in the repo settings)
           github_token: ${{ secrets.github_token }}
-
-          # If the commit is tagged with a version (e.g. "v1.0.0"),
-          # release the app after building
           release: ${{ startsWith(github.ref, 'refs/tags/') }}
-        
           args: "--publish always"
+
+      - name: Create extension ZIP
+        if: github.event_name == 'release' && github.event.action == 'published'
+        run: zip -r youtube-downloader-extension.zip extension/
+
+      - name: Upload extension ZIP to release
+        if: github.event_name == 'release' && github.event.action == 'published'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./youtube-downloader-extension.zip
+          asset_name: youtube-downloader-extension.zip
+          asset_content_type: application/zip
+
   publish:
     runs-on: ${{ matrix.os }}
     needs: release
@@ -43,14 +57,13 @@ jobs:
       matrix:
         os: [ubuntu-latest]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
-               fetch-depth: 0
-     
+          fetch-depth: 0
+
       - name: Publish release
         uses: thomas-iniguez-visioli/publish-release@0.0.4
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           id: "test"
-        
