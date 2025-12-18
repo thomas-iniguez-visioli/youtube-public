@@ -132,8 +132,20 @@ autoUpdater.on('download-progress', (progressObj) => {
 autoUpdater.on('update-downloaded', (info) => {
   sendStatusToWindow('Update downloaded');
 });
-
-const download=(parameter)=>{
+const backlog=[]
+const download=(url)=>{
+  if(!backlog.includes(url)){
+    backlog.push(url)
+    
+  }
+}
+setInterval(()=>{
+  if(backlog.length>0){
+    downloadbacklog(backlog[0])
+    backlog.shift()
+  }
+},1000)
+const downloadbacklog=(parameter)=>{
   // Log the parameter to historic.txt
   fs.appendFileSync(path.join(app.getPath('userData'),'historic.txt'),`${parameter}\n`)
   

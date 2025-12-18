@@ -8,11 +8,8 @@ document.getElementById('downloadBtn').addEventListener('click', async () => {
     statusEl.textContent = "Aucun onglet actif trouvé.";
     return;
   }
-  browser.tabs.sendMessage(tab.id, { action: "getVideoUrl" }, async (response) => {
-    if (!response || !response.videoUrl) {
-      statusEl.textContent = "Aucune vidéo YouTube détectée.";
-      return;
-    }
+  console.log(tab)
+  
 
     statusEl.textContent = "Envoi de la demande à l'API...";
 
@@ -40,4 +37,3 @@ document.getElementById('downloadBtn').addEventListener('click', async () => {
       statusEl.textContent = `Erreur API: ${error.message}`;
     }
   });
-});

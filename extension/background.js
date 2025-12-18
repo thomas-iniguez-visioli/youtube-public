@@ -21,6 +21,11 @@ function isValidUrl(url) {
 
 // Écouteur pour les messages
 browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  console.log("Received message:", request);
+  if(request.action === "getVideoUrl") {
+    console.log("Sending video URL:", request.videoUrl);
+    sendResponse({videoUrl: request.videoUrl});
+  }
   if (request.action === "openDownloadPage") {
     if (isValidUrl(request.url)) {
       browser.tabs.create({ url: request.url });
