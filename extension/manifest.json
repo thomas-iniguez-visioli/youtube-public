@@ -1,0 +1,27 @@
+{
+  "manifest_version": 2,
+  "name": "YouTube Downloader",
+  "version": "1.0",
+  "description": "Téléchargez des vidéos YouTube à la volée via l'API du projet",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "http://localhost:3000/"
+  ],
+  "browser_action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "48": "icons/icon48.png",
+      "96": "icons/icon96.png"
+    }
+  },
+  "background": {
+    "scripts": ["background.js"]
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.youtube.com/*"],
+      "js": ["content.js"]
+    }
+  ]
+}
