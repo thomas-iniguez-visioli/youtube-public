@@ -1,39 +1,28 @@
-// popup/popup.js
+const browserApi = typeof browser !== "undefined" ? browser : chrome;
+
 document.getElementById('downloadBtn').addEventListener('click', async () => {
   const statusEl = document.getElementById('status');
   statusEl.textContent = "Récupération de l'URL de la vidéo...";
 
-  const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+  const [tab] = await browserApi.tabs.query({ active: true, currentWindow: true });
   if (!tab) {
     statusEl.textContent = "Aucun onglet actif trouvé.";
     return;
   }
-  console.log(tab)
-  
+  const response = await browserApi.tabs.sendMessage(tab.id, { action: "getVideoUrl" }).catch(() => null);
+  const videoUrl = response?.videoUrl;
+  if (!videoUrl) {
+    statusEl.textContent = "Impossible de récupérer l'URL.";
+    return;
+  }
 
-    statusEl.textContent = "Envoi de la demande à l'API...";
+  statusEl.textContent = "Téléchargement en cours...";
 
-    // URL de l'API locale ou hébergée
-    const apiUrl = `http://localhost:3000/download?url=${encodeURIComponent(response.videoUrl)}&type=mp4`;
-
-    try {
-      const apiResponse = await fetch(apiUrl);
-
-      if (!apiResponse.ok) {
-        statusEl.textContent = `Erreur HTTP: ${apiResponse.status} ${apiResponse.statusText}`;
-        return;
-      }
-
-      const result = await apiResponse.json();
-
-      if (result.status === "success") {
-        statusEl.textContent = `Téléchargement lancé: ${result.title}`;
-        // Ouvre le lien de téléchargement dans un nouvel onglet
-        browser.tabs.create({ url: `http://localhost:3000/downloads/${result.filename}` });
-      } else {
-        statusEl.textContent = `Erreur: ${result.message}`;
-      }
-    } catch (error) {
-      statusEl.textContent = `Erreur API: ${error.message}`;
-    }
+  const apiUrl = `http://localhost:8001/download?url=${encodeURIComponent(videoUrl)}`;
+  try {
+    await fetch(apiUrl, { method: "GET", mode: "no-cors" });
+    statusEl.textContent = "Téléchargement ajouté à la file.";
+  } catch (error) {
+    statusEl.textContent = `Erreur API: ${error.message}`;
+  }
   });
