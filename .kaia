@@ -30,6 +30,21 @@
       "metadata": {
         "issueNumber": 19
       }
+    },
+    {
+      "id": 3,
+      "titre": "C:\\Users\\alpha\\AppData\\Roaming\\youtube\\ffmpeg.zip:File already exists",
+      "description": "View details in Rollbar: [https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/5](https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/5)\n\n```\nC:\\Users\\alpha\\AppData\\Roaming\\youtube\\ffmpeg.zip:File already exists\n```",
+      "icon": "🐛",
+      "color": "#DC143C",
+      "criteres_acceptation": [
+        "The application successfully downloads and unpacks 'ffmpeg.zip' if it is missing from the specified path.",
+        "The application gracefully handles cases where 'ffmpeg.zip' already exists (e.g., by verifying its integrity and version, then skipping download if valid, or overwriting if invalid/outdated).",
+        "The user does not encounter a 'File already exists' error during the operation that requires 'ffmpeg.zip'."
+      ],
+      "metadata": {
+        "issueNumber": 20
+      }
     }
   ],
   "en_cours": [],
