@@ -8,3 +8,4 @@ nextgen/my-electron-app/node_modules/*
 nextgen/my-electron-app/dist/youtube Setup 1.0.0.exe
 nextgen/my-electron-app/dist/youtube Setup 1.0.0.exe.blockmap
 dist/*
+test-logrocket.js
