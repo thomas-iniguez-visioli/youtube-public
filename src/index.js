@@ -1,10 +1,3 @@
-// require('./sentry.js');
-/*const Sentry = require("@sentry/node");
-const eSentry=require("@sentry/electron/main")
-eSentry.init({
-  dsn: "https://57d94ff25757e9923caba57bf1f2869f@o4508613620924416.ingest.de.sentry.io/4508619258331216",
-});*/
-//eSentry.profiler.startProfiler()
 const { app, BrowserWindow, ipcMain, dialog,Menu } = require('electron');
 const e=require("electron")
 const cors =require("cors")
@@ -57,8 +50,6 @@ const limiter = RateLimit({
 });
 
   
-
-//console.log(eSentry)
 
 if (!fs.existsSync(path.join(__dirname))) { // Correction pour utiliser path.join pour une construction de chemin valide
   fs.mkdirSync(path.join(__dirname)) // Correction pour utiliser path.join pour une construction de chemin valide
@@ -234,7 +225,6 @@ const web = express();
 const helmet = require('helmet');
 //web.use(helmet());
 //web.use(cors(corsOptions));
-//eSentry.setupExpressErrorHandler(web);
 const http = require('http').Server(web);
 const io = require('socket.io')(http);
 const morgan = require('morgan');
