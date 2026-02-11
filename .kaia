@@ -45,6 +45,21 @@
       "metadata": {
         "issueNumber": 21
       }
+    },
+    {
+      "id": 4,
+      "titre": "Error: File already exists",
+      "description": "View details in Rollbar: [https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/7](https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/7)\n\n```\n\nError: C:\\Users\\alpha\\AppData\\Roaming\\youtube\\views\\index.ejs:File contents are the same\n  File \"C:\\Users\\alpha\\youtube-public\\src\\index.js\", line 38, in <unknown>\n  File \"C:\\Users\\alpha\\youtube-public\\node_modules\\electron-log\\src\\core\\Logger.js\", line 178, in <unknown>\n  File \"<anonymous>\", line unknown, in Array.reduce\n  File \"C:\\Users\\alpha\\youtube-public\\node_modules\\electron-log\\src\\core\\Logger.js\", line 177, in Logger.processMessage\n  File \"C:\\Users\\alpha\\youtube-public\\node_modules\\electron-log\\src\\core\\Logger.js\", line 136, in Logger.logData\n  File \"C:\\Users\\alpha\\youtube-public\\node_modules\\electron-log\\src\\core\\Logger.js\", line 86, in <computed> [as error]\n  File \"C:\\Users\\alpha\\youtube-public\\src\\index.js\", line 365, in <unknown>\n  File \"node:internal/process/task_queues\", line 95, in process.processTicksAndRejections\n```",
+      "icon": "🚫",
+      "color": "#FF0000",
+      "criteres_acceptation": [
+        "When the application attempts to write `index.ejs` to the `AppData\\Roaming\\youtube\\views\\` directory and a file with identical content already exists at that path, no 'Error: File contents are the same' message should be logged, and the application should not crash.",
+        "When the application attempts to write `index.ejs` and the target file does not exist at `C:\\Users\\alpha\\AppData\\Roaming\\youtube\\views\\index.ejs`, the file should be created successfully without error.",
+        "When the application attempts to write `index.ejs` and a file with *different* content exists at `C:\\Users\\alpha\\AppData\\Roaming\\youtube\\views\\index.ejs`, the existing file should be successfully overwritten with the new content without error."
+      ],
+      "metadata": {
+        "issueNumber": 22
+      }
     }
   ],
   "en_cours": [],
