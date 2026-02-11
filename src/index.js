@@ -1,10 +1,5 @@
 const { app, BrowserWindow, ipcMain, dialog,Menu } = require('electron');
-const LogRocket = require('logrocket');
-LogRocket.init('kw8sds/youtube-zozss', {
-  console: {
-    shouldAggregateConsoleErrors: true,
-  },
-});
+
 const e=require("electron")
 const cors =require("cors")
 var booted=false
