@@ -1,4 +1,6 @@
 const { app, BrowserWindow, ipcMain, dialog,Menu } = require('electron');
+const LogRocket = require('logrocket');
+LogRocket.init('kw8sds/youtube-zozss');
 const e=require("electron")
 const cors =require("cors")
 var booted=false
@@ -75,7 +77,10 @@ getRedirectedUrl("https://github.com/thomas-iniguez-visioli/youtube-public/relea
  log.info(url.replace("tag","download")+"/latest.yml")
   autoUpdater.setFeedURL(url.replace("tag","download")+"")
   autoUpdater.checkForUpdatesAndNotify();
-}).catch((err)=>{log.info(err)})
+}).catch((err)=>{
+  log.info(err)
+  LogRocket.captureException(err);
+})
 setInterval(() => {
   // Code à exécuter toutes les 2 minutes
   getRedirectedUrl("https://github.com/thomas-iniguez-visioli/youtube-public/releases/latest").then((url)=>{
@@ -83,7 +88,8 @@ setInterval(() => {
     autoUpdater.setFeedURL(url.replace("tag","download")+"")
     autoUpdater.checkForUpdatesAndNotify();
   }).catch((err)=>{
-    //log.info(err)
+    log.info(err)
+    LogRocket.captureException(err);
   })
 }, 120000);
 
@@ -112,6 +118,7 @@ autoUpdater.on('update-not-available', (info) => {
 })
 autoUpdater.on('error', (err) => {
   sendStatusToWindow('Error in auto-updater. ' + err);
+  LogRocket.captureException(err);
 })
 autoUpdater.on('download-progress', (progressObj) => {
   let log_message = "Download speed: " + progressObj.bytesPerSecond;
@@ -178,6 +185,7 @@ const downloadbacklog=(parameter)=>{
       msg = `exec error: ${code}`;
       log.info(msg);
       fs.appendFileSync(logFilePath, `${msg}\n`);
+      LogRocket.captureException(new Error(msg));
     }
   });
   
@@ -217,6 +225,7 @@ const downloaddata=(parameter)=>{
       if (code !== 0) {
         msg = `exec error: ${code}`;
       log.info(msg);
+      LogRocket.captureException(new Error(msg));
       }
     });
     return msg
@@ -232,6 +241,13 @@ const accessLogStream=fs.createWriteStream(path.join(app.getPath('userData'), ".
 const errorLogStream=fs.createWriteStream(path.join(app.getPath('userData'), "./log/error-"+`${new Date().toDateString()}`+".log"))
 web.use(morgan('combined', {stream: accessLogStream}));
 web.use(morgan('combined', {skip: function (req, res) { return res.statusCode < 400 }, stream: errorLogStream}));
+
+// Middleware pour capturer les erreurs Express et les envoyer à LogRocket
+web.use((err, req, res, next) => {
+  LogRocket.captureException(err);
+  next(err);
+});
+
 const d = require('./db.js');
 const zipUrl='https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip'
 updateFile(zipUrl, path.join(app.getPath('userData'), 'ffmpeg.zip')) // Correction pour utiliser path.join pour une construction de chemin valide
@@ -274,10 +290,16 @@ async function build() {
   try {
     updateFile('https://cdn.socket.io/4.4.1/socket.io.js', path.join(app.getPath('userData'), 'src/client-dist/socket.io.js')) // Correction pour utiliser path.join pour une construction de chemin valide
     .then(() => log.info('downloaded file no issues...'))
-    .catch((e) => log.info('error while downloading', e));
+    .catch((e) => {
+      log.info('error while downloading', e);
+      LogRocket.captureException(e);
+    });
     updateFile('https://cdn.socket.io/4.4.1/socket.io.js.map', path.join(app.getPath('userData'), 'src/client-dist/socket.io.js.map')) // Correction pour utiliser path.join pour une construction de chemin valide
     .then(() => log.info('downloaded file no issues...'))
-    .catch((e) => log.info('error while downloading', e));
+    .catch((e) => {
+      log.info('error while downloading', e);
+      LogRocket.captureException(e);
+    });
    
     updateFile('https://github.com/yt-dlp/yt-dlp/releases/download/2023.02.17/yt-dlp.exe', path.join(app.getPath('userData'), 'ytdlp.exe')) // Correction pour utiliser path.join pour une construction de chemin valide
     .then(() => {
@@ -289,20 +311,33 @@ async function build() {
           
        
     })
-    .catch((e) => log.info('error while downloading', e));
+    .catch((e) => {
+      log.info('error while downloading', e);
+      LogRocket.captureException(e);
+    });
     updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/views/index.ejs', path.join(app.getPath('userData'), 'views','index.ejs')) // Correction pour utiliser path.join pour une construction de chemin valide
     .then(() => log.info('downloaded file no issues...'))
-    .catch((e) => log.info('error while downloading', e));
+    .catch((e) => {
+      log.info('error while downloading', e);
+      LogRocket.captureException(e);
+    });
     updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/views/view.ejs', path.join(app.getPath('userData'), 'views','view.ejs')) // Correction pour utiliser path.join pour une construction de chemin valide
     .then(() => log.info('downloaded file no issues...'))
-    .catch((e) => log.info('error while downloading', e));
+    .catch((e) => {
+      log.info('error while downloading', e);
+      LogRocket.captureException(e);
+    });
     updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/renderer.js', path.join(app.getPath('userData'), 'src/renderer.js')) // Correction pour utiliser path.join pour une construction de chemin valide
     .then(() => log.info('downloaded file no issues...'))
-    .catch((e) => log.info('error while downloading', e));
+    .catch((e) => {
+      log.info('error while downloading', e);
+      LogRocket.captureException(e);
+    });
     path.join(app.getPath('userData'), 'views')
     //
   } catch (error) {
     log.info(error)
+    LogRocket.captureException(error);
   }
 
  
@@ -312,6 +347,7 @@ try {
   
 } catch (error) {
   log.info(error);
+  LogRocket.captureException(error);
 }
 build().then((d)=>{
   web.listen(8001, function () {
@@ -405,6 +441,7 @@ function updateFile(url, dest) {
     })
     .catch((err) => {
       sendStatusToWindow(err)
+      LogRocket.captureException(err);
      if(fs.existsSync(tempDest)){
       fs.unlinkSync(tempDest);
      } 
