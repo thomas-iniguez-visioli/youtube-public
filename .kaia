@@ -1,68 +1,44 @@
 {
-  "idees": [],
+  "idees": [
+    {
+      "id": 2,
+      "titre": "test action",
+      "description": "",
+      "criteres_acceptation": [
+        "The designated 'action' can be successfully initiated for testing purposes.",
+        "The test execution of the 'action' completes without critical errors or unexpected terminations.",
+        "The test run of the 'action' produces discernible output (e.g., logs, status, artifacts) that can be used for evaluation."
+      ],
+      "metadata": {
+        "issueNumber": 1
+      }
+    }
+  ],
   "a_faire": [
     {
-      "id": 1,
+      "id": 3,
       "titre": "Error: Cannot find module 'helmet'\nRequire stack:\n- C:\\Users\\alpha\\youtube-public\\src\\index.js",
       "description": "View details in Rollbar: [https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/3](https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/3)\n\n```\n\nError: Cannot find module 'helmet'\nRequire stack:\n- C:\\Users\\alpha\\youtube-public\\src\\index.js\n  File \"node:internal/modules/cjs/loader\", line 1232, in Module._resolveFilename\n  File \"node:electron/js2c/browser_init\", line 2, in s._resolveFilename\n  File \"node:internal/modules/cjs/loader\", line 1058, in Module._load\n  File \"node:electron/js2c/node_init\", line 2, in c._load\n  File \"node:internal/modules/cjs/loader\", line 1318, in Module.require\n  File \"node:internal/modules/helpers\", line 179, in require\n  File \"C:\\Users\\alpha\\youtube-public\\src\\index.js\", line 277, in Object.<anonymous>\n  File \"node:internal/modules/cjs/loader\", line 1484, in Module._compile\n  File \"node:internal/modules/cjs/loader\", line 1564, in Module._extensions..js\n  File \"node:internal/modules/cjs/loader\", line 1295, in Module.load\n```",
-      "icon": "📦",
-      "color": "#E74C3C",
+      "icon": "🐛",
+      "color": "#D32F2F",
       "criteres_acceptation": [
-        "The `helmet` npm package is successfully installed as a dependency.",
-        "The application starts without encountering the 'Cannot find module 'helmet'' error.",
-        "The `helmet` middleware is correctly applied and provides its intended security features when the application runs."
+        "The 'helmet' npm package is correctly installed as a dependency.",
+        "The application starts successfully without the 'Cannot find module 'helmet'' error.",
+        "The application's security headers are configured and applied as intended by the 'helmet' package."
       ],
       "metadata": {
         "issueNumber": 18
-      }
-    },
-    {
-      "id": 2,
-      "titre": "Error: Cannot find module 'logrocket'\nRequire stack:\n- C:\\Users\\alpha\\youtube-public\\src\\db.js\n- C:\\Users\\alpha\\youtube-public\\src\\index.js",
-      "description": "View details in Rollbar: [https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/4](https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/4)\n\n```\n\nError: Cannot find module 'logrocket'\nRequire stack:\n- C:\\Users\\alpha\\youtube-public\\src\\db.js\n- C:\\Users\\alpha\\youtube-public\\src\\index.js\n  File \"node:internal/modules/cjs/loader\", line 1232, in Module._resolveFilename\n  File \"node:electron/js2c/browser_init\", line 2, in s._resolveFilename\n  File \"node:internal/modules/cjs/loader\", line 1058, in Module._load\n  File \"node:electron/js2c/node_init\", line 2, in c._load\n  File \"node:internal/modules/cjs/loader\", line 1318, in Module.require\n  File \"node:internal/modules/helpers\", line 179, in require\n  File \"C:\\Users\\alpha\\youtube-public\\src\\db.js\", line 4, in Object.<anonymous>\n  File \"node:internal/modules/cjs/loader\", line 1484, in Module._compile\n  File \"node:internal/modules/cjs/loader\", line 1564, in Module._extensions..js\n  File \"node:internal/modules/cjs/loader\", line 1295, in Module.load\n```",
-      "icon": "🐛",
-      "color": "#FF5733",
-      "criteres_acceptation": [
-        "The 'logrocket' module is successfully installed as a project dependency.",
-        "The application starts up without encountering the 'Cannot find module 'logrocket'' error.",
-        "The 'db.js' file successfully imports and uses the 'logrocket' module as intended."
-      ],
-      "metadata": {
-        "issueNumber": 19
-      }
-    },
-    {
-      "id": 3,
-      "titre": "File already exists",
-      "description": "View details in Rollbar: [https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/6](https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/6)\n\n```\nFile already exists\n```",
-      "icon": "📁",
-      "color": "#FFA500",
-      "criteres_acceptation": [
-        "The application should not crash or display an unhandled 'File already exists' error message when attempting a file creation or save operation.",
-        "If a file with the same name already exists, the application should implement a defined strategy (e.g., generate a unique filename, prompt the user for action, or safely overwrite if intended).",
-        "Users should be able to complete file-related operations (e.g., saving, uploading, exporting) without encountering blocking 'File already exists' errors."
-      ],
-      "metadata": {
-        "issueNumber": 21
-      }
-    },
-    {
-      "id": 4,
-      "titre": "Error: File already exists",
-      "description": "View details in Rollbar: [https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/7](https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/7)\n\n```\n\nError: C:\\Users\\alpha\\AppData\\Roaming\\youtube\\views\\index.ejs:File contents are the same\n  File \"C:\\Users\\alpha\\youtube-public\\src\\index.js\", line 38, in <unknown>\n  File \"C:\\Users\\alpha\\youtube-public\\node_modules\\electron-log\\src\\core\\Logger.js\", line 178, in <unknown>\n  File \"<anonymous>\", line unknown, in Array.reduce\n  File \"C:\\Users\\alpha\\youtube-public\\node_modules\\electron-log\\src\\core\\Logger.js\", line 177, in Logger.processMessage\n  File \"C:\\Users\\alpha\\youtube-public\\node_modules\\electron-log\\src\\core\\Logger.js\", line 136, in Logger.logData\n  File \"C:\\Users\\alpha\\youtube-public\\node_modules\\electron-log\\src\\core\\Logger.js\", line 86, in <computed> [as error]\n  File \"C:\\Users\\alpha\\youtube-public\\src\\index.js\", line 365, in <unknown>\n  File \"node:internal/process/task_queues\", line 95, in process.processTicksAndRejections\n```",
-      "icon": "🚫",
-      "color": "#FF0000",
-      "criteres_acceptation": [
-        "When the application attempts to write `index.ejs` to the `AppData\\Roaming\\youtube\\views\\` directory and a file with identical content already exists at that path, no 'Error: File contents are the same' message should be logged, and the application should not crash.",
-        "When the application attempts to write `index.ejs` and the target file does not exist at `C:\\Users\\alpha\\AppData\\Roaming\\youtube\\views\\index.ejs`, the file should be created successfully without error.",
-        "When the application attempts to write `index.ejs` and a file with *different* content exists at `C:\\Users\\alpha\\AppData\\Roaming\\youtube\\views\\index.ejs`, the existing file should be successfully overwritten with the new content without error."
-      ],
-      "metadata": {
-        "issueNumber": 22
       }
     }
   ],
   "en_cours": [],
   "en_revision": [],
-  "termine": []
+  "termine": [
+    {
+      "id": 1,
+      "titre": "Mettre en place le CLI",
+      "description": "",
+      "criteres_acceptation": []
+    }
+  ]
 }
