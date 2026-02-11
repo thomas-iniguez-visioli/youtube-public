@@ -58,6 +58,14 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 23
+      - name: Setup Rollbar config
+        run: |
+         echo "module.exports = {
+               accessToken: '${{ secrets.ROLLBAR_ACCESS_TOKEN }}',
+          environment: 'production',
+          captureUncaught: true,
+          captureUnhandledRejections: true,
+           };" > rollbar.config.js
 
       - name: Build Electron app
         uses: samuelmeuli/action-electron-builder@v1

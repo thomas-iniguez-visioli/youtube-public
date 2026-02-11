@@ -1,5 +1,7 @@
 const { app, BrowserWindow, ipcMain, dialog,Menu } = require('electron');
-
+const rollbarConfig = require('./rollbar.config.js');
+const Rollbar = require('rollbar');
+const rollbar = new Rollbar(rollbarConfig);
 const e=require("electron")
 const cors =require("cors")
 var booted=false
@@ -14,6 +16,48 @@ const log = require('electron-log');
 log.transports.file.level = 'info';
 log.transports.console.level = 'info';
 log.transports.file.file = path.join(app.getPath('userData'), 'log', 'app.log');
+
+function setupElectronLogForwarding() {
+  // Vérifie que log.hooks existe et est un tableau
+  if (!log.hooks || !Array.isArray(log.hooks)) {
+    log.warn('electron-log hooks non disponible ou invalide.');
+    return;
+  }
+
+  // Ajoute un hook pour intercepter les messages de log
+  log.hooks.push((message) => {
+    // Ne traiter que les erreurs
+    if (message.level !== 'error') {
+      return message;
+    }
+
+    // Extraire l'erreur des données du message
+    let errorToReport;
+    if (Array.isArray(message.data)) {
+      const errorFromData = message.data.find((entry) => entry instanceof Error);
+      errorToReport = errorFromData || new Error(message.data.map(String).join(' '));
+    } else {
+      errorToReport = message.data instanceof Error
+        ? message.data
+        : new Error(String(message.data || message.text || 'Erreur inconnue dans electron-log'));
+    }
+
+    // Envoyer l'erreur à Rollbar avec des métadonnées utiles
+    rollbar.error(errorToReport, {
+      context: {
+        transport: message.transport ? message.transport.name : 'inconnu',
+        scope: message.scope || 'default',
+        level: message.level,
+        // Ajoute d'autres métadonnées pertinentes pour ton projet
+        app: 'YouTube Downloader Extension',
+        version: require('./package.json').version,
+      },
+    });
+
+    return message;
+  });
+}
+setupElectronLogForwarding()
 const getconfig=()=>{
   if(fs.existsSync(path.join(app.getPath('userData'), 'config.json'))){
     return require(path.join(app.getPath('userData'), 'config.json'));
@@ -77,8 +121,8 @@ getRedirectedUrl("https://github.com/thomas-iniguez-visioli/youtube-public/relea
   autoUpdater.setFeedURL(url.replace("tag","download")+"")
   autoUpdater.checkForUpdatesAndNotify();
 }).catch((err)=>{
-  log.info(err)
-  LogRocket.captureException(err);
+  log.error(err)
+ 
 })
 setInterval(() => {
   // Code à exécuter toutes les 2 minutes
@@ -87,8 +131,8 @@ setInterval(() => {
     autoUpdater.setFeedURL(url.replace("tag","download")+"")
     autoUpdater.checkForUpdatesAndNotify();
   }).catch((err)=>{
-    log.info(err)
-    LogRocket.captureException(err);
+    log.error(err)
+   
   })
 }, 120000);
 
@@ -117,7 +161,7 @@ autoUpdater.on('update-not-available', (info) => {
 })
 autoUpdater.on('error', (err) => {
   sendStatusToWindow('Error in auto-updater. ' + err);
-  LogRocket.captureException(err);
+  log.error(err);
 })
 autoUpdater.on('download-progress', (progressObj) => {
   let log_message = "Download speed: " + progressObj.bytesPerSecond;
@@ -184,7 +228,7 @@ const downloadbacklog=(parameter)=>{
       msg = `exec error: ${code}`;
       log.info(msg);
       fs.appendFileSync(logFilePath, `${msg}\n`);
-      LogRocket.captureException(new Error(msg));
+      log.error(new Error(msg));
     }
   });
   
@@ -224,7 +268,7 @@ const downloaddata=(parameter)=>{
       if (code !== 0) {
         msg = `exec error: ${code}`;
       log.info(msg);
-      LogRocket.captureException(new Error(msg));
+      log.error(new Error(msg));
       }
     });
     return msg
@@ -243,7 +287,7 @@ web.use(morgan('combined', {skip: function (req, res) { return res.statusCode < 
 
 // Middleware pour capturer les erreurs Express et les envoyer à LogRocket
 web.use((err, req, res, next) => {
-  LogRocket.captureException(err);
+  log.error(err);
   next(err);
 });
 
@@ -291,13 +335,13 @@ async function build() {
     .then(() => log.info('downloaded file no issues...'))
     .catch((e) => {
       log.info('error while downloading', e);
-      LogRocket.captureException(e);
+      log.error(e);
     });
     updateFile('https://cdn.socket.io/4.4.1/socket.io.js.map', path.join(app.getPath('userData'), 'src/client-dist/socket.io.js.map')) // Correction pour utiliser path.join pour une construction de chemin valide
     .then(() => log.info('downloaded file no issues...'))
     .catch((e) => {
       log.info('error while downloading', e);
-      LogRocket.captureException(e);
+      log.error(e);
     });
    
     updateFile('https://github.com/yt-dlp/yt-dlp/releases/download/2023.02.17/yt-dlp.exe', path.join(app.getPath('userData'), 'ytdlp.exe')) // Correction pour utiliser path.join pour une construction de chemin valide
@@ -312,31 +356,31 @@ async function build() {
     })
     .catch((e) => {
       log.info('error while downloading', e);
-      LogRocket.captureException(e);
+      log.error(e);
     });
     updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/views/index.ejs', path.join(app.getPath('userData'), 'views','index.ejs')) // Correction pour utiliser path.join pour une construction de chemin valide
     .then(() => log.info('downloaded file no issues...'))
     .catch((e) => {
       log.info('error while downloading', e);
-      LogRocket.captureException(e);
+      log.error(e);
     });
     updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/views/view.ejs', path.join(app.getPath('userData'), 'views','view.ejs')) // Correction pour utiliser path.join pour une construction de chemin valide
     .then(() => log.info('downloaded file no issues...'))
     .catch((e) => {
       log.info('error while downloading', e);
-      LogRocket.captureException(e);
+      log.error(e);
     });
     updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/renderer.js', path.join(app.getPath('userData'), 'src/renderer.js')) // Correction pour utiliser path.join pour une construction de chemin valide
     .then(() => log.info('downloaded file no issues...'))
     .catch((e) => {
       log.info('error while downloading', e);
-      LogRocket.captureException(e);
+      log.error(e);
     });
     path.join(app.getPath('userData'), 'views')
     //
   } catch (error) {
     log.info(error)
-    LogRocket.captureException(error);
+    log.error(error);
   }
 
  
@@ -346,7 +390,7 @@ try {
   
 } catch (error) {
   log.info(error);
-  LogRocket.captureException(error);
+  log.error(error);
 }
 build().then((d)=>{
   web.listen(8001, function () {
@@ -440,7 +484,7 @@ function updateFile(url, dest) {
     })
     .catch((err) => {
       sendStatusToWindow(err)
-      LogRocket.captureException(err);
+      log.error(err);
      if(fs.existsSync(tempDest)){
       fs.unlinkSync(tempDest);
      } 
