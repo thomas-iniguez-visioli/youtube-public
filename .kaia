@@ -19,12 +19,12 @@
       "id": 3,
       "titre": "Error: Cannot find module 'helmet'\nRequire stack:\n- C:\\Users\\alpha\\youtube-public\\src\\index.js",
       "description": "View details in Rollbar: [https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/3](https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/3)\n\n```\n\nError: Cannot find module 'helmet'\nRequire stack:\n- C:\\Users\\alpha\\youtube-public\\src\\index.js\n  File \"node:internal/modules/cjs/loader\", line 1232, in Module._resolveFilename\n  File \"node:electron/js2c/browser_init\", line 2, in s._resolveFilename\n  File \"node:internal/modules/cjs/loader\", line 1058, in Module._load\n  File \"node:electron/js2c/node_init\", line 2, in c._load\n  File \"node:internal/modules/cjs/loader\", line 1318, in Module.require\n  File \"node:internal/modules/helpers\", line 179, in require\n  File \"C:\\Users\\alpha\\youtube-public\\src\\index.js\", line 277, in Object.<anonymous>\n  File \"node:internal/modules/cjs/loader\", line 1484, in Module._compile\n  File \"node:internal/modules/cjs/loader\", line 1564, in Module._extensions..js\n  File \"node:internal/modules/cjs/loader\", line 1295, in Module.load\n```",
-      "icon": "🐛",
-      "color": "#D32F2F",
+      "icon": "📦",
+      "color": "#FF5733",
       "criteres_acceptation": [
-        "The 'helmet' npm package is correctly installed as a dependency.",
+        "The 'helmet' package is correctly installed and listed as a dependency in 'package.json'.",
         "The application starts successfully without the 'Cannot find module 'helmet'' error.",
-        "The application's security headers are configured and applied as intended by the 'helmet' package."
+        "The 'helmet' security middleware is active and functioning as expected to enhance application security."
       ],
       "metadata": {
         "issueNumber": 18
