@@ -33,17 +33,17 @@
     },
     {
       "id": 3,
-      "titre": "C:\\Users\\alpha\\AppData\\Roaming\\youtube\\ffmpeg.zip:File already exists",
-      "description": "View details in Rollbar: [https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/5](https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/5)\n\n```\nC:\\Users\\alpha\\AppData\\Roaming\\youtube\\ffmpeg.zip:File already exists\n```",
-      "icon": "🐛",
-      "color": "#DC143C",
+      "titre": "File already exists",
+      "description": "View details in Rollbar: [https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/6](https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/6)\n\n```\nFile already exists\n```",
+      "icon": "📁",
+      "color": "#FFA500",
       "criteres_acceptation": [
-        "The application successfully downloads and unpacks 'ffmpeg.zip' if it is missing from the specified path.",
-        "The application gracefully handles cases where 'ffmpeg.zip' already exists (e.g., by verifying its integrity and version, then skipping download if valid, or overwriting if invalid/outdated).",
-        "The user does not encounter a 'File already exists' error during the operation that requires 'ffmpeg.zip'."
+        "The application should not crash or display an unhandled 'File already exists' error message when attempting a file creation or save operation.",
+        "If a file with the same name already exists, the application should implement a defined strategy (e.g., generate a unique filename, prompt the user for action, or safely overwrite if intended).",
+        "Users should be able to complete file-related operations (e.g., saving, uploading, exporting) without encountering blocking 'File already exists' errors."
       ],
       "metadata": {
-        "issueNumber": 20
+        "issueNumber": 21
       }
     }
   ],
