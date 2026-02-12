@@ -29,13 +29,15 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: alphaleadership/kanbanaction
-          ref: main
+          ref: master
           path: .kanban-action
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
+      - name: List Files (Debug)
+        run: ls -R .kanban-action/scripts
       - name: Install dependencies
         run: npm ci
       - name: Log Workflow Type
@@ -47,4 +49,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-        run: node .kanban-action/scripts/report-test-failures.js
+        run: node .kanban-action/scripts/report-test-failures.mjs
