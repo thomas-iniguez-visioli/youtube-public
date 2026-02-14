@@ -14,3 +14,7 @@
 ### Changé
 - **Refonte UI/UX** : Intégration de Plyr.io pour le lecteur vidéo et passage à un thème sombre moderne inspiré de YouTube.
 - **Consolidation des vues** : Déplacement des fichiers EJS de la racine vers `src/views/` pour une structure plus propre.
+
+## Instructions de développement
+- **prepush** : Avant chaque push, s'assurer que la version dans `package.json` est à jour et que les tests passent.
+

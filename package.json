@@ -7,6 +7,7 @@
   "packageManager": "pnpm@9.15.4",
   "scripts": {
     "build": "npm i helmet cors && npx electron-rebuild -y  ",
+    "prepush": "npm test",
     "start": "electron .",
     "test": "echo reusso"
   },
