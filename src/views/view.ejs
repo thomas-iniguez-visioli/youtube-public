@@ -120,11 +120,11 @@
                     </video>
                 </div>
 
-                <h1 class="video-title"><%= videodata.title || title %></h1>
+                <h1 class="video-title"><%= (typeof videodata !== 'undefined' && videodata.title) ? videodata.title : title %></h1>
                 
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <div class="video-meta">
-                        <strong><%= videodata.uploader %></strong> • <%= videodata.view_count ? videodata.view_count.toLocaleString() + ' vues' : '' %>
+                        <strong><%= (typeof videodata !== 'undefined' && videodata.uploader) ? videodata.uploader : 'Uploader inconnu' %></strong> • <%= (typeof videodata !== 'undefined' && videodata.view_count) ? videodata.view_count.toLocaleString() + ' vues' : '' %>
                     </div>
                     <div>
                         <a href="/delete?id=<%= code %>" class="btn btn-outline-danger btn-sm">Supprimer</a>
@@ -132,7 +132,7 @@
                 </div>
 
                 <div class="video-description">
-                    <p><%= videodata.description %></p>
+                    <p><%= (typeof videodata !== 'undefined') ? videodata.description : '' %></p>
                 </div>
 
                 <div class="mt-4">
@@ -181,7 +181,7 @@
 
             // Autoplay next video
             document.getElementById('videoPlayer').addEventListener('ended', function() {
-                window.location.href = "/watch?id=<%= nextVideo.id || nextVideo.yid %>";
+                window.location.href = "/watch?id=<%= (typeof nextVideo !== 'undefined') ? (nextVideo.id || nextVideo.yid) : '' %>";
             });
 
             // Exposé pour le debug si besoin
