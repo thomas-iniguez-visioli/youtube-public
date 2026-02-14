@@ -1,0 +1,253 @@
+{
+  "issueNumber": 24,
+  "created": "2026-02-14T11:58:55.537Z",
+  "history": [
+    {
+      "timestamp": "2026-02-14T11:58:55.537Z",
+      "role": "user",
+      "content": {
+        "number": 24,
+        "title": "file not found",
+        "body": "./rollbar.config.js is not found ",
+        "labels": [
+          "bug",
+          "complexity:low"
+        ],
+        "author": "alphaleadership",
+        "createdAt": "2026-02-14T11:54:42Z"
+      },
+      "metadata": {
+        "event": "issue_opened/labeled"
+      }
+    },
+    {
+      "timestamp": "2026-02-14T11:59:04.123Z",
+      "role": "assistant",
+      "content": {
+        "complexity": "low",
+        "type": "bug",
+        "suggestedColumn": "a_faire",
+        "acceptanceCriteria": [
+          "The application no longer reports 'file not found' for './rollbar.config.js'.",
+          "If 'rollbar.config.js' is required, it must be present at the expected path and successfully loaded.",
+          "If 'rollbar.config.js' is optional, the application must handle its absence gracefully without error and proceed correctly."
+        ],
+        "icon": "📄",
+        "color": "#FF6347",
+        "missingInformation": {
+          "isMissing": true,
+          "details": [
+            "Is 'rollbar.config.js' a required configuration file for the application to function?",
+            "Which part of the application (file/module) is attempting to load './rollbar.config.js'?",
+            "What is the intended working directory when the application is run, from which './rollbar.config.js' is being searched?",
+            "Is Rollbar an intended dependency or service for this project?"
+          ]
+        },
+        "fileActions": [
+          {
+            "action": "read",
+            "path": "package.json",
+            "explanation": "To check if 'rollbar' is listed as a dependency, indicating its intended use."
+          },
+          {
+            "action": "read",
+            "path": "action.js",
+            "explanation": "As a primary entry point, this file might contain or import logic related to initial configuration or error handling, where 'rollbar.config.js' might be referenced."
+          },
+          {
+            "action": "read",
+            "path": "src/config/index.js",
+            "explanation": "This file is a central point for configuration, and likely handles loading external configuration files or setting up services like Rollbar."
+          }
+        ]
+      },
+      "metadata": {
+        "type": "analysis",
+        "iteration": 0
+      }
+    },
+    {
+      "timestamp": "2026-02-14T11:59:04.124Z",
+      "role": "system",
+      "content": [
+        {
+          "path": "package.json",
+          "content": "{\n  \"name\": \"kanbangemini\",\n  \"version\": \"1.0.0\",\n  \"description\": \"\",\n  \"main\": \"kanban.js\",\n  \"type\": \"module\",\n  \"bin\": {\n    \"kanban\": \"./kanban.js\"\n  },\n  \"scripts\": {\n    \"test\": \"node --experimental-vm-modules node_modules/jest/bin/jest.js\"\n  },\n  \"keywords\": [],\n  \"author\": \"\",\n  \"license\": \"ISC\",\n  \"dependencies\": {\n    \"@actions/core\": \"^3.0.0\",\n    \"@actions/github\": \"^9.0.0\",\n    \"@google/generative-ai\": \"^0.24.1\",\n    \"@octokit/rest\": \"^22.0.1\",\n    \"commander\": \"^14.0.2\"\n  },\n  \"devDependencies\": {\n    \"fast-check\": \"^4.5.3\",\n    \"jest\": \"^30.2.0\"\n  }\n}\n"
+        },
+        {
+          "path": "action.js",
+          "content": "import * as core from '@actions/core';\nimport * as github from '@actions/github';\nimport { validateAndGetConfig } from './src/config/index.js';\nimport { GitHubClient } from './src/github/api-client.js';\nimport { GeminiClient } from './src/gemini/api-client.js';\nimport { IssueAnalyzer } from './src/gemini/analyzer.js';\nimport { BranchManager } from './src/github/branch-manager.js';\nimport { WorkflowManager } from './src/workflow/manager.js';\n\nasync function run() {\n  let config;\n  const CENTRAL_REPO = 'alphaleadership/kanbanaction';\n\n  try {\n    config = validateAndGetConfig();\n\n    if (config.debug) {\n        console.log('Debug mode enabled');\n        console.log('Context:', JSON.stringify(github.context, null, 2));\n    }\n\n    const githubClient = new GitHubClient(config.githubToken, config.githubRepo);\n\n    if (config.installWorkflows) {\n      const workflowInstaller = new WorkflowManager(githubClient, null, null, null);\n      await workflowInstaller.installWorkflows();\n      console.log('Workflow installation completed. Skipping event processing.');\n      return;\n    }\n\n    const geminiClient = new GeminiClient(config.geminiApiKey, {\n      primaryModel: config.geminiModel,\n      fallbackModels: config.geminiFallbackModels,\n      retries: config.geminiRetries\n    });\n    const analyzer = new IssueAnalyzer(geminiClient);\n    const branchManager = new BranchManager(githubClient);\n    const workflow = new WorkflowManager(githubClient, geminiClient, analyzer, branchManager);\n\n    const context = github.context;\n    \n    if (context.eventName === 'issues' && (context.payload.action === 'opened' || context.payload.action === 'labeled')) {\n      const issueNumber = context.payload.issue.number;\n      await workflow.processGitHubIssue(issueNumber);\n    } else if (context.eventName === 'pull_request' && context.payload.action === 'closed' && context.payload.pull_request.merged) {\n      const prNumber = context.payload.pull_request.number;\n      await workflow.processPullRequestMerge(prNumber);\n    } else if (context.eventName === 'workflow_dispatch' || context.eventName === 'schedule') {\n      console.log(`Triggered by ${context.eventName}. Processing pending tasks...`);\n      await workflow.processPendingTasks();\n    } else {\n      console.log(`Event ${context.eventName} with action ${context.payload.action} is not handled.`);\n    }\n\n      } catch (error) {\n        core.setFailed(error.message);\n        if (config?.debug) {\n          console.error('Detailed Error:', error);\n          console.error('Error Stack:', error.stack);\n        }\n    if (!config?.githubToken) {\n      console.error('Skipping centralized error report because no GitHub token is configured.');\n      return;\n    }\n    \n    try {\n      console.log(`Reporting error to central repository: ${CENTRAL_REPO}`);\n      const centralClient = new GitHubClient(config.githubToken, CENTRAL_REPO);\n      const errorTitle = `Error in ${github.context.payload.repository?.full_name || 'unknown repo'}: ${error.message.substring(0, 50)}...`;\n      const errorBody = `\n### Error Details\n- **Repository:** ${github.context.payload.repository?.full_name || 'Unknown'}\n- **Event:** ${github.context.eventName}\n- **Action:** ${github.context.payload.action || 'N/A'}\n- **Error Message:** ${error.message}\n\n### Stack Trace\n\\`\\`\\`\n${error.stack}\n\\`\\`\\`\n\n### Context\n<details>\n<summary>GitHub Context</summary>\n\n\\`\\`\\`json\n${JSON.stringify(github.context, null, 2)}\n\\`\\`\\`\n</details>\n      `;\n      \n      await centralClient.createIssue(errorTitle, errorBody, ['bug', 'automated-report']);\n    } catch (reportError) {\n      console.error('Failed to report error to central repository:', reportError.message);\n    }\n  }\n}\n\nrun();\n"
+        },
+        {
+          "path": "src/config/index.js",
+          "content": "import * as core from '@actions/core';\n\nexport function getConfig(env = process.env) {\n  const configuredFallbackModels = core.getInput('gemini-fallback-models') || env.GEMINI_FALLBACK_MODELS || '';\n  const parsedRetries = Number.parseInt(core.getInput('gemini-retries') || env.GEMINI_RETRIES || '3', 10);\n\n  const config = {\n    geminiApiKey: env.INPUT_GEMINI_API_KEY || core.getInput('gemini-api-key') || env.GEMINI_API_KEY,\n    geminiModel: core.getInput('gemini-model') || env.GEMINI_MODEL || 'gemini-2.5-flash',\n    geminiFallbackModels: configuredFallbackModels\n      .split(',')\n      .map(model => model.trim())\n      .filter(Boolean),\n    geminiRetries: Number.isNaN(parsedRetries) || parsedRetries < 0 ? 3 : parsedRetries,\n    githubToken: env.INPUT_GITHUB_TOKEN || core.getInput('github-token') || env.GITHUB_TOKEN,\n    installWorkflows: core.getInput('install-workflows') === 'true' || env.INSTALL_WORKFLOWS === 'true'|| env.INPUT_INSTALL_WORKFLOWS === 'true',\n    debug: core.getInput('debug') === 'true' || env.DEBUG === 'true',\n    githubRepo: env.GITHUB_REPOSITORY,\n    githubRef: env.GITHUB_REF\n  };\n\n  return config;\n}\n\nexport function validateAndGetConfig(env = process.env) {\n    const config = getConfig(env);\n    \n    const errors = [];\n    if (!config.installWorkflows && !config.geminiApiKey) errors.push(\"GEMINI_API_KEY is missing\");\n    if (!config.githubToken) errors.push(\"GITHUB_TOKEN is missing\");\n\n    if (errors.length > 0) {\n        throw new Error(`Configuration Error: ${errors.join(', ')}`);\n    }\n    return config;\n}\n"
+        }
+      ],
+      "metadata": {
+        "type": "file_read_results"
+      }
+    },
+    {
+      "timestamp": "2026-02-14T11:59:32.232Z",
+      "role": "assistant",
+      "content": {
+        "complexity": "low",
+        "type": "bug",
+        "suggestedColumn": "a_faire",
+        "acceptanceCriteria": [
+          "The application no longer reports 'file not found' for './rollbar.config.js' during execution.",
+          "If 'rollbar.config.js' is an intentional configuration, it must be located and loaded successfully without error.",
+          "If 'rollbar.config.js' is not required, its absence must be handled gracefully without error messages or impact on application functionality."
+        ],
+        "icon": "📄",
+        "color": "#FF6347",
+        "missingInformation": {
+          "isMissing": true,
+          "details": [
+            "What is the exact stack trace of the 'file not found' error?",
+            "Under what specific circumstances or command is this error occurring (e.g., during `npm test`, `npm start`, a specific GitHub Action workflow run, local execution of `kanban.js`, etc.)?",
+            "Is Rollbar an intended dependency or service for this project? (Based on `package.json`, it is not a direct dependency.)",
+            "Which specific part of the application or environment is attempting to load './rollbar.config.js'?",
+            "What is the intended working directory when the error occurs, from which './rollbar.config.js' is being searched?"
+          ]
+        },
+        "fileActions": [
+          {
+            "action": "read",
+            "path": "kanban.js",
+            "explanation": "This is another primary entry point for the project (CLI tool). It might have different configuration loading or service initialization logic than action.js."
+          },
+          {
+            "action": "read",
+            "path": "action.yml",
+            "explanation": "This file defines the GitHub Action's inputs, environment variables, and how it is run. It might reveal specific commands or setups that lead to the error."
+          },
+          {
+            "action": "read",
+            "path": "repro.js",
+            "explanation": "If this file exists and is used, it might contain specific code paths or setups that reliably reproduce the issue."
+          }
+        ]
+      },
+      "metadata": {
+        "type": "analysis",
+        "iteration": 1
+      }
+    },
+    {
+      "timestamp": "2026-02-14T11:59:32.233Z",
+      "role": "system",
+      "content": [
+        {
+          "path": "kanban.js",
+          "content": "#!/usr/bin/env node\n\nimport { Command } from 'commander';\nimport { readDb, writeDb } from './src/kanban/file-operations.js';\nimport { createTask, addTaskToColumn, moveTask, findTask } from './src/kanban/task-manager.js';\nimport { KANBAN_COLUMNS } from './src/utils/constants.js';\n\nconst program = new Command();\n\nprogram\n  .name('kanban')\n  .description(\"Un outil CLI pour gérer un tableau Kanban pour une IA de code.\")\n  .version('1.0.0');\n\n// Commande pour voir le tableau\nprogram\n  .command('voir')\n  .description('Affiche le tableau Kanban complet.')\n  .action(async () => {\n    try {\n      const db = await readDb();\n      \n      console.log('--- KANBAN ---');\n      for (const [colonne, taches] of Object.entries(db)) {\n          console.log(`\\n[ ${colonne.toUpperCase()} ]`);\n          if (taches.length === 0) {\n              console.log('  (vide)');\n          } else {\n              taches.forEach(tache => {\n                  console.log(`  - #${tache.id}: ${tache.titre}`);\n              });\n          }\n      }\n      console.log('\\n--------------');\n    } catch (error) {\n      console.error(\"Erreur :\", error.message);\n      process.exit(1);\n    }\n  });\n\n// Commande pour créer une tâche\nprogram\n  .command('creer <titre>')\n  .description(\"Crée une nouvelle tâche dans la colonne 'idées'.\")\n  .action(async (titre) => {\n    try {\n      const db = await readDb();\n      const task = createTask(titre);\n      addTaskToColumn(db, task, KANBAN_COLUMNS.IDEES);\n      await writeDb(db);\n      console.log(`Tâche #${task.id} \"${titre}\" créée dans la colonne 'idées'.`);\n    } catch (error) {\n      console.error(\"Erreur :\", error.message);\n      process.exit(1);\n    }\n  });\n\n// Commande pour bouger une tâche\nprogram\n  .command('bouger <id> <colonne>')\n  .description('Déplace une tâche vers une nouvelle colonne.')\n  .action(async (id, colonne) => {\n    try {\n      const db = await readDb();\n      const taskId = parseInt(id);\n      \n      if (isNaN(taskId)) {\n          throw new Error(\"L'ID de la tâche doit être un nombre.\");\n      }\n\n      // Valider la colonne cible\n      const targetCol = colonne.toLowerCase();\n      if (!Object.values(KANBAN_COLUMNS).includes(targetCol)) {\n          throw new Error(`Colonne invalide : ${colonne}. Colonnes disponibles : ${Object.values(KANBAN_COLUMNS).join(', ')}`);\n      }\n\n      moveTask(db, taskId, targetCol);\n      await writeDb(db);\n      console.log(`Tâche #${taskId} déplacée vers '${targetCol}'.`);\n    } catch (error) {\n      console.error(\"Erreur :\", error.message);\n      process.exit(1);\n    }\n  });\n\n// Commande pour finir une tâche\nprogram\n  .command('finir <id>')\n  .description(\"Marque une tâche comme terminée.\")\n  .action(async (id) => {\n    try {\n      const db = await readDb();\n      const taskId = parseInt(id);\n      \n      if (isNaN(taskId)) {\n          throw new Error(\"L'ID de la tâche doit être un nombre.\");\n      }\n\n      moveTask(db, taskId, KANBAN_COLUMNS.TERMINE);\n      await writeDb(db);\n      console.log(`Tâche #${taskId} marquée comme terminée.`);\n    } catch (error) {\n      console.error(\"Erreur :\", error.message);\n      process.exit(1);\n    }\n  });\n\nprogram.parse(process.argv);"
+        },
+        {
+          "path": "action.yml",
+          "content": "name: 'Gemini Kanban Integration'\ndescription: 'Integrates Gemini AI with KanbanGemini to process GitHub issues'\ninputs:\n  gemini-api-key:\n    description: 'API Key for Google Gemini (required unless install-workflows is true)'\n    required: false\n  gemini-model:\n    description: 'Primary Gemini model (e.g. gemini-2.5-flash)'\n    required: false\n  gemini-fallback-models:\n    description: 'Comma-separated fallback Gemini models'\n    required: false\n  gemini-retries:\n    description: 'Retry count for Gemini API calls'\n    required: false\n  github-token:\n    description: 'GitHub Token (required)'\n    required: true\n    default: ${{ github.token }}\n  install-workflows:\n    description: 'Whether to install or update the Kanban workflows in the target repository (default: false)'\n    required: false\n    default: 'false'\n  debug:\n    description: 'Enable debug logging'\n    required: false\n    default: 'false'\nruns:\n  using: 'composite'\n  steps:\n    - name: Setup Node.js\n      uses: actions/setup-node@v4\n      with:\n        node-version: '20'\n\n    - name: Install action dependencies\n      run: npm ci\n      shell: bash\n      working-directory: ${{ github.action_path }}\n\n    - name: Run action\n      run: node action.js\n      shell: bash\n      working-directory: ${{ github.action_path }}\n      env:\n        INPUT_GEMINI_API_KEY: ${{ inputs.gemini-api-key }}\n        INPUT_GEMINI_MODEL: ${{ inputs.gemini-model }}\n        INPUT_GEMINI_FALLBACK_MODELS: ${{ inputs.gemini-fallback-models }}\n        INPUT_GEMINI_RETRIES: ${{ inputs.gemini-retries }}\n        INPUT_GITHUB_TOKEN: ${{ inputs.github-token }}\n        INPUT_INSTALL_WORKFLOWS: ${{ inputs.install-workflows }}\n        INPUT_DEBUG: ${{ inputs.debug }}\n"
+        },
+        {
+          "path": "repro.js",
+          "content": "import { KANBAN_COLUMNS } from './src/utils/constants.js';\nconsole.log('KANBAN_COLUMNS:', KANBAN_COLUMNS);\n"
+        }
+      ],
+      "metadata": {
+        "type": "file_read_results"
+      }
+    },
+    {
+      "timestamp": "2026-02-14T12:00:14.163Z",
+      "role": "assistant",
+      "content": {
+        "complexity": "low",
+        "type": "bug",
+        "suggestedColumn": "a_faire",
+        "acceptanceCriteria": [
+          "The application executes without reporting 'file not found' for './rollbar.config.js' during any execution path (e.g., GitHub Action runs, local CLI commands, tests).",
+          "The codebase contains no references to 'rollbar' or 'rollbar.config.js', confirming it is not an intended dependency, or any existing reference is correctly handled if Rollbar integration is intended.",
+          "All existing functionalities of the GitHub Action (`action.js`) and the Kanban CLI tool (`kanban.js`) operate correctly after the fix."
+        ],
+        "icon": "📄",
+        "color": "#FF6347",
+        "missingInformation": {
+          "isMissing": true,
+          "details": [
+            "What is the exact stack trace of the 'file not found' error? This is critical to pinpoint the source of the `require` or `import` statement.",
+            "Under what specific circumstances or command is this error occurring (e.g., during `npm test`, `npm start`, a specific GitHub Action workflow run, local execution of `kanban.js` with certain arguments, etc.)?",
+            "Was Rollbar an intended dependency or service for this project at any point? (Based on `package.json`, it is not a direct dependency.)"
+          ]
+        },
+        "fileActions": [
+          {
+            "action": "read",
+            "path": "package.json",
+            "explanation": "To re-confirm that 'rollbar' is not listed as a dependency and to check for any 'scripts' that might indirectly trigger its loading."
+          },
+          {
+            "action": "read",
+            "path": "action.js",
+            "explanation": "As a primary entry point, to carefully examine for any dynamic imports, configuration loading, or error reporting mechanisms that might attempt to load 'rollbar.config.js'."
+          },
+          {
+            "action": "read",
+            "path": "kanban.js",
+            "explanation": "As the CLI entry point, to check for similar dynamic loading or configuration specific to the CLI that might try to resolve 'rollbar.config.js'."
+          },
+          {
+            "action": "read",
+            "path": "src/config/index.js",
+            "explanation": "This file is central for configuration. We need to confirm it doesn't contain any logic for dynamic file loading based on environment variables or other inputs that might point to 'rollbar.config.js'."
+          },
+          {
+            "action": "read",
+            "path": "README.md",
+            "explanation": "To understand the project's overall setup, intended services, or any external integrations that might require a 'rollbar.config.js' file."
+          },
+          {
+            "action": "read",
+            "path": "src/utils/helpers.js",
+            "explanation": "Utility files can sometimes contain generic file loading or path resolution logic that might be misconfigured or used in an unexpected way."
+          }
+        ]
+      },
+      "metadata": {
+        "type": "analysis",
+        "iteration": 2
+      }
+    },
+    {
+      "timestamp": "2026-02-14T12:00:14.166Z",
+      "role": "system",
+      "content": [
+        {
+          "path": "package.json",
+          "content": "{\n  \"name\": \"kanbangemini\",\n  \"version\": \"1.0.0\",\n  \"description\": \"\",\n  \"main\": \"kanban.js\",\n  \"type\": \"module\",\n  \"bin\": {\n    \"kanban\": \"./kanban.js\"\n  },\n  \"scripts\": {\n    \"test\": \"node --experimental-vm-modules node_modules/jest/bin/jest.js\"\n  },\n  \"keywords\": [],\n  \"author\": \"\",\n  \"license\": \"ISC\",\n  \"dependencies\": {\n    \"@actions/core\": \"^3.0.0\",\n    \"@actions/github\": \"^9.0.0\",\n    \"@google/generative-ai\": \"^0.24.1\",\n    \"@octokit/rest\": \"^22.0.1\",\n    \"commander\": \"^14.0.2\"\n  },\n  \"devDependencies\": {\n    \"fast-check\": \"^4.5.3\",\n    \"jest\": \"^30.2.0\"\n  }\n}\n"
+        },
+        {
+          "path": "action.js",
+          "content": "import * as core from '@actions/core';\nimport * as github from '@actions/github';\nimport { validateAndGetConfig } from './src/config/index.js';\nimport { GitHubClient } from './src/github/api-client.js';\nimport { GeminiClient } from './src/gemini/api-client.js';\nimport { IssueAnalyzer } from './src/gemini/analyzer.js';\nimport { BranchManager } from './src/github/branch-manager.js';\nimport { WorkflowManager } from './src/workflow/manager.js';\n\nasync function run() {\n  let config;\n  const CENTRAL_REPO = 'alphaleadership/kanbanaction';\n\n  try {\n    config = validateAndGetConfig();\n\n    if (config.debug) {\n        console.log('Debug mode enabled');\n        console.log('Context:', JSON.stringify(github.context, null, 2));\n    }\n\n    const githubClient = new GitHubClient(config.githubToken, config.githubRepo);\n\n    if (config.installWorkflows) {\n      const workflowInstaller = new WorkflowManager(githubClient, null, null, null);\n      await workflowInstaller.installWorkflows();\n      console.log('Workflow installation completed. Skipping event processing.');\n      return;\n    }\n\n    const geminiClient = new GeminiClient(config.geminiApiKey, {\n      primaryModel: config.geminiModel,\n      fallbackModels: config.geminiFallbackModels,\n      retries: config.geminiRetries\n    });\n    const analyzer = new IssueAnalyzer(geminiClient);\n    const branchManager = new BranchManager(githubClient);\n    const workflow = new WorkflowManager(githubClient, geminiClient, analyzer, branchManager);\n\n    const context = github.context;\n    \n    if (context.eventName === 'issues' && (context.payload.action === 'opened' || context.payload.action === 'labeled')) {\n      const issueNumber = context.payload.issue.number;\n      await workflow.processGitHubIssue(issueNumber);\n    } else if (context.eventName === 'pull_request' && context.payload.action === 'closed' && context.payload.pull_request.merged) {\n      const prNumber = context.payload.pull_request.number;\n      await workflow.processPullRequestMerge(prNumber);\n    } else if (context.eventName === 'workflow_dispatch' || context.eventName === 'schedule') {\n      console.log(`Triggered by ${context.eventName}. Processing pending tasks...`);\n      await workflow.processPendingTasks();\n    } else {\n      console.log(`Event ${context.eventName} with action ${context.payload.action} is not handled.`);\n    }\n\n      } catch (error) {\n        core.setFailed(error.message);\n        if (config?.debug) {\n          console.error('Detailed Error:', error);\n          console.error('Error Stack:', error.stack);\n        }\n    if (!config?.githubToken) {\n      console.error('Skipping centralized error report because no GitHub token is configured.');\n      return;\n    }\n    \n    try {\n      console.log(`Reporting error to central repository: ${CENTRAL_REPO}`);\n      const centralClient = new GitHubClient(config.githubToken, CENTRAL_REPO);\n      const errorTitle = `Error in ${github.context.payload.repository?.full_name || 'unknown repo'}: ${error.message.substring(0, 50)}...`;\n      const errorBody = `\n### Error Details\n- **Repository:** ${github.context.payload.repository?.full_name || 'Unknown'}\n- **Event:** ${github.context.eventName}\n- **Action:** ${github.context.payload.action || 'N/A'}\n- **Error Message:** ${error.message}\n\n### Stack Trace\n\\`\\`\\`\n${error.stack}\n\\`\\`\\`\n\n### Context\n<details>\n<summary>GitHub Context</summary>\n\n\\`\\`\\`json\n${JSON.stringify(github.context, null, 2)}\n\\`\\`\\`\n</details>\n      `;\n      \n      await centralClient.createIssue(errorTitle, errorBody, ['bug', 'automated-report']);\n    } catch (reportError) {\n      console.error('Failed to report error to central repository:', reportError.message);\n    }\n  }\n}\n\nrun();\n"
+        },
+        {
+          "path": "kanban.js",
+          "content": "#!/usr/bin/env node\n\nimport { Command } from 'commander';\nimport { readDb, writeDb } from './src/kanban/file-operations.js';\nimport { createTask, addTaskToColumn, moveTask, findTask } from './src/kanban/task-manager.js';\nimport { KANBAN_COLUMNS } from './src/utils/constants.js';\n\nconst program = new Command();\n\nprogram\n  .name('kanban')\n  .description(\"Un outil CLI pour gérer un tableau Kanban pour une IA de code.\")\n  .version('1.0.0');\n\n// Commande pour voir le tableau\nprogram\n  .command('voir')\n  .description('Affiche le tableau Kanban complet.')\n  .action(async () => {\n    try {\n      const db = await readDb();\n      \n      console.log('--- KANBAN ---');\n      for (const [colonne, taches] of Object.entries(db)) {\n          console.log(`\\n[ ${colonne.toUpperCase()} ]`);\n          if (taches.length === 0) {\n              console.log('  (vide)');\n          } else {\n              taches.forEach(tache => {\n                  console.log(`  - #${tache.id}: ${tache.titre}`);\n              });\n          }\n      }\n      console.log('\\n--------------');\n    } catch (error) {\n      console.error(\"Erreur :\", error.message);\n      process.exit(1);\n    }\n  });\n\n// Commande pour créer une tâche\nprogram\n  .command('creer <titre>')\n  .description(\"Crée une nouvelle tâche dans la colonne 'idées'.\")\n  .action(async (titre) => {\n    try {\n      const db = await readDb();\n      const task = createTask(titre);\n      addTaskToColumn(db, task, KANBAN_COLUMNS.IDEES);\n      await writeDb(db);\n      console.log(`Tâche #${task.id} \"${titre}\" créée dans la colonne 'idées'.`);\n    } catch (error) {\n      console.error(\"Erreur :\", error.message);\n      process.exit(1);\n    }\n  });\n\n// Commande pour bouger une tâche\nprogram\n  .command('bouger <id> <colonne>')\n  .description('Déplace une tâche vers une nouvelle colonne.')\n  .action(async (id, colonne) => {\n    try {\n      const db = await readDb();\n      const taskId = parseInt(id);\n      \n      if (isNaN(taskId)) {\n          throw new Error(\"L'ID de la tâche doit être un nombre.\");\n      }\n\n      // Valider la colonne cible\n      const targetCol = colonne.toLowerCase();\n      if (!Object.values(KANBAN_COLUMNS).includes(targetCol)) {\n          throw new Error(`Colonne invalide : ${colonne}. Colonnes disponibles : ${Object.values(KANBAN_COLUMNS).join(', ')}`);\n      }\n\n      moveTask(db, taskId, targetCol);\n      await writeDb(db);\n      console.log(`Tâche #${taskId} déplacée vers '${targetCol}'.`);\n    } catch (error) {\n      console.error(\"Erreur :\", error.message);\n      process.exit(1);\n    }\n  });\n\n// Commande pour finir une tâche\nprogram\n  .command('finir <id>')\n  .description(\"Marque une tâche comme terminée.\")\n  .action(async (id) => {\n    try {\n      const db = await readDb();\n      const taskId = parseInt(id);\n      \n      if (isNaN(taskId)) {\n          throw new Error(\"L'ID de la tâche doit être un nombre.\");\n      }\n\n      moveTask(db, taskId, KANBAN_COLUMNS.TERMINE);\n      await writeDb(db);\n      console.log(`Tâche #${taskId} marquée comme terminée.`);\n    } catch (error) {\n      console.error(\"Erreur :\", error.message);\n      process.exit(1);\n    }\n  });\n\nprogram.parse(process.argv);"
+        },
+        {
+          "path": "src/config/index.js",
+          "content": "import * as core from '@actions/core';\n\nexport function getConfig(env = process.env) {\n  const configuredFallbackModels = core.getInput('gemini-fallback-models') || env.GEMINI_FALLBACK_MODELS || '';\n  const parsedRetries = Number.parseInt(core.getInput('gemini-retries') || env.GEMINI_RETRIES || '3', 10);\n\n  const config = {\n    geminiApiKey: env.INPUT_GEMINI_API_KEY || core.getInput('gemini-api-key') || env.GEMINI_API_KEY,\n    geminiModel: core.getInput('gemini-model') || env.GEMINI_MODEL || 'gemini-2.5-flash',\n    geminiFallbackModels: configuredFallbackModels\n      .split(',')\n      .map(model => model.trim())\n      .filter(Boolean),\n    geminiRetries: Number.isNaN(parsedRetries) || parsedRetries < 0 ? 3 : parsedRetries,\n    githubToken: env.INPUT_GITHUB_TOKEN || core.getInput('github-token') || env.GITHUB_TOKEN,\n    installWorkflows: core.getInput('install-workflows') === 'true' || env.INSTALL_WORKFLOWS === 'true'|| env.INPUT_INSTALL_WORKFLOWS === 'true',\n    debug: core.getInput('debug') === 'true' || env.DEBUG === 'true',\n    githubRepo: env.GITHUB_REPOSITORY,\n    githubRef: env.GITHUB_REF\n  };\n\n  return config;\n}\n\nexport function validateAndGetConfig(env = process.env) {\n    const config = getConfig(env);\n    \n    const errors = [];\n    if (!config.installWorkflows && !config.geminiApiKey) errors.push(\"GEMINI_API_KEY is missing\");\n    if (!config.githubToken) errors.push(\"GITHUB_TOKEN is missing\");\n\n    if (errors.length > 0) {\n        throw new Error(`Configuration Error: ${errors.join(', ')}`);\n    }\n    return config;\n}\n"
+        },
+        {
+          "path": "README.md",
+          "content": "# 🤖 Gemini Kanban Integration\n\nTransformez vos GitHub Issues en tâches Kanban intelligentes grâce à la puissance de Google Gemini AI.\n\nCette GitHub Action automatise la gestion de votre tableau de bord Kanban (`.kaia`) en analysant vos issues, en suggérant des critères d'acceptation et en organisant vos tâches.\n\n## 🚀 Fonctionnalités\n\n- **Analyse IA :** Gemini analyse le titre et la description de vos issues pour déterminer leur type (bug, feature, etc.) et leur complexité.\n- **Gestion de Bord automatique :** Mise à jour automatique du fichier `.kaia` (votre base de données Kanban).\n- **Auto-Installation :** Capacité de l'action à installer ses propres workflows de maintenance.\n- **Traitement par Lots :** Un workflow programmé affine les tâches en attente qui n'ont pas encore été traitées par l'IA.\n- **Rapport d'Erreurs Centralisé :** Les erreurs d'exécution sont rapportées sur le dépôt principal de l'action pour un débogage facilité.\n\n## 🛠️ Configuration Rapide\n\n### 1. Obtenir une clé API Gemini\nCréez une clé API sur le [Google AI Studio](https://aistudio.google.com/).\n\n### 2. Ajouter les Secrets\nDans votre dépôt GitHub, allez dans **Settings > Secrets and variables > Actions** et ajoutez :\n- `GEMINI_API_KEY` : Votre clé API Google Gemini.\n- `GH_PAT` : (Requis pour l'auto-installation) Un Personal Access Token avec les scopes `repo` et `workflow`.\n\n> [!IMPORTANT]\n> Le `GITHUB_TOKEN` par défaut ne peut pas créer ou modifier des fichiers dans `.github/workflows/`. Pour utiliser `install-workflows: 'true'`, vous devez utiliser un **PAT**.\n\n### 3. Installation Automatique\nCréez un fichier `.github/workflows/setup-kanban.yml` pour initialiser les workflows nécessaires :\n\n```yaml\nname: Setup Gemini Kanban\non:\n  workflow_dispatch:\n\npermissions:\n  contents: write\n  issues: write\n  pull-requests: write\n\njobs:\n  setup:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - name: Install Kanban Workflows\n        uses: alphaleadership/kanbanaction@master\n        with:\n          gemini-api-key: ${{ secrets.GEMINI_API_KEY }}\n          github-token: ${{ secrets.GH_PAT }} # Utilisez un PAT ici\n          install-workflows: 'true'\n```\n\nExécutez ce workflow manuellement une fois. Il créera deux fichiers :\n1. `.github/workflows/gemini-kanban.yml` : S'exécute à chaque nouvelle issue.\n2. `.github/workflows/process-pending-tasks.yml` : S'exécute chaque nuit pour traiter les tâches manuelles du Kanban.\n\n## 📖 Utilisation\n\n- **Issues :** Créez une issue ou ajoutez un label. L'IA commentera l'issue avec une analyse complète et ajoutera la tâche au Kanban.\n- **Tâches en attente :** Si vous ajoutez manuellement des tâches dans votre fichier `.kaia` sans passer par une issue, le workflow nocturne les enrichira automatiquement avec des critères d'acceptation.\n\n## ⚙️ Paramètres Avancés\n\n| Input | Description | Défaut |\n|-------|-------------|---------|\n| `gemini-api-key` | Votre clé API Gemini (**requise** sauf si `install-workflows: 'true'`) | N/A |\n| `github-token` | Token GitHub pour modifier le repo (**requis**) | N/A |\n| `install-workflows` | Si `true`, installe les workflows dans le repo | `false` |\n| `gemini-model` | Modèle IA principal à utiliser | `gemini-2.5-flash` |\n| `gemini-fallback-models` | Modèles de secours (séparés par des virgules) | N/A |\n\n## 🛡️ Support\nLes erreurs critiques rencontrées par l'action sont automatiquement signalées sur [alphaleadership/kanbanaction](https://github.com/alphaleadership/kanbanaction/issues).\n"
+        },
+        {
+          "path": "src/utils/helpers.js",
+          "content": "import fs from 'fs/promises';\nimport path from 'path';\n\nexport const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));\n\nexport function formatError(error) {\n    return error instanceof Error ? error.message : String(error);\n}\n\nexport async function getProjectStructure(dir = '.', depth = 2, ignore = ['node_modules', '.git', '.kaia']) {\n    let result = '';\n    \n    async function walk(currentDir, currentDepth) {\n        if (currentDepth > depth) return;\n        \n        const files = await fs.readdir(currentDir, { withFileTypes: true });\n        \n        for (const file of files) {\n            if (ignore.includes(file.name)) continue;\n            \n            const fullPath = path.join(currentDir, file.name);\n            const indent = '  '.repeat(depth - currentDepth);\n            \n            if (file.isDirectory()) {\n                result += `${indent}📁 ${file.name}/\\n`;\n                await walk(fullPath, currentDepth + 1);\n            } else {\n                result += `${indent}📄 ${file.name}\\n`;\n            }\n        }\n    }\n    \n    await walk(dir, 0);\n    return result;\n}\n"
+        }
+      ],
+      "metadata": {
+        "type": "file_read_results"
+      }
+    }
+  ],
+  "updated": "2026-02-14T12:00:34.209Z"
+}
