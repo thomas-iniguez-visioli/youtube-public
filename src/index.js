@@ -1,5 +1,5 @@
 const { app, BrowserWindow, ipcMain, dialog,Menu } = require('electron');
-const rollbarConfig = require('./rollbar.config.js');
+const rollbarConfig = require('../rollbar.config.js');
 const Rollbar = require('rollbar');
 const rollbar = new Rollbar(rollbarConfig);
 const e=require("electron")
