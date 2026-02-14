@@ -124,7 +124,7 @@
                 
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <div class="video-meta">
-                        <strong><%= (typeof videodata !== 'undefined' && videodata.uploader) ? videodata.uploader : 'Uploader inconnu' %></strong> • <%= (typeof videodata !== 'undefined' && videodata.view_count) ? videodata.view_count.toLocaleString() + ' vues' : '' %>
+                        <strong><a href="/channel?name=<%= (typeof videodata !== 'undefined' && videodata.uploader) ? encodeURIComponent(videodata.uploader) : '' %>" style="color: #ffffff; text-decoration: none;"><%= (typeof videodata !== 'undefined' && videodata.uploader) ? videodata.uploader : 'Uploader inconnu' %></a></strong> • <%= (typeof videodata !== 'undefined' && videodata.view_count) ? videodata.view_count.toLocaleString() + ' vues' : '' %>
                     </div>
                     <div>
                         <a href="/delete?id=<%= code %>" class="btn btn-outline-danger btn-sm">Supprimer</a>

@@ -205,7 +205,7 @@ const downloadbacklog = (parameter) => {
     const logFilePath = path.join(app.getPath('userData'), 'download.log');
     
     const ytdlpPath = path.join(app.getPath('userData'), 'ytdlp.exe');
-    const ffmpegDir = app.getPath('userData'); // On a copié les binaires à la racine de userData
+    const ffmpegDir = path.join(app.getPath('userData'), 'ffmpeg', 'ffmpeg-master-latest-win64-gpl', 'bin');
 
     const args = [
       '-vU',
@@ -538,12 +538,13 @@ web.get("/", function (req, res) {
       return; // sort de la boucle
     }
     db.addTag(infoJson.display_id, infoJson.uploader);
-    const score = infoJson.view_count * 0.5 + infoJson.like_count * 0.3 + infoJson.comment_count * 0.2;
-    return { ...item, score };
+    const score = (infoJson.view_count || 0) * 0.5 + (infoJson.like_count || 0) * 0.3 + (infoJson.comment_count || 0) * 0.2;
+    return { ...item, score, uploader: infoJson.uploader };
   }).sort((a, b) => b.score - a.score);
 
   res.render('index', {
-    results: referencement
+    results: referencement,
+    channel: null
   });
 })
 web.get("/watch", function (req, res) {
@@ -628,9 +629,44 @@ web.get("/api/search", function (req, res) {
   const database = db.database;
   const results = database.filter(item => {
     return tags.some(tag => item.tags.includes(tag.trim()));
+  }).map(item => {
+    const infoPath = path.join(config.storagePath, item.fileName.replace(".mp4", ".info.json"));
+    let uploader = null;
+    if (fs.existsSync(infoPath)) {
+      try {
+        const info = JSON.parse(fs.readFileSync(infoPath, 'utf8'));
+        uploader = info.uploader;
+      } catch (e) {}
+    }
+    return { ...item, uploader };
   });
   console.log(results)
   res.json(results);
+});
+
+web.get("/channel", function (req, res) {
+  const channelName = req.query.name;
+  db.readDatabase();
+  
+  const results = db.database.filter(item => {
+    const infoPath = path.join(config.storagePath, item.fileName.replace(".mp4", ".info.json"));
+    if (fs.existsSync(infoPath)) {
+      try {
+        const info = JSON.parse(fs.readFileSync(infoPath, 'utf8'));
+        return info.uploader === channelName;
+      } catch (e) {
+        return false;
+      }
+    }
+    return false;
+  }).map(item => {
+    return { ...item, uploader: channelName };
+  });
+
+  res.render('index', {
+    results: results,
+    channel: channelName
+  });
 });
 
 
