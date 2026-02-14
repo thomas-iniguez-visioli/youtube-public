@@ -173,106 +173,96 @@ autoUpdater.on('download-progress', (progressObj) => {
 autoUpdater.on('update-downloaded', (info) => {
   sendStatusToWindow('Update downloaded');
 });
-const backlog=[]
-const download=(url)=>{
-  if(!backlog.includes(url)){
-    backlog.push(url)
+const backlog = [];
+let isDownloading = false;
+
+const download = (url) => {
+  if (!backlog.includes(url)) {
+    backlog.push(url);
+  }
+};
+
+const processBacklog = async () => {
+  if (backlog.length > 0 && !isDownloading) {
+    isDownloading = true;
+    const url = backlog[0];
+    try {
+      await downloadbacklog(url);
+    } catch (err) {
+      log.error(`Erreur de téléchargement pour ${url}: ${err.message}`);
+    } finally {
+      backlog.shift();
+      isDownloading = false;
+    }
+  }
+};
+
+setInterval(processBacklog, 1000);
+
+const downloadbacklog = (parameter) => {
+  return new Promise((resolve, reject) => {
+    fs.appendFileSync(path.join(app.getPath('userData'), 'historic.txt'), `${parameter}\n`);
+    const logFilePath = path.join(app.getPath('userData'), 'download.log');
     
-  }
-}
-setInterval(()=>{
-  if(backlog.length>0){
-    downloadbacklog(backlog[0])
-    backlog.shift()
-  }
-},1000)
-const downloadbacklog=(parameter)=>{
-  // Log the parameter to historic.txt
-  fs.appendFileSync(path.join(app.getPath('userData'),'historic.txt'),`${parameter}\n`)
-  
-  // Create a log file for this download session
-  const logFilePath = path.join(app.getPath('userData'), 'download.log');
-  
-  var msg;
-  const args = [
-    '-vU','--ffmpeg-location',path.join(app.getPath('userData'), 'ffmpeg', 'ffmpeg-master-latest-win64-gpl','bin'),
-    '--write-info-json',
-    '--remux', 'mp4',
-    parameter,
-    '-f', 'bv*+ba/b',
-    '--write-playlist-metafiles',
-    '--parse-metadata', 'playlist_title:.+ - (?P<folder_name>Videos|Shorts|Live)$',
-    '-o', path.join(config.storagePath, config.outputFileFormat)
-  ];
-  
-  const child = require('child_process');
-  const childProcess = child.spawn(`${app.getPath('userData')}\\ytdlp`, args);
-  
-  // Log stdout to both console and file
-  childProcess.stdout.on('data', (data) => {
-    msg = `stdout: ${data}`;
-    log.info(msg);
-    fs.appendFileSync(logFilePath, `${msg}\n`);
-  });
-  
-  // Log stderr to both console and file
-  childProcess.stderr.on('data', (data) => {
-    msg = `stderr: ${data}`;
-    log.info(msg);
-    fs.appendFileSync(logFilePath, `${msg}\n`);
-  });
-  
-  // Log process close to both console and file
-  childProcess.on('close', (code) => {
-    if (code !== 0) {
-      msg = `exec error: ${code}`;
+    const ytdlpPath = path.join(app.getPath('userData'), 'ytdlp.exe');
+    const ffmpegDir = app.getPath('userData'); // On a copié les binaires à la racine de userData
+
+    const args = [
+      '-vU',
+      '--ffmpeg-location', ffmpegDir,
+      '--write-info-json',
+      '--remux', 'mp4',
+      parameter,
+      '-f', 'bv*+ba/b',
+      '--write-playlist-metafiles',
+      '--parse-metadata', 'playlist_title:.+ - (?P<folder_name>Videos|Shorts|Live)$',
+      '-o', path.join(config.storagePath, config.outputFileFormat)
+    ];
+
+    const childProcess = child.spawn(ytdlpPath, args, { shell: true });
+
+    childProcess.stdout.on('data', (data) => {
+      const msg = `stdout: ${data}`;
       log.info(msg);
       fs.appendFileSync(logFilePath, `${msg}\n`);
-      log.error(new Error(msg));
-    }
+    });
+
+    childProcess.stderr.on('data', (data) => {
+      const msg = `stderr: ${data}`;
+      log.info(msg);
+      fs.appendFileSync(logFilePath, `${msg}\n`);
+    });
+
+    childProcess.on('close', (code) => {
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(new Error(`ytdlp a quitté avec le code ${code}`));
+      }
+    });
   });
-  
-  return msg
-}
-const downloaddata=(parameter)=>{
-  fs.appendFileSync(path.join(app.getPath('userData'),'historic.txt'),`${parameter}\n`)
-  var msg;
-  const execPath = `${app.getPath('userData')}\\ytdlp`;
+};
+
+const downloaddata = (parameter) => {
+  const ytdlpPath = path.join(app.getPath('userData'), 'ytdlp.exe');
   const args = [
     '-vU',
     '--write-info-json',
     '--simulate',
     '--no-clean-info-json',
-    '--remux',
-    'mp4',
+    '--remux', 'mp4',
     parameter,
-    '-f',
-    'bv*+ba/b',
+    '-f', 'bv*+ba/b',
     '--write-playlist-metafiles',
     '--parse-metadata', 'playlist_title:.+ - (?P<folder_name>Videos|Shorts|Live)$',
-    '-o',
-    path.join(config.storagePath, config.outputFileFormat),
-    '-J',"--embed-metadata"
+    '-o', path.join(config.storagePath, config.outputFileFormat),
+    '-J', "--embed-metadata"
   ];
-    const child = require('child_process');
-    const childProcess = child.spawn(execPath, args);
-    childProcess.stdout.on('data', (data) => {
-      msg = `stdout: ${data}`;
-      log.info(msg);
-    });
-    childProcess.stderr.on('data', (data) => {
-      msg = `stderr: ${data}`;
-      log.info(msg);
-    });
-    childProcess.on('close', (code) => {
-      if (code !== 0) {
-        msg = `exec error: ${code}`;
-      log.info(msg);
-      log.error(new Error(msg));
-      }
-    });
-    return msg
-}
+
+  const childProcess = child.spawn(ytdlpPath, args, { shell: true });
+  childProcess.stdout.on('data', (data) => log.info(`stdout: ${data}`));
+  childProcess.stderr.on('data', (data) => log.error(`stderr: ${data}`));
+};
 const web = express();
 const helmet = require('helmet');
 //web.use(helmet());
@@ -557,30 +547,49 @@ web.get("/", function (req, res) {
   });
 })
 web.get("/watch", function (req, res) {
-  console.log(req.query)
   autoUpdater.checkForUpdatesAndNotify();
-  if(db.getFile( req.query.id)==[]){
-    download(config.videoUrlFormat.replace('${id}', req.query.id))
-    res.redirect("/")
-    return 
+  const fileData = db.getFile(req.query.id);
+  
+  if (!fileData || !fileData.fileName) {
+    download(config.videoUrlFormat.replace('${id}', req.query.id));
+    return res.redirect("/");
   }
-  downloaddata(require(path.join(base,db.getFile( req.query.id).fileName.replace(".mp4",".info.json"))).webpage_url)
-  let link=extractUrls(require(path.join(app.getPath('userData'), 'file',db.getFile( req.query.id).fileName.replace(".mp4",".info.json"))).description)
-  fs.appendFileSync(path.join(app.getPath('userData'), "detected.txt"),link.join("\t"))
-  //log.info(req.query)
+
+  const infoPath = path.join(config.storagePath, fileData.fileName.replace(".mp4", ".info.json"));
+  
+  let videodata = {};
+  if (fs.existsSync(infoPath)) {
+    try {
+      videodata = JSON.parse(fs.readFileSync(infoPath, 'utf8'));
+      // Trigger update metadata in background only if needed
+      if (videodata.webpage_url) {
+        downloaddata(videodata.webpage_url);
+      }
+    } catch (e) {
+      log.error(`Erreur lecture JSON: ${e.message}`);
+    }
+  }
+
   const database = db.database;
   const referencement = database.map(item => {
-    const infoJson = require(path.join(app.getPath('userData'), 'file', item.fileName.replace(".mp4", ".info.json")));
-    const score = infoJson.view_count * 0.5 + infoJson.like_count * 0.3 + infoJson.comment_count * 0.2;
+    const itemInfoPath = path.join(config.storagePath, item.fileName.replace(".mp4", ".info.json"));
+    let score = 0;
+    if (fs.existsSync(itemInfoPath)) {
+      try {
+        const info = JSON.parse(fs.readFileSync(itemInfoPath, 'utf8'));
+        score = (info.view_count || 0) * 0.5 + (info.like_count || 0) * 0.3 + (info.comment_count || 0) * 0.2;
+      } catch (e) {}
+    }
     return { ...item, score };
   }).sort((a, b) => b.score - a.score);
+
   res.render('view', {
     code: req.query.id,
-    videos:db.database,
-    title:db.getFile( req.query.id).fileName,
-    videodata:require(path.join(app.getPath('userData'), 'file',db.getFile( req.query.id).fileName.replace(".mp4",".info.json"))),
+    videos: db.database,
+    title: fileData.fileName,
+    videodata: videodata,
     nextVideo: referencement.findIndex(item => item.yid === req.query.id) === referencement.length - 1 ? referencement[0] : referencement[referencement.findIndex(item => item.yid === req.query.id) + 1]
-});
+  });
 });
 web.get("/download", function (req, res) {
   console.log(req.query)

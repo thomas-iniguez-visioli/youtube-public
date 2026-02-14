@@ -204,11 +204,16 @@
             });
         }
 
+        // Le téléchargement est géré par renderer.js via IPC.
+        // On peut ajouter un fallback au cas où renderer.js ne se charge pas correctement.
         const commandForm = document.getElementById('commandForm');
         commandForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const url = document.getElementById('commandInput').value;
-            window.location.href = `/download?url=${encodeURIComponent(url)}`;
+            // Si window.electronAPI n'existe pas, on utilise la route Express classique
+            if (!window.electronAPI) {
+                e.preventDefault();
+                const url = document.getElementById('commandInput').value;
+                window.location.href = `/download?url=${encodeURIComponent(url)}`;
+            }
         });
     </script>
 
