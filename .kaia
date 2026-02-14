@@ -31,18 +31,17 @@
     },
     {
       "id": 4,
-      "titre": "file not found",
-      "description": "./rollbar.config.js is not found ",
-      "icon": "🔍",
-      "color": "#FF5733",
+      "titre": "Error: Erreur de téléchargement pour https://www.youtube.com/playlist?list=PLTgLQlM5yf3MRVnShXaCiaOzRT_NSYcLo: ytdlp a quitté avec le code 255",
+      "description": "View details in Rollbar: [https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/11](https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/11)\n\n```\n\nError: Erreur de téléchargement pour https://www.youtube.com/playlist?list=PLTgLQlM5yf3MRVnShXaCiaOzRT_NSYcLo: ytdlp a quitté avec le code 255\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\src\\index.js\", line 38, in <unknown>\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\node_modules\\electron-log\\src\\core\\Logger.js\", line 178, in <unknown>\n  File \"<anonymous>\", line unknown, in Array.reduce\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\node_modules\\electron-log\\src\\core\\Logger.js\", line 177, in Logger.processMessage\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\node_modules\\electron-log\\src\\core\\Logger.js\", line 136, in Logger.logData\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\node_modules\\electron-log\\src\\core\\Logger.js\", line 86, in <computed> [as error]\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\src\\index.js\", line 192, in Timeout.processBacklog [as _onTimeout]\n```",
+      "icon": "❌",
+      "color": "#FF0000",
       "criteres_acceptation": [
-        "The application starts and runs without encountering a \"file not found\" error related to `./rollbar.config.js`.",
-        "The codebase (including `package.json`, `action.yml`, and all workflow files) contains no explicit or implicit dependencies on Rollbar or `rollbar.config.js`.",
-        "No `rollbar.config.js` file is expected or required for the project's operation, and if found, it is removed.",
-        "The root cause of the `file not found` error for `rollbar.config.js` is identified and resolved, whether it originates from an environment configuration, a misconfigured script, or a removed dependency."
+        "The application successfully downloads the YouTube playlist 'https://www.youtube.com/playlist?list=PLTgLQlM5yf3MRVnShXaCiaOzRT_NSYcLo' without `ytdlp` exiting with code 255.",
+        "If a `ytdlp` download fails, a user-friendly error message is displayed to the user within the application, clearly indicating the failure.",
+        "The underlying `ytdlp` (youtube-dlp) dependency used by the application is updated to its latest stable version."
       ],
       "metadata": {
-        "issueNumber": 24
+        "issueNumber": 30
       }
     }
   ],
