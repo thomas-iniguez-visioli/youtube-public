@@ -50,7 +50,7 @@ function setupElectronLogForwarding() {
         level: message.level,
         // Ajoute d'autres métadonnées pertinentes pour ton projet
         app: 'YouTube Downloader Extension',
-        version: require('./package.json').version,
+        version: require('../package.json').version,
       },
     });
 

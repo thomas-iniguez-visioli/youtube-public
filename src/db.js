@@ -1,7 +1,7 @@
 let uuid = require("uuid")
 const fs = require("fs");
 const path = require("path");
-const LogRocket = require('logrocket');
+
 const app = require('electron').app;
 const userDataPath = app.getPath('userData');
 const databaseFilePath = path.join(userDataPath, 'database.json');
@@ -130,7 +130,7 @@ class FileDatabase {
                 this.database = JSON.parse(fs.readFileSync(databaseFilePath));
             } catch (error) {
                 console.error("Failed to parse database file:", error);
-                LogRocket.captureException(error);
+                //LogRocket.captureException(error);
                 this.database = [];
             }
         }
