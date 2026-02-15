@@ -406,6 +406,9 @@ web.get("/watch", function (req, res) {
     return res.redirect("/");
   }
 
+  // Ajouter à l'historique
+  db.addToHistory(req.query.id);
+
   const infoPath = path.join(config.storagePath, fileData.fileName.replace(".mp4", ".info.json"));
   
   let videodata = {};
@@ -516,6 +519,25 @@ web.get("/channel", function (req, res) {
   res.render('index', {
     results: results,
     channel: channelName
+  });
+});
+
+web.get("/history", function (req, res) {
+  const history = db.getHistory().map(item => {
+    const infoPath = path.join(config.storagePath, item.fileName.replace(".mp4", ".info.json"));
+    let uploader = "Inconnu";
+    if (fs.existsSync(infoPath)) {
+      try {
+        const info = JSON.parse(fs.readFileSync(infoPath, 'utf8'));
+        uploader = info.uploader;
+      } catch (e) {}
+    }
+    return { ...item, uploader };
+  });
+
+  res.render('index', {
+    results: history,
+    channel: "Historique"
   });
 });
 

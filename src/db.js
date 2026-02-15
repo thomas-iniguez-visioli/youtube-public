@@ -55,6 +55,7 @@ class FileDatabase {
     constructor(directoryPath) {
         this.directoryPath = directoryPath;
         this.database = [];
+        this.history = [];
         this.loadDatabase(); // Charge la base de données JSON au démarrage
         if (this.database.length === 0) {
             this.createDatabase(); // Crée la base de données si elle est vide
@@ -112,7 +113,7 @@ class FileDatabase {
         
         }
        this.database.map((item) => { data.push(`${item.fileName}:${item.fileUuid}:${item.yid}:${item.tags.join(",")}`) })
-        fs.writeFileSync(databaseFilePath, JSON.stringify(this.database));
+        this.saveDatabase();
     }
     getFile(uuid) {
         return this.database.filter(file => file.yid === uuid)[0]
@@ -137,24 +138,31 @@ class FileDatabase {
     loadDatabase() {
         if (fs.existsSync(databaseFilePath)) {
             try {
-                this.database = JSON.parse(fs.readFileSync(databaseFilePath));
+                const data = JSON.parse(fs.readFileSync(databaseFilePath));
+                this.database = data.database || data; // Fallback for old structure
+                this.history = data.history || [];
             } catch (error) {
                 console.error("Failed to parse database file:", error);
                 //LogRocket.captureException(error);
                 this.database = [];
+                this.history = [];
             }
         }
     }
 
     // Sauvegarde la base de données JSON
     saveDatabase() {
-        fs.writeFileSync(databaseFilePath, JSON.stringify(this.database));
+        fs.writeFileSync(databaseFilePath, JSON.stringify({
+            database: this.database,
+            history: this.history
+        }));
     }
 
     // Crée la base de données si elle est vide
     createDatabase() {
         this.database = [];
-        fs.writeFileSync(databaseFilePath, JSON.stringify(this.database));
+        this.history = [];
+        this.saveDatabase();
     }
 
     // Ajoute un tag à un fichier spécifié par son UUID
@@ -179,5 +187,21 @@ class FileDatabase {
     // Récupère les fichiers qui ont un tag spécifique
     getByTag(tag) {
         return this.database.filter(file => file.tags.includes(tag));
+    }
+
+    addToHistory(videoId) {
+        // Remove existing entry for this video if it exists
+        this.history = this.history.filter(id => id !== videoId);
+        // Add to the beginning of history
+        this.history.unshift(videoId);
+        // Limit history to 100 items
+        if (this.history.length > 100) {
+            this.history.pop();
+        }
+        this.saveDatabase();
+    }
+
+    getHistory() {
+        return this.history.map(id => this.getFile(id)).filter(file => !!file);
     }
 }

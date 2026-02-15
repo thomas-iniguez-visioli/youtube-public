@@ -2,12 +2,23 @@ const child = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
+function getBrowserForCookies() {
+  // Priorité Firefox, sinon Chrome
+  // Sur Windows, on peut vérifier les chemins par défaut
+  const firefoxPath = path.join(process.env.APPDATA, 'Mozilla', 'Firefox', 'Profiles');
+  if (fs.existsSync(firefoxPath)) {
+    return 'firefox';
+  }
+  return 'chrome';
+}
+
 function createDownloadArgs(parameter, ffmpegDir, storagePath, outputFileFormat) {
   return [
     '-vU',
     '--ffmpeg-location', ffmpegDir,
     '--write-info-json',
     '--remux', 'mp4',
+    '--cookies-from-browser', getBrowserForCookies(),
     parameter,
     '-f', 'bv*+ba/b',
     '--write-playlist-metafiles',
@@ -50,6 +61,7 @@ function createMetadataArgs(parameter, storagePath, outputFileFormat) {
     '--simulate',
     '--no-clean-info-json',
     '--remux', 'mp4',
+    '--cookies-from-browser', getBrowserForCookies(),
     parameter,
     '-f', 'bv*+ba/b',
     '--write-playlist-metafiles',

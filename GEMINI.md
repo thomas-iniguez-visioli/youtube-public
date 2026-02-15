@@ -1,5 +1,11 @@
 # Gemini CLI - Journal des modifications
 
+## [1.1.37-6] - 2026-02-15
+### Ajouté
+- **Système d'historique** : Suivi des vidéos visionnées avec une nouvelle vue dédiée `/history`.
+- **Détection de navigateur pour les cookies** : Utilisation automatique des cookies de Firefox (prioritaire) ou Chrome pour les téléchargements.
+- **Publication automatique** : Job GitHub Action pour publier la release une fois les builds terminés.
+
 ## [1.1.37-5] - 2026-02-15
 ### Ajouté
 - **Tests automatisés** : Suite de tests unitaires pour la file d'attente, la base de données et le module de téléchargement.
