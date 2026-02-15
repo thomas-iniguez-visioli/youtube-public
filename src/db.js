@@ -79,10 +79,20 @@ class FileDatabase {
                    let id = item.match(regex)
                    console.log(id)
                    if (id) {
+                       const infoPath = path.join(this.directoryPath, item.replace(".mp4", ".info.json"));
+                       let displayId = id[1];
+                       if (fs.existsSync(infoPath)) {
+                           try {
+                               const info = JSON.parse(fs.readFileSync(infoPath, 'utf8'));
+                               displayId = info.display_id || id[1];
+                           } catch (e) {
+                               console.error(`Error reading info file ${infoPath}:`, e);
+                           }
+                       }
                        this.database.push({
                            fileName: item,
                            fileUuid: `https://www.youtube.com/watch?v=${id[1]}`.replace(":",'_'), 
-                           yid: require(this.directoryPath+"/"+item.replace(".mp4",".info.json")).display_id,
+                           yid: displayId,
                            tags: [] // Ajout d'un champ tags vide pour chaque nouvelle entrée
                        })
                    }

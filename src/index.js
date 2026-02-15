@@ -10,6 +10,8 @@ const express = require('express');
 const RateLimit = require('express-rate-limit');
 const fs = require('fs');const https = require('https');
 const path = require('path');
+const { updateFile } = require('./updater');
+const { createDownloadArgs, runDownload, createMetadataArgs } = require('./downloader');
 
 const child = require('child_process');
 const log = require('electron-log');
@@ -207,57 +209,24 @@ const downloadbacklog = (parameter) => {
     const ytdlpPath = path.join(app.getPath('userData'), 'ytdlp.exe');
     const ffmpegDir = path.join(app.getPath('userData'), 'ffmpeg', 'ffmpeg-master-latest-win64-gpl', 'bin');
 
-    const args = [
-      '-vU',
-      '--ffmpeg-location', ffmpegDir,
-      '--write-info-json',
-      '--remux', 'mp4',
-      parameter,
-      '-f', 'bv*+ba/b',
-      '--write-playlist-metafiles',
-      '--parse-metadata', 'playlist_title:.+ - (?P<folder_name>Videos|Shorts|Live)$',
-      '-o', path.join(config.storagePath, config.outputFileFormat)
-    ];
+    const args = createDownloadArgs(parameter, ffmpegDir, config.storagePath, config.outputFileFormat);
 
-    const childProcess = child.spawn(ytdlpPath, args, { shell: true });
-
-    childProcess.stdout.on('data', (data) => {
-      const msg = `stdout: ${data}`;
-      log.info(msg);
-      fs.appendFileSync(logFilePath, `${msg}\n`);
-    });
-
-    childProcess.stderr.on('data', (data) => {
-      const msg = `stderr: ${data}`;
-      log.info(msg);
-      fs.appendFileSync(logFilePath, `${msg}\n`);
-    });
-
-    childProcess.on('close', (code) => {
-      if (code === 0) {
-        resolve();
-      } else {
-        reject(new Error(`ytdlp a quitté avec le code ${code}`));
+    const logger = {
+      info: (msg) => {
+        log.info(msg);
+        fs.appendFileSync(logFilePath, `${msg}\n`);
       }
-    });
+    };
+
+    runDownload(ytdlpPath, args, logger)
+      .then(resolve)
+      .catch(reject);
   });
 };
 
 const downloaddata = (parameter) => {
   const ytdlpPath = path.join(app.getPath('userData'), 'ytdlp.exe');
-  const args = [
-    '-vU',
-    '--write-info-json',
-    '--simulate',
-    '--no-clean-info-json',
-    '--remux', 'mp4',
-    parameter,
-    '-f', 'bv*+ba/b',
-    '--write-playlist-metafiles',
-    '--parse-metadata', 'playlist_title:.+ - (?P<folder_name>Videos|Shorts|Live)$',
-    '-o', path.join(config.storagePath, config.outputFileFormat),
-    '-J', "--embed-metadata"
-  ];
+  const args = createMetadataArgs(parameter, config.storagePath, config.outputFileFormat);
 
   const childProcess = child.spawn(ytdlpPath, args, { shell: true });
   childProcess.stdout.on('data', (data) => log.info(`stdout: ${data}`));
@@ -320,60 +289,21 @@ async function build() {
   fs.mkdir(base, { recursive: true }, (err) => {
     if (err) {}
   });
+  const downloads = [
+    updateFile('https://cdn.socket.io/4.4.1/socket.io.js', path.join(app.getPath('userData'), 'src/client-dist/socket.io.js')),
+    updateFile('https://cdn.socket.io/4.4.1/socket.io.js.map', path.join(app.getPath('userData'), 'src/client-dist/socket.io.js.map')),
+    updateFile('https://github.com/yt-dlp/yt-dlp/releases/download/2023.02.17/yt-dlp.exe', path.join(app.getPath('userData'), 'ytdlp.exe')),
+    updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/views/index.ejs', path.join(app.getPath('userData'), 'views','index.ejs')),
+    updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/views/view.ejs', path.join(app.getPath('userData'), 'views','view.ejs')),
+    updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/renderer.js', path.join(app.getPath('userData'), 'src/renderer.js'))
+  ];
+
   try {
-    updateFile('https://cdn.socket.io/4.4.1/socket.io.js', path.join(app.getPath('userData'), 'src/client-dist/socket.io.js')) // Correction pour utiliser path.join pour une construction de chemin valide
-    .then(() => log.info('downloaded file no issues...'))
-    .catch((e) => {
-      log.info('error while downloading', e);
-      log.error(e);
-    });
-    updateFile('https://cdn.socket.io/4.4.1/socket.io.js.map', path.join(app.getPath('userData'), 'src/client-dist/socket.io.js.map')) // Correction pour utiliser path.join pour une construction de chemin valide
-    .then(() => log.info('downloaded file no issues...'))
-    .catch((e) => {
-      log.info('error while downloading', e);
-      log.error(e);
-    });
-   
-    updateFile('https://github.com/yt-dlp/yt-dlp/releases/download/2023.02.17/yt-dlp.exe', path.join(app.getPath('userData'), 'ytdlp.exe')) // Correction pour utiliser path.join pour une construction de chemin valide
-    .then(() => {
-      log.info('downloaded file no issues...');
-
-       
-      
-     
-          
-       
-    })
-    .catch((e) => {
-      log.info('error while downloading', e);
-      log.error(e);
-    });
-    updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/views/index.ejs', path.join(app.getPath('userData'), 'views','index.ejs')) // Correction pour utiliser path.join pour une construction de chemin valide
-    .then(() => log.info('downloaded file no issues...'))
-    .catch((e) => {
-      log.info('error while downloading', e);
-      log.error(e);
-    });
-    updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/views/view.ejs', path.join(app.getPath('userData'), 'views','view.ejs')) // Correction pour utiliser path.join pour une construction de chemin valide
-    .then(() => log.info('downloaded file no issues...'))
-    .catch((e) => {
-      log.info('error while downloading', e);
-      log.error(e);
-    });
-    updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/renderer.js', path.join(app.getPath('userData'), 'src/renderer.js')) // Correction pour utiliser path.join pour une construction de chemin valide
-    .then(() => log.info('downloaded file no issues...'))
-    .catch((e) => {
-      log.info('error while downloading', e);
-      log.error(e);
-    });
-    path.join(app.getPath('userData'), 'views')
-    //
+    await Promise.allSettled(downloads);
+    log.info('Initial builds/downloads completed');
   } catch (error) {
-    log.info(error)
-    log.error(error);
+    log.error('Error during build downloads:', error);
   }
-
- 
 }
 
 try {
@@ -430,87 +360,7 @@ ipcMain.on('prompt-response', function(event, arg) {
 
 //const download = require('./ytb');
 log.info('boot now');
-function updateFile(url, dest) {
-  const tempDest = `${dest}.tmp`;
-  if(fs.existsSync(dest)){
-    fs.unlinkSync(dest)
-  }
-  return get(url, tempDest)
-    .then(() => {
-      if(fs.existsSync(tempDest)){
-        if(fs.existsSync(dest)){
-          const originalFile = fs.readFileSync(dest);
-          const newFile = fs.readFileSync(tempDest);
-          if (originalFile.equals(newFile)) {
-            if(fs.existsSync(tempDest)){
-              fs.unlinkSync(tempDest);
-             } 
-            return Promise.reject('File contents are the same');
-          } else {
-            if(fs.existsSync(dest)){
-              fs.unlinkSync(dest)
-            }
-            
-            fs.renameSync(tempDest, dest);
-            return Promise.resolve();
-          }}
-          else{
-            if(fs.existsSync(dest)){
-              fs.unlinkSync(dest)
-            }
-            
-            fs.renameSync(tempDest, dest);
-            return Promise.resolve();
-          }
-      }else{
-        if(fs.existsSync(tempDest)){
-          fs.unlinkSync(tempDest);
-         } 
-        return updateFile(url,dest)
-      }
-      //return Promise.resolve();
-     
-      
-    })
-    .catch((err) => {
-      sendStatusToWindow(err)
-      log.error(err);
-     if(fs.existsSync(tempDest)){
-      fs.unlinkSync(tempDest);
-     } 
-      return Promise.reject(dest +":"+err);
-    });
 
-}
-
-
-
-function get(url, dest) {
-  return new Promise((resolve, reject) => {
-    // Check file does not exist yet before hitting network
-    fs.access(dest, fs.constants.F_OK, (err) => {
-      if (err === null) reject('File already exists');
-
-      const request = https.get(url, (response) => {
-        if (response.statusCode === 200) {
-          const file = fs.createWriteStream(dest, { flags: 'wx' });
-          file.on('finish', () => resolve());
-          file.on('error', (err) => {
-            file.close();
-            if (err.code === 'EEXIST') reject('File already exists');
-            else fs.unlink(dest, () => reject(err.message)); // Delete temp file
-          });
-          response.pipe(file);
-        } else if (response.statusCode === 302 || response.statusCode === 301) {
-          // Recursively follow redirects, only a 200 will resolve.
-          get(response.headers.location, dest).then(() => resolve());
-        } else {
-          reject(`Server responded with ${response.statusCode}: ${response.statusMessage}`);
-        }
-      });
-    });
-  });
-}
 web.get("/", function (req, res) {
   fs.appendFileSync("./log.txt",app.getPath('exe').split(path.sep)[app.getPath('exe').split(path.sep).length-1])
   autoUpdater.checkForUpdatesAndNotify();

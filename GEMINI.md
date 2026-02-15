@@ -1,5 +1,14 @@
 # Gemini CLI - Journal des modifications
 
+## [1.1.37-5] - 2026-02-15
+### Ajouté
+- **Tests automatisés** : Suite de tests unitaires pour la file d'attente, la base de données et le module de téléchargement.
+- **Modularité** : Extraction de la logique de téléchargement (`downloader.js`) et de mise à jour (`updater.js`) pour une meilleure testabilité.
+
+### Corrigé
+- **Séquence de démarrage** : Correction d'une erreur de référence au boot et ajout d'une attente pour les fichiers essentiels.
+- **Fiabilité yt-dlp** : Amélioration de la gestion des arguments et des chemins Windows pour éviter les échecs d'exécution.
+
 ## [1.1.37-4] - 2026-02-14
 ### Ajouté
 - **Système de visualisation par chaîne** : Nouvelle route `/channel` permettant de filtrer les vidéos par uploader.
