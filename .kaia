@@ -36,9 +36,9 @@
       "icon": "🐛",
       "color": "#FF5733",
       "criteres_acceptation": [
-        "The application starts without encountering a `ReferenceError: Cannot access 'updateFile' before initialization`.",
-        "The `updateFile` function or variable is correctly initialized before its first use in `src/index.js` at or around line 255.",
-        "All functionalities relying on `updateFile` operate as expected after the fix."
+        "The `ReferenceError: Cannot access 'updateFile' before initialization` no longer occurs when `src/index.js` is executed.",
+        "The `updateFile` function is correctly initialized and accessible when called within `src/index.js`.",
+        "The application or module utilizing `src/index.js` starts and operates without encountering new errors after the fix."
       ],
       "metadata": {
         "issueNumber": 33
