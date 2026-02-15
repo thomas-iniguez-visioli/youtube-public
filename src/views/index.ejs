@@ -139,10 +139,19 @@
                     <button class="btn btn-outline-light rounded-pill px-4" type="submit">Télécharger</button>
                 </form>
             </div>
+            <div class="d-flex">
+                <a href="/history" class="btn btn-outline-info rounded-pill px-4">Historique</a>
+            </div>
         </div>
     </nav>
 
     <div class="container-fluid px-4">
+        <% if (typeof channel !== 'undefined' && channel) { %>
+            <div class="d-flex align-items-center mb-4 mt-3">
+                <h2 class="text-white">Vidéos de : <%= channel %></h2>
+                <a href="/" class="btn btn-outline-secondary btn-sm ms-3">Retour à l'accueil</a>
+            </div>
+        <% } %>
         <!-- Section Filtres Inline -->
         <div class="tag-filter-section">
             <div class="filter-chip active" onclick="filterByTag('all', this)">Tous</div>
@@ -161,6 +170,13 @@
                             <div class="video-details w-100">
                                 <div class="video-title text-white"><%= result.fileName %></div>
                                 <div class="video-meta">
+                                    <% if (result.uploader) { %>
+                                        <div class="mb-1">
+                                            <a href="/channel?name=<%= encodeURIComponent(result.uploader) %>" onclick="event.stopPropagation();" style="color: #aaaaaa; text-decoration: none; font-size: 0.85rem;">
+                                                <%= result.uploader %>
+                                            </a>
+                                        </div>
+                                    <% } %>
                                     <% result.tags.forEach(function(tag){ %>
                                         <span class="tag-badge"><%= tag %></span>
                                     <% }); %>

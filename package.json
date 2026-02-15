@@ -1,14 +1,15 @@
 {
   "name": "youtube",
-  "version": "1.1.37-3",
+  "version": "1.1.37-7",
   "description": "youtube local",
   "main": "src/index.js",
   "private": true,
   "packageManager": "pnpm@9.15.4",
   "scripts": {
     "build": "npm i helmet cors && npx electron-rebuild -y  ",
+    "prepush": "npm test",
     "start": "electron .",
-    "test": "echo reusso"
+    "test": "node --test tests/*.test.js"
   },
   "dependencies": {
     "axios": "^1.7.9",

@@ -1,0 +1,78 @@
+const child = require('child_process');
+const path = require('path');
+const fs = require('fs');
+
+function getBrowserForCookies() {
+  // Priorité Firefox, sinon Chrome
+  // Sur Windows, on peut vérifier les chemins par défaut
+  const firefoxPath = path.join(process.env.APPDATA, 'Mozilla', 'Firefox', 'Profiles');
+  if (fs.existsSync(firefoxPath)) {
+    return 'firefox';
+  }
+  return 'chrome';
+}
+
+function createDownloadArgs(parameter, ffmpegDir, storagePath, outputFileFormat) {
+  return [
+    '-vU',
+    '--ffmpeg-location', ffmpegDir,
+    '--write-info-json',
+    '--remux', 'mp4',
+    '--cookies-from-browser', getBrowserForCookies(),
+    parameter,
+    '-f', 'bv*+ba/b',
+    '--write-playlist-metafiles',
+    '--parse-metadata', 'playlist_title:.+ - (?P<folder_name>Videos|Shorts|Live)$',
+    '-o', path.join(storagePath, outputFileFormat)
+  ];
+}
+
+function runDownload(ytdlpPath, args, logger) {
+  return new Promise((resolve, reject) => {
+    // Quote all arguments to handle spaces
+    const quotedArgs = args.map(arg => arg.includes(' ') ? `"${arg}"` : arg);
+    
+    if (logger) logger.info(`Executing: "${ytdlpPath}" ${quotedArgs.join(' ')}`);
+
+    const childProcess = child.spawn(ytdlpPath, args);
+
+    childProcess.stdout.on('data', (data) => {
+      if (logger) logger.info(`stdout: ${data}`);
+    });
+
+    childProcess.stderr.on('data', (data) => {
+      if (logger) logger.info(`stderr: ${data}`);
+    });
+
+    childProcess.on('close', (code) => {
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(new Error(`ytdlp a quitté avec le code ${code}`));
+      }
+    });
+  });
+}
+
+function createMetadataArgs(parameter, storagePath, outputFileFormat) {
+  return [
+    '-vU',
+    '--write-info-json',
+    '--simulate',
+    '--no-clean-info-json',
+    '--remux', 'mp4',
+    '--cookies-from-browser', getBrowserForCookies(),
+    parameter,
+    '-f', 'bv*+ba/b',
+    '--write-playlist-metafiles',
+    '--parse-metadata', 'playlist_title:.+ - (?P<folder_name>Videos|Shorts|Live)$',
+    '-o', path.join(storagePath, outputFileFormat),
+    '-J', "--embed-metadata"
+  ];
+}
+
+module.exports = {
+  createDownloadArgs,
+  createMetadataArgs,
+  runDownload
+};
