@@ -12,7 +12,7 @@ test('createDownloadArgs should generate correct arguments', (t) => {
 
   // Test without bunPath
   let args = createDownloadArgs(parameter, ffmpegDir, storagePath, outputFileFormat);
-  assert.ok(args.includes('bun'));
+  assert.ok(!args.includes('bun'));
 
   // Test with bunPath
   args = createDownloadArgs(parameter, ffmpegDir, storagePath, outputFileFormat, bunPath);

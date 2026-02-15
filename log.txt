@@ -100,4 +100,4 @@ checkForUpdatesAndNotify called, downloadPromise is null
 15:42:24.406 > Listening on port 8000!
 Skip checkForUpdates because application is not packed and dev update config is not forced
 checkForUpdatesAndNotify called, downloadPromise is null
-electron.exeelectron.exeelectron.exe
+electron.exeelectron.exeelectron.exeelectron.exeelectron.exeelectron.exeelectron.exeelectron.exeelectron.exeelectron.exeelectron.exeelectron.exeelectron.exeelectron.exeelectron.exeelectron.exe

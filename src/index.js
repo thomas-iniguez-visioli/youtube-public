@@ -405,7 +405,9 @@ web.get("/", function (req, res) {
 
   // Algorithme de référencement simplifié
   const database = db.database;
-  const referencement = database.map(item => {
+  const referencement = database
+    .filter(item => !db.history.includes(item.yid))
+    .map(item => {
     const infoJsonPath = path.join(app.getPath('userData'), 'file', item.fileName.replace(".mp4", ".info.json"));
     const mp4Path = path.join(app.getPath('userData'), 'file', item.fileName);
     console.log(`fichier ${mp4Path} status ${fs.existsSync(infoJsonPath)}`);
@@ -461,6 +463,7 @@ web.get("/watch", function (req, res) {
   }
 
   const database = db.database;
+  const historyWithoutCurrent = db.history.filter(id => id !== req.query.id);
   const referencement = database.map(item => {
     const itemInfoPath = path.join(config.storagePath, item.fileName.replace(".mp4", ".info.json"));
     let score = 0;
@@ -473,12 +476,14 @@ web.get("/watch", function (req, res) {
     return { ...item, score };
   }).sort((a, b) => b.score - a.score);
 
+  const filteredReferencement = referencement.filter(item => !historyWithoutCurrent.includes(item.yid));
+
   res.render('view', {
     code: req.query.id,
-    videos: db.database,
+    videos: db.database.filter(item => !historyWithoutCurrent.includes(item.yid)),
     title: fileData.fileName,
     videodata: videodata,
-    nextVideo: referencement.findIndex(item => item.yid === req.query.id) === referencement.length - 1 ? referencement[0] : referencement[referencement.findIndex(item => item.yid === req.query.id) + 1]
+    nextVideo: filteredReferencement.findIndex(item => item.yid === req.query.id) === filteredReferencement.length - 1 ? filteredReferencement[0] : filteredReferencement[filteredReferencement.findIndex(item => item.yid === req.query.id) + 1]
   });
 });
 web.get("/download", function (req, res) {
