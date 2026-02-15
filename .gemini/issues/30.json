@@ -1,0 +1,54 @@
+{
+  "issueNumber": 30,
+  "created": "2026-02-14T15:16:33.766Z",
+  "history": [
+    {
+      "timestamp": "2026-02-14T15:16:33.766Z",
+      "role": "user",
+      "content": {
+        "number": 30,
+        "title": "Error: Erreur de téléchargement pour https://www.youtube.com/playlist?list=PLTgLQlM5yf3MRVnShXaCiaOzRT_NSYcLo: ytdlp a quitté avec le code 255",
+        "body": "View details in Rollbar: [https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/11](https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/11)\n\n```\n\nError: Erreur de téléchargement pour https://www.youtube.com/playlist?list=PLTgLQlM5yf3MRVnShXaCiaOzRT_NSYcLo: ytdlp a quitté avec le code 255\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\src\\index.js\", line 38, in <unknown>\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\node_modules\\electron-log\\src\\core\\Logger.js\", line 178, in <unknown>\n  File \"<anonymous>\", line unknown, in Array.reduce\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\node_modules\\electron-log\\src\\core\\Logger.js\", line 177, in Logger.processMessage\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\node_modules\\electron-log\\src\\core\\Logger.js\", line 136, in Logger.logData\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\node_modules\\electron-log\\src\\core\\Logger.js\", line 86, in <computed> [as error]\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\src\\index.js\", line 192, in Timeout.processBacklog [as _onTimeout]\n```",
+        "labels": [],
+        "author": "alphaleadership",
+        "createdAt": "2026-02-14T15:16:17Z"
+      },
+      "metadata": {
+        "event": "issue_opened/labeled"
+      }
+    },
+    {
+      "timestamp": "2026-02-14T15:17:03.818Z",
+      "role": "assistant",
+      "content": {
+        "complexity": "medium",
+        "type": "bug",
+        "suggestedColumn": "a_faire",
+        "acceptanceCriteria": [
+          "The application successfully downloads the YouTube playlist 'https://www.youtube.com/playlist?list=PLTgLQlM5yf3MRVnShXaCiaOzRT_NSYcLo' without `ytdlp` exiting with code 255.",
+          "If a `ytdlp` download fails, a user-friendly error message is displayed to the user within the application, clearly indicating the failure.",
+          "The underlying `ytdlp` (youtube-dlp) dependency used by the application is updated to its latest stable version."
+        ],
+        "icon": "❌",
+        "color": "#FF0000",
+        "missingInformation": {
+          "isMissing": true,
+          "details": [
+            "The error trace points to an Electron application located at `C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\src\\index.js`. The provided `Current Project Structure` for `github-gemini-integration` does not appear to be an Electron desktop application. Clarification is needed on the relationship between this GitHub repository and the 'youtube' Electron application where the error occurred (e.g., Is this repository responsible for managing issues/development of that Electron app? Or is this issue misfiled?).",
+            "Exact version of the 'youtube' Electron application experiencing the issue.",
+            "Exact version of `ytdlp` (youtube-dlp) that the Electron application is using.",
+            "Specific version of the Windows operating system where the error occurred.",
+            "Confirmation if the error is consistently reproducible with the provided playlist URL, or if it was an intermittent failure.",
+            "Whether the provided playlist URL can be successfully downloaded using a standalone `yt-dlp` command-line tool on the same system."
+          ]
+        },
+        "fileActions": []
+      },
+      "metadata": {
+        "type": "analysis",
+        "iteration": 0
+      }
+    }
+  ],
+  "updated": "2026-02-14T15:17:03.818Z"
+}

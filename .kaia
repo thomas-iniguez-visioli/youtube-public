@@ -31,17 +31,17 @@
     },
     {
       "id": 4,
-      "titre": "ReferenceError: Cannot access 'updateFile' before initialization",
-      "description": "View details in Rollbar: [https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/13](https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/13)\n\n```\n\nReferenceError: Cannot access 'updateFile' before initialization\n  File \"C:\\Users\\alpha\\youtube-public\\src\\index.js\", line 255, in Object.<anonymous>\n  File \"node:internal/modules/cjs/loader\", line 1484, in Module._compile\n  File \"node:internal/modules/cjs/loader\", line 1564, in Module._extensions..js\n  File \"node:internal/modules/cjs/loader\", line 1295, in Module.load\n  File \"node:internal/modules/cjs/loader\", line 1111, in Module._load\n  File \"node:electron/js2c/node_init\", line 2, in c._load\n  File \"node:internal/modules/esm/translators\", line 350, in cjsLoader\n  File \"node:internal/modules/esm/translators\", line 286, in ModuleWrap.<anonymous>\n  File \"node:internal/modules/esm/module_job\", line 234, in ModuleJob.run\n  File \"node:internal/modules/esm/loader\", line 473, in async ModuleLoader.import\n```",
-      "icon": "🐛",
-      "color": "#FF5733",
+      "titre": "Error: Erreur de téléchargement pour https://www.youtube.com/playlist?list=PLTgLQlM5yf3MRVnShXaCiaOzRT_NSYcLo: ytdlp a quitté avec le code 255",
+      "description": "View details in Rollbar: [https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/11](https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/11)\n\n```\n\nError: Erreur de téléchargement pour https://www.youtube.com/playlist?list=PLTgLQlM5yf3MRVnShXaCiaOzRT_NSYcLo: ytdlp a quitté avec le code 255\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\src\\index.js\", line 38, in <unknown>\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\node_modules\\electron-log\\src\\core\\Logger.js\", line 178, in <unknown>\n  File \"<anonymous>\", line unknown, in Array.reduce\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\node_modules\\electron-log\\src\\core\\Logger.js\", line 177, in Logger.processMessage\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\node_modules\\electron-log\\src\\core\\Logger.js\", line 136, in Logger.logData\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\node_modules\\electron-log\\src\\core\\Logger.js\", line 86, in <computed> [as error]\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\src\\index.js\", line 192, in Timeout.processBacklog [as _onTimeout]\n```",
+      "icon": "❌",
+      "color": "#FF0000",
       "criteres_acceptation": [
-        "The `ReferenceError: Cannot access 'updateFile' before initialization` no longer occurs when `src/index.js` is executed.",
-        "The `updateFile` function is correctly initialized and accessible when called within `src/index.js`.",
-        "The application or module utilizing `src/index.js` starts and operates without encountering new errors after the fix."
+        "The application successfully downloads the YouTube playlist 'https://www.youtube.com/playlist?list=PLTgLQlM5yf3MRVnShXaCiaOzRT_NSYcLo' without `ytdlp` exiting with code 255.",
+        "If a `ytdlp` download fails, a user-friendly error message is displayed to the user within the application, clearly indicating the failure.",
+        "The underlying `ytdlp` (youtube-dlp) dependency used by the application is updated to its latest stable version."
       ],
       "metadata": {
-        "issueNumber": 33
+        "issueNumber": 30
       }
     }
   ],
