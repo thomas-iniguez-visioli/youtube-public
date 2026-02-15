@@ -1,0 +1,35 @@
+# Gemini CLI - Journal des modifications
+
+## [1.1.37-6] - 2026-02-15
+### Ajouté
+- **Système d'historique** : Suivi des vidéos visionnées avec une nouvelle vue dédiée `/history`.
+- **Détection de navigateur pour les cookies** : Utilisation automatique des cookies de Firefox (prioritaire) ou Chrome pour les téléchargements.
+- **Publication automatique** : Job GitHub Action pour publier la release une fois les builds terminés.
+
+## [1.1.37-5] - 2026-02-15
+### Ajouté
+- **Tests automatisés** : Suite de tests unitaires pour la file d'attente, la base de données et le module de téléchargement.
+- **Modularité** : Extraction de la logique de téléchargement (`downloader.js`) et de mise à jour (`updater.js`) pour une meilleure testabilité.
+
+### Corrigé
+- **Séquence de démarrage** : Correction d'une erreur de référence au boot et ajout d'une attente pour les fichiers essentiels.
+- **Fiabilité yt-dlp** : Amélioration de la gestion des arguments et des chemins Windows pour éviter les échecs d'exécution.
+
+## [1.1.37-4] - 2026-02-14
+### Ajouté
+- **Système de visualisation par chaîne** : Nouvelle route `/channel` permettant de filtrer les vidéos par uploader.
+- **Navigation améliorée** : Les noms des créateurs sont désormais des liens cliquables sur la page d'accueil et la page de lecture.
+- **Interface contextuelle** : Affichage du nom de la chaîne filtrée dans l'en-tête de la bibliothèque.
+
+### Corrigé
+- **Stabilisation du téléchargement** : Implémentation d'une file d'attente asynchrone pour éviter la saturation des ressources.
+- **Chemins système** : Correction des chemins vers `ytdlp.exe` et `ffmpeg` pour pointer vers le dossier `AppData` de l'utilisateur.
+- **Sécurisation de la route `/watch`** : Ajout de vérifications pour éviter les plantages si les fichiers de métadonnées sont absents.
+
+### Changé
+- **Refonte UI/UX** : Intégration de Plyr.io pour le lecteur vidéo et passage à un thème sombre moderne inspiré de YouTube.
+- **Consolidation des vues** : Déplacement des fichiers EJS de la racine vers `src/views/` pour une structure plus propre.
+
+## Instructions de développement
+- **prepush** : Avant chaque push, s'assurer que la version dans `package.json` est à jour et que les tests passent.
+
