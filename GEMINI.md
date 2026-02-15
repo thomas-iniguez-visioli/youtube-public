@@ -5,6 +5,7 @@
 - **Système d'historique** : Suivi des vidéos visionnées avec une nouvelle vue dédiée `/history`.
 - **Détection de navigateur pour les cookies** : Utilisation automatique des cookies de Firefox (prioritaire) ou Chrome pour les téléchargements.
 - **Publication automatique** : Job GitHub Action pour publier la release une fois les builds terminés.
+- **Migration vers Bun** : Remplacement de npm par Bun pour la gestion des paquets, les scripts et les tests. Utilisation de Bun dans le workflow CI/CD.
 
 ## [1.1.37-5] - 2026-02-15
 ### Ajouté

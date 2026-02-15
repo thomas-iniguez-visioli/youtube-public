@@ -152,6 +152,10 @@ class FileDatabase {
 
     // Sauvegarde la base de données JSON
     saveDatabase() {
+        const dir = path.dirname(databaseFilePath);
+        if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+        }
         fs.writeFileSync(databaseFilePath, JSON.stringify({
             database: this.database,
             history: this.history
