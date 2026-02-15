@@ -1,0 +1,53 @@
+{
+  "issueNumber": 27,
+  "created": "2026-02-14T14:43:06.828Z",
+  "history": [
+    {
+      "timestamp": "2026-02-14T14:43:06.828Z",
+      "role": "user",
+      "content": {
+        "number": 27,
+        "title": "Error: File already exists",
+        "body": "View details in Rollbar: [https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/9](https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/9)\n\n```\n\nError: C:\\Users\\alpha\\AppData\\Roaming\\youtube\\src\\client-dist\\socket.io.js.map:File already exists\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\src\\index.js\", line 38, in <unknown>\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\node_modules\\electron-log\\src\\core\\Logger.js\", line 178, in <unknown>\n  File \"<anonymous>\", line unknown, in Array.reduce\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\node_modules\\electron-log\\src\\core\\Logger.js\", line 177, in Logger.processMessage\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\node_modules\\electron-log\\src\\core\\Logger.js\", line 136, in Logger.logData\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\node_modules\\electron-log\\src\\core\\Logger.js\", line 86, in <computed> [as error]\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\src\\index.js\", line 344, in <unknown>\n  File \"node:internal/process/task_queues\", line 95, in process.processTicksAndRejections\n```",
+        "labels": [],
+        "author": "alphaleadership",
+        "createdAt": "2026-02-14T14:42:51Z"
+      },
+      "metadata": {
+        "event": "issue_opened/labeled"
+      }
+    },
+    {
+      "timestamp": "2026-02-14T14:43:21.605Z",
+      "role": "assistant",
+      "content": {
+        "complexity": "medium",
+        "type": "bug",
+        "suggestedColumn": "a_faire",
+        "acceptanceCriteria": [
+          "The 'youtube' application must start successfully without displaying the 'Error: C:\\Users\\alpha\\AppData\\Roaming\\youtube\\src\\client-dist\\socket.io.js.map:File already exists' message.",
+          "The `socket.io.js.map` file should be correctly managed by the application during installation, updates, and runtime, avoiding 'File already exists' conflicts.",
+          "Users should be able to launch and operate the 'youtube' application without encountering file system related errors on Windows operating systems."
+        ],
+        "icon": "⚠️",
+        "color": "#FF5733",
+        "missingInformation": {
+          "isMissing": true,
+          "details": [
+            "The specific actions or scenario that consistently triggers this 'File already exists' error (e.g., first launch, update, specific feature use).",
+            "The exact version of the 'youtube' application being used.",
+            "Details about the operating system (e.g., Windows 10, Windows 11) and any relevant user permissions.",
+            "The content of `C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\src\\index.js` around lines 38 and 344 to understand the file operations being performed.",
+            "Whether the issue is reproducible across different environments or specific to the reporter's machine."
+          ]
+        },
+        "fileActions": []
+      },
+      "metadata": {
+        "type": "analysis",
+        "iteration": 0
+      }
+    }
+  ],
+  "updated": "2026-02-14T14:43:21.606Z"
+}
