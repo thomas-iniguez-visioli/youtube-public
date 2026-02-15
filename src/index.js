@@ -206,7 +206,7 @@ const downloadbacklog = (parameter) => {
     fs.appendFileSync(path.join(app.getPath('userData'), 'historic.txt'), `${parameter}\n`);
     const logFilePath = path.join(app.getPath('userData'), 'download.log');
     
-    const ytdlpPath = process.platform === 'win32' ? path.join(app.getPath('userData'), 'ytdlp.exe') : path.join(app.getPath('userData'), 'ytdlp');
+    const dlpPath = process.platform === 'win32' ? path.join(app.getPath('userData'), 'ytdlp.exe') : path.join(app.getPath('userData'), 'ytdlp');
     const ffmpegDir = path.join(app.getPath('userData'), 'ffmpeg', 'ffmpeg-master-latest-win64-gpl', 'bin');
     const bunPath = process.platform === 'win32' ? path.join(app.getPath('userData'), 'bun.exe') : path.join(app.getPath('userData'), 'bun');
 
@@ -299,7 +299,7 @@ async function build() {
   const downloads = [
     updateFile('https://cdn.socket.io/4.4.1/socket.io.js', path.join(app.getPath('userData'), 'src/client-dist/socket.io.js')),
     updateFile('https://cdn.socket.io/4.4.1/socket.io.js.map', path.join(app.getPath('userData'), 'src/client-dist/socket.io.js.map')),
-    updateFile(process.platform === 'win32' ? 'https://github.com/yt-dlp/yt-dlp/releases/download/2023.02.17/yt-dlp.exe' : 'https://github.com/yt-dlp/yt-dlp/releases/download/2023.02.17/yt-dlp', path.join(app.getPath('userData'), process.platform === 'win32' ? 'ytdlp.exe' : 'ytdlp')),
+    updateFile(process.platform === 'win32' ? 'https://github.com/yt-dlp/yt-dlp/releases/download/2026.02.04/yt-dlp.exe' : 'https://github.com/yt-dlp/yt-dlp/releases/download/2026.02.04/yt-dlp', path.join(app.getPath('userData'), process.platform === 'win32' ? 'ytdlp.exe' : 'ytdlp')),
     updateFile(bunUrl, path.join(app.getPath('userData'), bunZipName)),
     updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/views/index.ejs', path.join(app.getPath('userData'), 'views','index.ejs')),
     updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/views/view.ejs', path.join(app.getPath('userData'), 'views','view.ejs')),
