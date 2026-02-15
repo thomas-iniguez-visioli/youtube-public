@@ -1,0 +1,1 @@
+C:\Users\alpha\youtube-public\node_modules\electron\dist\electron.exe exited with signal SIGINT

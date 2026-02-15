@@ -14,34 +14,39 @@ function getBrowserForCookies() {
 
 function createDownloadArgs(parameter, ffmpegDir, storagePath, outputFileFormat, bunPath) {
   const args = [
-    '-vU',
+    '--merge-output-format', 'mp4',
     '--ffmpeg-location', ffmpegDir,
     '--write-info-json',
-    '--remux', 'mp4',
     '--cookies-from-browser', getBrowserForCookies(),
-    parameter,
-    '-f', 'bv*+ba/b',
+    '-f', 'bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4] / bv*+ba/b',
     '--write-playlist-metafiles',
     '--parse-metadata', 'playlist_title:.+ - (?P<folder_name>Videos|Shorts|Live)$',
-    '-o', path.join(storagePath, outputFileFormat)
+    '-o', path.join(storagePath, outputFileFormat),
+    parameter
   ];
   if (bunPath && fs.existsSync(bunPath)) {
-    args.push('--js-runtimes', bunPath);
-  } else {
     args.push('--js-runtimes', 'bun');
   }
   return args;
 }
 
 function runDownload(ytdlpPath, args, logger) {
-  console.log(ytdlpPath)
   return new Promise((resolve, reject) => {
     // Quote all arguments to handle spaces
     const quotedArgs = args.map(arg => arg.includes(' ') ? `"${arg}"` : arg);
     
     if (logger) logger.info(`Executing: "${ytdlpPath}" ${quotedArgs.join(' ')}`);
 
-    const childProcess = child.spawn(ytdlpPath, args);
+    // Add ytdlp directory to PATH so it can find bun.exe
+    const env = { ...process.env };
+    const ytdlpDir = path.dirname(ytdlpPath);
+    if (process.platform === 'win32') {
+      env.Path = `${ytdlpDir};${env.Path || ''}`;
+    } else {
+      env.PATH = `${ytdlpDir}:${env.PATH || ''}`;
+    }
+
+    const childProcess = child.spawn(ytdlpPath, args, { env });
 
     childProcess.stdout.on('data', (data) => {
       if (logger) logger.info(`stdout: ${data}`);
@@ -63,22 +68,18 @@ function runDownload(ytdlpPath, args, logger) {
 
 function createMetadataArgs(parameter, storagePath, outputFileFormat, bunPath) {
   const args = [
-    '-vU',
     '--write-info-json',
     '--simulate',
     '--no-clean-info-json',
-    '--remux', 'mp4',
     '--cookies-from-browser', getBrowserForCookies(),
-    parameter,
-    '-f', 'bv*+ba/b',
+    '-f', 'bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4] / bv*+ba/b',
     '--write-playlist-metafiles',
     '--parse-metadata', 'playlist_title:.+ - (?P<folder_name>Videos|Shorts|Live)$',
     '-o', path.join(storagePath, outputFileFormat),
-    '-J', "--embed-metadata"
+    '-J',
+    parameter
   ];
   if (bunPath && fs.existsSync(bunPath)) {
-    args.push('--js-runtimes', bunPath);
-  } else {
     args.push('--js-runtimes', 'bun');
   }
   return args;
