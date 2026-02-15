@@ -4,7 +4,8 @@
   "description": "youtube local",
   "main": "src/index.js",
   "private": true,
-  "packageManager": "pnpm@9.15.4",
+
+  
   "scripts": {
     "build": "bun i helmet cors && bun x electron-rebuild -y  ",
     "prepush": "bun test",
