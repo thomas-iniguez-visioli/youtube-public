@@ -12,20 +12,25 @@ function getBrowserForCookies() {
   return 'chrome';
 }
 
-function createDownloadArgs(parameter, ffmpegDir, storagePath, outputFileFormat) {
-  return [
+function createDownloadArgs(parameter, ffmpegDir, storagePath, outputFileFormat, bunPath) {
+  const args = [
     '-vU',
     '--ffmpeg-location', ffmpegDir,
     '--write-info-json',
     '--remux', 'mp4',
     '--cookies-from-browser', getBrowserForCookies(),
-    '--js-runtimes', 'bun',
     parameter,
     '-f', 'bv*+ba/b',
     '--write-playlist-metafiles',
     '--parse-metadata', 'playlist_title:.+ - (?P<folder_name>Videos|Shorts|Live)$',
     '-o', path.join(storagePath, outputFileFormat)
   ];
+  if (bunPath && fs.existsSync(bunPath)) {
+    args.push('--js-runtimes', bunPath);
+  } else {
+    args.push('--js-runtimes', 'bun');
+  }
+  return args;
 }
 
 function runDownload(ytdlpPath, args, logger) {
@@ -55,15 +60,14 @@ function runDownload(ytdlpPath, args, logger) {
   });
 }
 
-function createMetadataArgs(parameter, storagePath, outputFileFormat) {
-  return [
+function createMetadataArgs(parameter, storagePath, outputFileFormat, bunPath) {
+  const args = [
     '-vU',
     '--write-info-json',
     '--simulate',
     '--no-clean-info-json',
     '--remux', 'mp4',
     '--cookies-from-browser', getBrowserForCookies(),
-    '--js-runtimes', 'bun',
     parameter,
     '-f', 'bv*+ba/b',
     '--write-playlist-metafiles',
@@ -71,6 +75,12 @@ function createMetadataArgs(parameter, storagePath, outputFileFormat) {
     '-o', path.join(storagePath, outputFileFormat),
     '-J', "--embed-metadata"
   ];
+  if (bunPath && fs.existsSync(bunPath)) {
+    args.push('--js-runtimes', bunPath);
+  } else {
+    args.push('--js-runtimes', 'bun');
+  }
+  return args;
 }
 
 module.exports = {

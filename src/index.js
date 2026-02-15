@@ -208,8 +208,9 @@ const downloadbacklog = (parameter) => {
     
     const ytdlpPath = path.join(app.getPath('userData'), 'ytdlp.exe');
     const ffmpegDir = path.join(app.getPath('userData'), 'ffmpeg', 'ffmpeg-master-latest-win64-gpl', 'bin');
+    const bunPath = path.join(app.getPath('userData'), 'bun.exe');
 
-    const args = createDownloadArgs(parameter, ffmpegDir, config.storagePath, config.outputFileFormat);
+    const args = createDownloadArgs(parameter, ffmpegDir, config.storagePath, config.outputFileFormat, bunPath);
 
     const logger = {
       info: (msg) => {
@@ -226,7 +227,8 @@ const downloadbacklog = (parameter) => {
 
 const downloaddata = (parameter) => {
   const ytdlpPath = path.join(app.getPath('userData'), 'ytdlp.exe');
-  const args = createMetadataArgs(parameter, config.storagePath, config.outputFileFormat);
+  const bunPath = path.join(app.getPath('userData'), 'bun.exe');
+  const args = createMetadataArgs(parameter, config.storagePath, config.outputFileFormat, bunPath);
 
   const childProcess = child.spawn(ytdlpPath, args, { shell: true });
   childProcess.stdout.on('data', (data) => log.info(`stdout: ${data}`));
@@ -293,6 +295,7 @@ async function build() {
     updateFile('https://cdn.socket.io/4.4.1/socket.io.js', path.join(app.getPath('userData'), 'src/client-dist/socket.io.js')),
     updateFile('https://cdn.socket.io/4.4.1/socket.io.js.map', path.join(app.getPath('userData'), 'src/client-dist/socket.io.js.map')),
     updateFile('https://github.com/yt-dlp/yt-dlp/releases/download/2023.02.17/yt-dlp.exe', path.join(app.getPath('userData'), 'ytdlp.exe')),
+    updateFile('https://github.com/oven-sh/bun/releases/latest/download/bun-windows-x64.zip', path.join(app.getPath('userData'), 'bun.zip')),
     updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/views/index.ejs', path.join(app.getPath('userData'), 'views','index.ejs')),
     updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/views/view.ejs', path.join(app.getPath('userData'), 'views','view.ejs')),
     updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/renderer.js', path.join(app.getPath('userData'), 'src/renderer.js'))
@@ -301,6 +304,20 @@ async function build() {
   try {
     await Promise.allSettled(downloads);
     log.info('Initial builds/downloads completed');
+    
+    // Unzip Bun
+    const bunZipPath = path.join(app.getPath('userData'), 'bun.zip');
+    if (fs.existsSync(bunZipPath)) {
+      const unzipper = require('unzipper');
+      await fs.createReadStream(bunZipPath)
+        .pipe(unzipper.Extract({ path: path.join(app.getPath('userData'), 'bun-temp') }))
+        .promise();
+      
+      const bunTempDir = path.join(app.getPath('userData'), 'bun-temp', 'bun-windows-x64');
+      if (fs.existsSync(path.join(bunTempDir, 'bun.exe'))) {
+        fs.copyFileSync(path.join(bunTempDir, 'bun.exe'), path.join(app.getPath('userData'), 'bun.exe'));
+      }
+    }
   } catch (error) {
     log.error('Error during build downloads:', error);
   }
