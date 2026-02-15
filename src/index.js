@@ -206,9 +206,9 @@ const downloadbacklog = (parameter) => {
     fs.appendFileSync(path.join(app.getPath('userData'), 'historic.txt'), `${parameter}\n`);
     const logFilePath = path.join(app.getPath('userData'), 'download.log');
     
-    const ytdlpPath = path.join(app.getPath('userData'), 'ytdlp.exe');
+    const ytdlpPath = process.platform === 'win32' ? path.join(app.getPath('userData'), 'ytdlp.exe') : path.join(app.getPath('userData'), 'ytdlp');
     const ffmpegDir = path.join(app.getPath('userData'), 'ffmpeg', 'ffmpeg-master-latest-win64-gpl', 'bin');
-    const bunPath = path.join(app.getPath('userData'), 'bun.exe');
+    const bunPath = process.platform === 'win32' ? path.join(app.getPath('userData'), 'bun.exe') : path.join(app.getPath('userData'), 'bun');
 
     const args = createDownloadArgs(parameter, ffmpegDir, config.storagePath, config.outputFileFormat, bunPath);
 
@@ -226,8 +226,8 @@ const downloadbacklog = (parameter) => {
 };
 
 const downloaddata = (parameter) => {
-  const ytdlpPath = path.join(app.getPath('userData'), 'ytdlp.exe');
-  const bunPath = path.join(app.getPath('userData'), 'bun.exe');
+  const ytdlpPath = process.platform === 'win32' ? path.join(app.getPath('userData'), 'ytdlp.exe') : path.join(app.getPath('userData'), 'ytdlp');
+  const bunPath = process.platform === 'win32' ? path.join(app.getPath('userData'), 'bun.exe') : path.join(app.getPath('userData'), 'bun');
   const args = createMetadataArgs(parameter, config.storagePath, config.outputFileFormat, bunPath);
 
   const childProcess = child.spawn(ytdlpPath, args, { shell: true });
@@ -291,11 +291,16 @@ async function build() {
   fs.mkdir(base, { recursive: true }, (err) => {
     if (err) {}
   });
+  const bunUrl = process.platform === 'win32' 
+    ? 'https://github.com/oven-sh/bun/releases/latest/download/bun-windows-x64.zip' 
+    : 'https://github.com/oven-sh/bun/releases/latest/download/bun-linux-x64.zip';
+  const bunZipName = 'bun.zip';
+
   const downloads = [
     updateFile('https://cdn.socket.io/4.4.1/socket.io.js', path.join(app.getPath('userData'), 'src/client-dist/socket.io.js')),
     updateFile('https://cdn.socket.io/4.4.1/socket.io.js.map', path.join(app.getPath('userData'), 'src/client-dist/socket.io.js.map')),
-    updateFile('https://github.com/yt-dlp/yt-dlp/releases/download/2023.02.17/yt-dlp.exe', path.join(app.getPath('userData'), 'ytdlp.exe')),
-    updateFile('https://github.com/oven-sh/bun/releases/latest/download/bun-windows-x64.zip', path.join(app.getPath('userData'), 'bun.zip')),
+    updateFile(process.platform === 'win32' ? 'https://github.com/yt-dlp/yt-dlp/releases/download/2023.02.17/yt-dlp.exe' : 'https://github.com/yt-dlp/yt-dlp/releases/download/2023.02.17/yt-dlp', path.join(app.getPath('userData'), process.platform === 'win32' ? 'ytdlp.exe' : 'ytdlp')),
+    updateFile(bunUrl, path.join(app.getPath('userData'), bunZipName)),
     updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/views/index.ejs', path.join(app.getPath('userData'), 'views','index.ejs')),
     updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/views/view.ejs', path.join(app.getPath('userData'), 'views','view.ejs')),
     updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/renderer.js', path.join(app.getPath('userData'), 'src/renderer.js'))
@@ -313,9 +318,15 @@ async function build() {
         .pipe(unzipper.Extract({ path: path.join(app.getPath('userData'), 'bun-temp') }))
         .promise();
       
-      const bunTempDir = path.join(app.getPath('userData'), 'bun-temp', 'bun-windows-x64');
-      if (fs.existsSync(path.join(bunTempDir, 'bun.exe'))) {
-        fs.copyFileSync(path.join(bunTempDir, 'bun.exe'), path.join(app.getPath('userData'), 'bun.exe'));
+      const bunFolder = process.platform === 'win32' ? 'bun-windows-x64' : 'bun-linux-x64';
+      const bunBinary = process.platform === 'win32' ? 'bun.exe' : 'bun';
+      const bunTempDir = path.join(app.getPath('userData'), 'bun-temp', bunFolder);
+      
+      if (fs.existsSync(path.join(bunTempDir, bunBinary))) {
+        fs.copyFileSync(path.join(bunTempDir, bunBinary), path.join(app.getPath('userData'), bunBinary));
+        if (process.platform !== 'win32') {
+          fs.chmodSync(path.join(app.getPath('userData'), bunBinary), '755');
+        }
       }
     }
   } catch (error) {
