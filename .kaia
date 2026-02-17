@@ -33,12 +33,13 @@
       "id": 4,
       "titre": "Error: net::ERR_INSUFFICIENT_RESOURCES",
       "description": "View details in Rollbar: [https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/27](https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/27)\n\n```\n\nError: net::ERR_INSUFFICIENT_RESOURCES\n  File \"node:electron/js2c/browser_init\", line 2, in SimpleURLLoaderWrapper.<anonymous>\n  File \"node:events\", line 518, in SimpleURLLoaderWrapper.emit\n```",
-      "icon": "🚨",
-      "color": "#FF0000",
+      "icon": "🐛",
+      "color": "#FFA500",
       "criteres_acceptation": [
-        "The error `net::ERR_INSUFFICIENT_RESOURCES` no longer occurs under the conditions that previously triggered it.",
-        "The application (whether GitHub Action or related Electron app) completes its intended operations without exhibiting signs of resource exhaustion (e.g., crashes, hangs, unexpected slowdowns).",
-        "Network requests initiated by the application are handled robustly, ensuring stable resource consumption (e.g., memory, open connections) within expected operational limits."
+        "The Electron application successfully completes the task that previously triggered `net::ERR_INSUFFICIENT_RESOURCES` without error.",
+        "Resource usage (e.g., memory, network connections, file handles) remains within acceptable limits during the problematic operation.",
+        "The application handles potential resource limitations gracefully, preventing crashes and providing informative feedback if resources are scarce.",
+        "The root cause of the `net::ERR_INSUFFICIENT_RESOURCES` error is identified and addressed, particularly regarding concurrent API calls or large data processing, especially within the `WorkflowManager`'s various processing functions (e.g., `processGitHubIssue`, `processPendingTasks`, `installWorkflows`)."
       ],
       "metadata": {
         "issueNumber": 50
