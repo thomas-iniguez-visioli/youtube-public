@@ -155,16 +155,20 @@
             <!-- Barre Latérale (Suggestions) -->
             <div class="col-lg-4 sidebar">
                 <h5 class="mb-3">Vidéos suggérées</h5>
-                <% videos.forEach(function(v) { %>
-                    <% if (v.yid !== code) { %>
-                        <a href="/watch?id=<%= v.yid %>" class="suggestion-card">
-                            <img src="https://img.youtube.com/vi/<%= v.yid %>/hqdefault.jpg" class="suggestion-thumb" alt="<%= v.fileName %>">
-                            <div class="suggestion-info">
-                                <span class="suggestion-title"><%= v.fileName %></span>
-                                <span class="suggestion-channel">Voir la vidéo</span>
-                            </div>
-                        </a>
-                    <% } %>
+                <% 
+                    const suggestions = videos
+                        .filter(v => v.yid !== code)
+                        .sort(() => Math.random() - 0.5)
+                        .slice(0, 5);
+                    suggestions.forEach(function(v) { 
+                %>
+                    <a href="/watch?id=<%= v.yid %>" class="suggestion-card">
+                        <img src="https://img.youtube.com/vi/<%= v.yid %>/hqdefault.jpg" class="suggestion-thumb" alt="<%= v.fileName %>">
+                        <div class="suggestion-info">
+                            <span class="suggestion-title"><%= v.fileName %></span>
+                            <span class="suggestion-channel">Voir la vidéo</span>
+                        </div>
+                    </a>
                 <% }); %>
             </div>
         </div>

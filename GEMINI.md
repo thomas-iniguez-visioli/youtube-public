@@ -1,5 +1,13 @@
 # Gemini CLI - Journal des modifications
 
+## [1.1.41] - 2026-02-17
+### Ajouté
+- **Téléchargement de chaîne** : Ajout d'un bouton "Télécharger la chaîne" dans la vue par chaîne pour faciliter l'archivage complet.
+
+## [1.1.40] - 2026-02-17
+### Changé
+- **Suggestions de vidéos** : Affichage de seulement 5 vidéos aléatoires dans la barre latérale pour améliorer la navigation.
+
 ## [1.1.37-6] - 2026-02-15
 ### Ajouté
 - **Système d'historique** : Suivi des vidéos visionnées avec une nouvelle vue dédiée `/history`.

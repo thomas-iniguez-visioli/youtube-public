@@ -432,7 +432,8 @@ web.get("/", function (req, res) {
 
   res.render('index', {
     results: referencement,
-    channel: null
+    channel: null,
+    channelUrl: null
   });
 })
 web.get("/watch", function (req, res) {
@@ -542,12 +543,16 @@ web.get("/channel", function (req, res) {
   const channelName = req.query.name;
   db.readDatabase();
   
+  let channelUrl = null;
   const results = db.database.filter(item => {
     const infoPath = path.join(config.storagePath, item.fileName.replace(".mp4", ".info.json"));
     if (fs.existsSync(infoPath)) {
       try {
         const info = JSON.parse(fs.readFileSync(infoPath, 'utf8'));
-        return info.uploader === channelName;
+        if (info.uploader === channelName) {
+          if (!channelUrl) channelUrl = info.channel_url || info.uploader_url;
+          return true;
+        }
       } catch (e) {
         return false;
       }
@@ -559,7 +564,8 @@ web.get("/channel", function (req, res) {
 
   res.render('index', {
     results: results,
-    channel: channelName
+    channel: channelName,
+    channelUrl: channelUrl
   });
 });
 
@@ -578,7 +584,8 @@ web.get("/history", function (req, res) {
 
   res.render('index', {
     results: history,
-    channel: "Historique"
+    channel: "Historique",
+    channelUrl: null
   });
 });
 
