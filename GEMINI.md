@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.1.44] - 2026-02-18
+### Changé
+- **Limite d'historique** : La longueur de l'historique est désormais dynamique et limitée à 80% du nombre total de vidéos en base pour une meilleure gestion de l'espace.
+
 ## [1.1.41] - 2026-02-17
 ### Ajouté
 - **Téléchargement de chaîne** : Ajout d'un bouton "Télécharger la chaîne" dans la vue par chaîne pour faciliter l'archivage complet.
