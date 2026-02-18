@@ -198,8 +198,9 @@ class FileDatabase {
         this.history = this.history.filter(id => id !== videoId);
         // Add to the beginning of history
         this.history.unshift(videoId);
-        // Limit history to 100 items
-        if (this.history.length > 100) {
+        // Limit history to 80% of the total number of videos
+        const limit = Math.floor(this.database.length * 0.8);
+        if (this.history.length > limit && limit > 0) {
             this.history.pop();
         }
         this.saveDatabase();
