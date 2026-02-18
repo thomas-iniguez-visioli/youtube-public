@@ -481,7 +481,7 @@ web.get("/watch", function (req, res) {
 
   res.render('view', {
     code: req.query.id,
-    videos: db.database.filter(item => !historyWithoutCurrent.includes(item.yid)),
+    videos: filteredReferencement,
     title: fileData.fileName,
     videodata: videodata,
     nextVideo: filteredReferencement.findIndex(item => item.yid === req.query.id) === filteredReferencement.length - 1 ? filteredReferencement[0] : filteredReferencement[filteredReferencement.findIndex(item => item.yid === req.query.id) + 1]

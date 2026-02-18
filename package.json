@@ -57,7 +57,9 @@
       ]
     },
     "linux": {
-      "target": "AppImage",
+      "target": [
+        "AppImage"
+      ],
       "publish": [
         "github"
       ]
@@ -65,7 +67,7 @@
     "publish": [
       {
         "provider": "github",
-        "owner": "alphaleadership",
+        "owner": "thomas-iniguez-visioli",
         "repo": "youtube-public",
         "releaseType": "draft"
       }
