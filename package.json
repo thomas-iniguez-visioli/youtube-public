@@ -1,6 +1,6 @@
 {
   "name": "youtube",
-  "version": "1.1.42",
+  "version": "1.1.43",
   "description": "youtube local",
   "main": "src/index.js",
   "private": true,
@@ -57,7 +57,9 @@
       ]
     },
     "linux": {
-      "target": "AppImage",
+      "target": [
+        "AppImage"
+      ],
       "publish": [
         "github"
       ]
@@ -65,7 +67,7 @@
     "publish": [
       {
         "provider": "github",
-        "owner": "alphaleadership",
+        "owner": "thomas-iniguez-visioli",
         "repo": "youtube-public",
         "releaseType": "draft"
       }

@@ -156,10 +156,17 @@
             <div class="col-lg-4 sidebar">
                 <h5 class="mb-3">Vidéos suggérées</h5>
                 <% 
-                    const suggestions = videos
-                        .filter(v => v.yid !== code)
-                        .sort(() => Math.random() - 0.5)
-                        .slice(0, 5);
+                    let suggestions = [];
+                    if (typeof nextVideo !== 'undefined' && nextVideo) {
+                        suggestions.push(nextVideo);
+                    }
+
+                    const otherVideos = videos
+                        .filter(v => v.yid !== code && (!nextVideo || v.yid !== (nextVideo.id || nextVideo.yid)))
+                        .sort(() => Math.random() - 0.5);
+                    
+                    suggestions = suggestions.concat(otherVideos).slice(0, 5);
+
                     suggestions.forEach(function(v) { 
                 %>
                     <a href="/watch?id=<%= v.yid %>" class="suggestion-card">
