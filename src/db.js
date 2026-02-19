@@ -62,10 +62,11 @@ class FileDatabase {
         }
     }
     search(query) {
-       // Recherchez les entrées qui correspondent à la requête
+       // Recherchez les entrées qui correspondent à la requête (titre ou tags)
        const results = this.database.filter((entry) => {
-         return entry.fileName.toLowerCase()
-         .includes(query.toLowerCase());
+         const q = query.toLowerCase();
+         return entry.fileName.toLowerCase().includes(q) || 
+                (entry.tags && entry.tags.some(tag => tag.toLowerCase().includes(q)));
        }).filter((item)=>{return fs.existsSync(path.join(userDataPath, 'file',item.fileName))})
    
        return results;

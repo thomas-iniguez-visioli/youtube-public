@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.1.56] - 2026-02-19
+### Ajouté
+- **Moteur de recherche Fuzzy** : Intégration de Fuse.js dans la bibliothèque pour une recherche ultra-rapide et tolérante aux fautes de frappe dans les titres et noms de chaînes.
+
 ## [1.1.55] - 2026-02-19
 ### Corrigé
 - **Lancement de yt-dlp** : Suppression de l'option `shell: true` qui provoquait des erreurs "Fichier introuvable" sur certains systèmes Windows.
