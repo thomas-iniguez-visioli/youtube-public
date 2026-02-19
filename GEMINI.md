@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.1.46] - 2026-02-19
+### Ajouté
+- **Persistence du backlog** : Le backlog des téléchargements en attente est désormais stocké dans un fichier `backlog.txt` sur le bureau de l'utilisateur. Il est chargé au démarrage de l'application et mis à jour lors de chaque ajout ou complétion de téléchargement.
+
 ## [1.1.45] - 2026-02-19
 ### Ajouté
 - **Barre de recherche sur la vue lecture** : Intégration de la barre de téléchargement de vidéos directement dans la vue de lecture pour faciliter le téléchargement sans repasser par l'accueil.

@@ -175,12 +175,41 @@ autoUpdater.on('download-progress', (progressObj) => {
 autoUpdater.on('update-downloaded', (info) => {
   sendStatusToWindow('Update downloaded');
 });
+const backlogFile = path.join(app.getPath('desktop'), 'backlog.txt');
 const backlog = [];
+
+const saveBacklog = () => {
+  try {
+    fs.writeFileSync(backlogFile, backlog.join('\n'), 'utf8');
+  } catch (err) {
+    log.error(`Erreur lors de la sauvegarde du backlog : ${err.message}`);
+  }
+};
+
+const loadBacklog = () => {
+  try {
+    if (fs.existsSync(backlogFile)) {
+      const data = fs.readFileSync(backlogFile, 'utf8');
+      const lines = data.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+      lines.forEach(line => {
+        if (!backlog.includes(line)) {
+          backlog.push(line);
+        }
+      });
+    }
+  } catch (err) {
+    log.error(`Erreur lors du chargement du backlog : ${err.message}`);
+  }
+};
+
+loadBacklog();
+
 let isDownloading = false;
 
 const download = (url) => {
   if (!backlog.includes(url)) {
     backlog.push(url);
+    saveBacklog();
   }
 };
 
@@ -194,6 +223,7 @@ const processBacklog = async () => {
       log.error(`Erreur de téléchargement pour ${url}: ${err.message}`);
     } finally {
       backlog.shift();
+      saveBacklog();
       isDownloading = false;
     }
   }
