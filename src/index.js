@@ -185,12 +185,17 @@ try {
   log.error(`Erreur lors de la récupération du chemin desktop : ${err.message}`);
 }
 const backlog = [];
+let isSavingBacklog = false;
 
 const saveBacklog = () => {
   try {
+    isSavingBacklog = true;
     fs.writeFileSync(backlogFile, backlog.join('\n'), 'utf8');
+    // On laisse un petit délai pour que l'OS traite l'événement de modification
+    setTimeout(() => { isSavingBacklog = false; }, 500);
   } catch (err) {
     log.error(`Erreur lors de la sauvegarde du backlog : ${err.message}`);
+    isSavingBacklog = false;
   }
 };
 
@@ -199,16 +204,42 @@ const loadBacklog = () => {
     if (fs.existsSync(backlogFile)) {
       const data = fs.readFileSync(backlogFile, 'utf8');
       const lines = data.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+      
+      // On remplace le contenu du backlog par celui du fichier, 
+      // tout en préservant l'ordre.
+      backlog.length = 0;
       lines.forEach(line => {
         if (!backlog.includes(line)) {
           backlog.push(line);
         }
       });
+      log.info(`Backlog rechargé : ${backlog.length} éléments.`);
     }
   } catch (err) {
     log.error(`Erreur lors du chargement du backlog : ${err.message}`);
   }
 };
+
+// Surveillance du fichier pour rechargement externe
+if (fs.existsSync(backlogFile)) {
+  fs.watch(backlogFile, (eventType) => {
+    if (eventType === 'change' && !isSavingBacklog) {
+      log.info('Modification externe du backlog détectée, rechargement...');
+      loadBacklog();
+    }
+  });
+} else {
+  // Si le fichier n'existe pas encore, on le crée vide pour pouvoir le surveiller
+  try {
+    fs.writeFileSync(backlogFile, '', 'utf8');
+    fs.watch(backlogFile, (eventType) => {
+      if (eventType === 'change' && !isSavingBacklog) {
+        log.info('Modification externe du backlog détectée, rechargement...');
+        loadBacklog();
+      }
+    });
+  } catch (e) {}
+}
 
 loadBacklog();
 

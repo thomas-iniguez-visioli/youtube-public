@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.1.50] - 2026-02-19
+### Ajouté
+- **Surveillance du backlog** : Le fichier `backlog.txt` sur le bureau est désormais surveillé. Toute modification externe (ajout ou suppression d'URLs manuelle) est automatiquement détectée et rechargée par l'application sans créer de boucle infinie.
+
 ## [1.1.49] - 2026-02-19
 ### Corrigé
 - **ReferenceError: backlogFile is not defined** : Correction de l'erreur de rendu dans les templates EJS en rendant la variable optionnelle et en assurant sa définition dans toutes les configurations possibles de l'application (root et src).
