@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.1.45] - 2026-02-19
+### Ajouté
+- **Barre de recherche sur la vue lecture** : Intégration de la barre de téléchargement de vidéos directement dans la vue de lecture pour faciliter le téléchargement sans repasser par l'accueil.
+
 ## [1.1.44] - 2026-02-18
 ### Changé
 - **Limite d'historique** : La longueur de l'historique est désormais dynamique et limitée à 80% du nombre total de vidéos en base pour une meilleure gestion de l'espace.
