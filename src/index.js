@@ -499,7 +499,7 @@ try {
 }
 build().then((d)=>{
   web.listen(8001, function () {
-    log.info('Listening on port 8000!');
+    log.info('Listening on port 8001!');
     booted=!booted
   });
 })

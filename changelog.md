@@ -1,5 +1,10 @@
 # Gemini CLI - Journal des modifications
 
+## [1.1.57] - 2026-02-19
+### Corrigé
+- **Compatibilité Extension** : Correction du port API dans `background.js` (passage de 3000 à 8001) pour correspondre à l'application.
+- **Logs Serveur** : Correction du message de log indiquant le mauvais port au démarrage (8000 -> 8001).
+
 ## [1.1.56] - 2026-02-19
 ### Ajouté
 - **Moteur de recherche Fuzzy** : Intégration de Fuse.js dans la bibliothèque pour une recherche ultra-rapide et tolérante aux fautes de frappe dans les titres et noms de chaînes.
