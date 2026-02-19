@@ -362,29 +362,51 @@ web.use((err, req, res, next) => {
 });
 
 const d = require('./db.js');
-const zipUrl='https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip'
-updateFile(zipUrl, path.join(app.getPath('userData'), 'ffmpeg.zip')) // Correction pour utiliser path.join pour une construction de chemin valide
-.then(() => {
-  const unzipper = require('unzipper');
-  fs.createReadStream(path.join(app.getPath('userData'), 'ffmpeg.zip')) // Correction pour utiliser path.join pour une construction de chemin valide
-    .pipe(unzipper.Extract({ path: path.join(app.getPath('userData'), 'ffmpeg')})) // Correction pour utiliser path.join pour une construction de chemin valide
+const zipUrl = 'https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip';
+const ffmpegExePath = path.join(app.getPath('userData'), process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg');
+
+if (!fs.existsSync(ffmpegExePath)) {
+  updateFile(zipUrl, path.join(app.getPath('userData'), 'ffmpeg.zip'))
     .then(() => {
-      const binPath = path.join(app.getPath('userData'), 'ffmpeg', 'ffmpeg-master-latest-win64-gpl','bin');
-      fs.readdir(binPath, (err, files) => {
-        console.log(`les fichier sont : ${files}`)
-        files.forEach(file => {
-          console.log(file)
-          fs.copyFileSync(path.join(binPath, file), path.join(app.getPath('userData'), file));
+      const unzipper = require('unzipper');
+      fs.createReadStream(path.join(app.getPath('userData'), 'ffmpeg.zip'))
+        .pipe(unzipper.Extract({ path: path.join(app.getPath('userData'), 'ffmpeg') }))
+        .promise()
+        .then(() => {
+          const binPath = path.join(app.getPath('userData'), 'ffmpeg', 'ffmpeg-master-latest-win64-gpl', 'bin');
+          if (fs.existsSync(binPath)) {
+            const files = fs.readdirSync(binPath);
+            files.forEach(file => {
+              fs.copyFileSync(path.join(binPath, file), path.join(app.getPath('userData'), file));
+              if (process.platform !== 'win32') {
+                fs.chmodSync(path.join(app.getPath('userData'), file), '755');
+              }
+            });
+          }
         });
-      });
-    });
-});
+    })
+    .catch(err => log.error('Erreur lors de la mise à jour de FFmpeg:', err));
+}
 const base = config.storagePath;
 
 web.set('view engine', 'ejs');
 web.set('views', path.join(app.getPath('userData'), 'views'));
 
 async function build() {
+  const currentVersion = require('../package.json').version;
+  const versionFilePath = path.join(app.getPath('userData'), 'version.txt');
+  let lastVersion = '';
+  try {
+    if (fs.existsSync(versionFilePath)) {
+      lastVersion = fs.readFileSync(versionFilePath, 'utf8').trim();
+    }
+  } catch (e) {}
+
+  const isNewVersion = currentVersion !== lastVersion;
+  if (isNewVersion) {
+    log.info(`Nouvelle version détectée : ${lastVersion} -> ${currentVersion}. Mise à jour forcée des assets.`);
+  }
+
   fs.mkdir(path.join(app.getPath('userData'), "src/"), { recursive: true }, (err) => {
     if (err){} //log.info(err);
   });
@@ -400,41 +422,56 @@ async function build() {
   fs.mkdir(base, { recursive: true }, (err) => {
     if (err) {}
   });
+  const bunBinary = process.platform === 'win32' ? 'bun.exe' : 'bun';
+  const bunPath = path.join(app.getPath('userData'), bunBinary);
   const bunUrl = process.platform === 'win32' 
     ? 'https://github.com/oven-sh/bun/releases/latest/download/bun-windows-x64.zip' 
     : 'https://github.com/oven-sh/bun/releases/latest/download/bun-linux-x64.zip';
   const bunZipName = 'bun.zip';
 
-  const downloads = [
-    updateFile('https://cdn.socket.io/4.4.1/socket.io.js', path.join(app.getPath('userData'), 'src/client-dist/socket.io.js')),
-    updateFile('https://cdn.socket.io/4.4.1/socket.io.js.map', path.join(app.getPath('userData'), 'src/client-dist/socket.io.js.map')),
-    updateFile(process.platform === 'win32' ? 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe' : 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp', path.join(app.getPath('userData'), process.platform === 'win32' ? 'ytdlp.exe' : 'ytdlp')),
-    updateFile(bunUrl, path.join(app.getPath('userData'), bunZipName)),
-    updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/views/index.ejs', path.join(app.getPath('userData'), 'views','index.ejs')),
-    updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/views/view.ejs', path.join(app.getPath('userData'), 'views','view.ejs')),
-    updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/renderer.js', path.join(app.getPath('userData'), 'src/renderer.js'))
-  ];
+  // Optimisation: skip heavy downloads if binary already exists and it's not a new version
+  const downloads = [];
+  if (isNewVersion || !fs.existsSync(path.join(app.getPath('userData'), 'src/client-dist/socket.io.js'))) {
+    downloads.push(updateFile('https://cdn.socket.io/4.4.1/socket.io.js', path.join(app.getPath('userData'), 'src/client-dist/socket.io.js'), isNewVersion));
+    downloads.push(updateFile('https://cdn.socket.io/4.4.1/socket.io.js.map', path.join(app.getPath('userData'), 'src/client-dist/socket.io.js.map'), isNewVersion));
+  }
+  
+  if (isNewVersion || !fs.existsSync(path.join(app.getPath('userData'), process.platform === 'win32' ? 'ytdlp.exe' : 'ytdlp'))) {
+    downloads.push(updateFile(process.platform === 'win32' ? 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe' : 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp', path.join(app.getPath('userData'), process.platform === 'win32' ? 'ytdlp.exe' : 'ytdlp'), isNewVersion));
+  }
+
+  if (isNewVersion || !fs.existsSync(bunPath)) {
+    downloads.push(updateFile(bunUrl, path.join(app.getPath('userData'), bunZipName), isNewVersion));
+  }
+
+  // Always update small template files to ensure latest UI
+  downloads.push(updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/views/index.ejs', path.join(app.getPath('userData'), 'views','index.ejs'), true));
+  downloads.push(updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/views/view.ejs', path.join(app.getPath('userData'), 'views','view.ejs'), true));
+  downloads.push(updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/renderer.js', path.join(app.getPath('userData'), 'src/renderer.js'), true));
 
   try {
-    await Promise.allSettled(downloads);
-    log.info('Initial builds/downloads completed');
+    if (downloads.length > 0) {
+      await Promise.allSettled(downloads);
+      log.info('Initial builds/downloads completed');
+      // Sauvegarder la nouvelle version après succès
+      fs.writeFileSync(versionFilePath, currentVersion);
+    }
     
-    // Unzip Bun
+    // Unzip Bun only if binary is missing
     const bunZipPath = path.join(app.getPath('userData'), 'bun.zip');
-    if (fs.existsSync(bunZipPath)) {
+    if (fs.existsSync(bunZipPath) && !fs.existsSync(bunPath)) {
       const unzipper = require('unzipper');
       await fs.createReadStream(bunZipPath)
         .pipe(unzipper.Extract({ path: path.join(app.getPath('userData'), 'bun-temp') }))
         .promise();
       
       const bunFolder = process.platform === 'win32' ? 'bun-windows-x64' : 'bun-linux-x64';
-      const bunBinary = process.platform === 'win32' ? 'bun.exe' : 'bun';
       const bunTempDir = path.join(app.getPath('userData'), 'bun-temp', bunFolder);
       
       if (fs.existsSync(path.join(bunTempDir, bunBinary))) {
-        fs.copyFileSync(path.join(bunTempDir, bunBinary), path.join(app.getPath('userData'), bunBinary));
+        fs.copyFileSync(path.join(bunTempDir, bunBinary), bunPath);
         if (process.platform !== 'win32') {
-          fs.chmodSync(path.join(app.getPath('userData'), bunBinary), '755');
+          fs.chmodSync(bunPath, '755');
         }
       }
     }

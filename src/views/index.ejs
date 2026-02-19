@@ -204,6 +204,30 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
+        // Gestion du retour à la dernière page visitée
+        (function() {
+            const lastUrlKey = 'last_visited_url';
+            const sessionNavKey = 'has_navigated_this_session';
+            const currentUrl = window.location.href;
+            const lastUrl = localStorage.getItem(lastUrlKey);
+
+            // Si on est sur l'accueil, qu'on a une URL sauvegardée différente, 
+            // et que c'est le début de la session (pas encore navigué)
+            if (window.location.pathname === '/' && 
+                lastUrl && 
+                lastUrl !== currentUrl && 
+                !sessionStorage.getItem(sessionNavKey)) {
+                
+                sessionStorage.setItem(sessionNavKey, 'true');
+                window.location.href = lastUrl;
+                return;
+            }
+
+            // Marquer comme navigué et sauvegarder l'URL actuelle
+            sessionStorage.setItem(sessionNavKey, 'true');
+            localStorage.setItem(lastUrlKey, currentUrl);
+        })();
+
         function downloadChannel(url) {
             if (window.electronAPI && window.electronAPI.setTitle) {
                 window.electronAPI.setTitle(url);

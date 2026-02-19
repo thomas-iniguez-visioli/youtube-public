@@ -25,7 +25,12 @@ function get(url, dest) {
   });
 }
 
-async function updateFile(url, dest) {
+async function updateFile(url, dest, force = false) {
+  // If not forced and file exists, skip download to speed up "installation"/boot
+  if (!force && fs.existsSync(dest)) {
+    return;
+  }
+
   const tempDest = `${dest}.tmp`;
   try {
     const dir = path.dirname(dest);

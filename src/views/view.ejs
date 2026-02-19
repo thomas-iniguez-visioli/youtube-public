@@ -159,6 +159,9 @@
                         <strong><a href="/channel?name=<%= (typeof videodata !== 'undefined' && videodata.uploader) ? encodeURIComponent(videodata.uploader) : '' %>" style="color: #ffffff; text-decoration: none;"><%= (typeof videodata !== 'undefined' && videodata.uploader) ? videodata.uploader : 'Uploader inconnu' %></a></strong> • <%= (typeof videodata !== 'undefined' && videodata.view_count) ? videodata.view_count.toLocaleString() + ' vues' : '' %>
                     </div>
                     <div>
+                        <% if (typeof nextVideo !== 'undefined' && nextVideo) { %>
+                            <a href="/watch?id=<%= nextVideo.id || nextVideo.yid %>" class="btn btn-outline-primary btn-sm me-2">Vidéo suivante</a>
+                        <% } %>
                         <a href="/delete?id=<%= code %>" class="btn btn-outline-danger btn-sm">Supprimer</a>
                     </div>
                 </div>
@@ -216,10 +219,97 @@
     
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            const videoId = '<%= code %>';
+            const positionKey = `video_pos_${videoId}`;
+            const lastUrlKey = 'last_visited_url';
+            const sessionNavKey = 'has_navigated_this_session';
+            
+            // Sauvegarder l'URL actuelle et marquer la session
+            localStorage.setItem(lastUrlKey, window.location.href);
+            sessionStorage.setItem(sessionNavKey, 'true');
+
             const player = new Plyr('#videoPlayer', {
                 autoplay: true,
                 invertTime: false,
                 toggleInvert: true,
+                keyboard: { focused: true, global: true },
+            });
+
+            // Reprendre à la position sauvegardée
+            player.on('ready', () => {
+                const savedPosition = localStorage.getItem(positionKey);
+                if (savedPosition) {
+                    player.currentTime = parseFloat(savedPosition);
+                }
+            });
+
+            // Sauvegarder la position
+            player.on('timeupdate', () => {
+                if (player.currentTime > 0) {
+                    localStorage.setItem(positionKey, player.currentTime);
+                }
+            });
+
+            // Raccourcis clavier YouTube
+            document.addEventListener('keydown', (e) => {
+                // Ne pas déclencher si on est dans un input
+                if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+
+                const key = e.key.toLowerCase();
+                
+                switch(key) {
+                    case 'k':
+                    case ' ':
+                        e.preventDefault();
+                        player.togglePlay();
+                        break;
+                    case 'f':
+                        e.preventDefault();
+                        player.fullscreen.toggle();
+                        break;
+                    case 'm':
+                        e.preventDefault();
+                        player.muted = !player.muted;
+                        break;
+                    case 'j':
+                        e.preventDefault();
+                        player.rewind(10);
+                        break;
+                    case 'l':
+                        e.preventDefault();
+                        player.forward(10);
+                        break;
+                    case 'arrowleft':
+                        e.preventDefault();
+                        player.rewind(5);
+                        break;
+                    case 'arrowright':
+                        e.preventDefault();
+                        player.forward(5);
+                        break;
+                    case 'arrowup':
+                        e.preventDefault();
+                        player.volume += 0.05;
+                        break;
+                    case 'arrowdown':
+                        e.preventDefault();
+                        player.volume -= 0.05;
+                        break;
+                    case 'n':
+                        if (e.shiftKey) { // YouTube shortcut: Shift + N
+                            e.preventDefault();
+                            const nextId = '<%= (typeof nextVideo !== 'undefined') ? (nextVideo.id || nextVideo.yid) : '' %>';
+                            if (nextId) window.location.href = `/watch?id=${nextId}`;
+                        }
+                        break;
+                }
+
+                // Touches 0-9 pour le pourcentage
+                if (/^[0-9]$/.test(key)) {
+                    e.preventDefault();
+                    const percentage = parseInt(key) * 10;
+                    player.currentTime = player.duration * (percentage / 100);
+                }
             });
 
             // Autoplay next video
