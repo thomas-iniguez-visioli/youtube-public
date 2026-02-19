@@ -33,12 +33,12 @@
       "id": 4,
       "titre": "Error: stderr: Le fichier sp�cifi� est introuvable.\r\n",
       "description": "View details in Rollbar: [https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/29](https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/29)\n\n```\n\nError: stderr: Le fichier sp�cifi� est introuvable.\r\n\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\src\\index.js\", line 65, in <unknown>\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\node_modules\\electron-log\\src\\core\\Logger.js\", line 178, in <unknown>\n  File \"<anonymous>\", line unknown, in Array.reduce\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\node_modules\\electron-log\\src\\core\\Logger.js\", line 177, in Logger.processMessage\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\node_modules\\electron-log\\src\\core\\Logger.js\", line 136, in Logger.logData\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\node_modules\\electron-log\\src\\core\\Logger.js\", line 86, in <computed> [as error]\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\src\\index.js\", line 343, in Socket.<anonymous>\n  File \"node:events\", line 518, in Socket.emit\n  File \"node:internal/streams/readable\", line 561, in addChunk\n  File \"node:internal/streams/readable\", line 512, in readableAddChunkPushByteMode\n```",
-      "icon": "❌",
+      "icon": "🐛",
       "color": "#CC0000",
       "criteres_acceptation": [
-        "The Electron application starts and runs without encountering the 'file not found' error.",
-        "The specific operation or subprocess that previously failed due to a missing file now executes successfully.",
-        "All core functionalities of the Electron application related to the error (e.g., specific YouTube operations) are operational and stable."
+        "The process within `github-gemini-integration` that invokes or monitors the 'youtube' application should complete without receiving 'file not found' errors from its `stderr` output.",
+        "If the 'youtube' application is an intended dependency or target for interaction, its required files and execution environment must be correctly configured and accessible to the `github-gemini-integration`.",
+        "If the 'youtube' application is being invoked erroneously or in an unexpected context, the underlying logic causing its invocation should be identified and corrected."
       ],
       "metadata": {
         "issueNumber": 56
