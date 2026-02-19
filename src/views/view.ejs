@@ -128,9 +128,12 @@
             </a>
             
             <div class="d-flex flex-grow-1 justify-content-center mx-4">
-                <form id="commandForm" class="d-flex w-100 search-container m-0">
-                    <input class="form-control me-2 rounded-pill ps-4" type="text" id="commandInput" placeholder="Coller une URL YouTube..." required>
-                    <button class="btn btn-outline-light rounded-pill px-4" type="submit">Télécharger</button>
+                <form id="commandForm" class="d-flex w-100 search-container m-0 flex-column">
+                    <div class="d-flex w-100">
+                        <input class="form-control me-2 rounded-pill ps-4" type="text" id="commandInput" placeholder="Coller une URL YouTube..." required>
+                        <button class="btn btn-outline-light rounded-pill px-4" type="submit">Télécharger</button>
+                    </div>
+                    <small class="text-muted text-center mt-1" style="font-size: 0.65rem; color: #777 !important;">Fichier backlog : <%= backlogFile %></small>
                 </form>
             </div>
             <div class="d-flex">

@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.1.47] - 2026-02-19
+### Ajouté
+- **Affichage du chemin du backlog** : Le lien complet vers le fichier `backlog.txt` est désormais affiché sous la barre de téléchargement dans l'interface utilisateur.
+
 ## [1.1.46] - 2026-02-19
 ### Ajouté
 - **Persistence du backlog** : Le backlog des téléchargements en attente est désormais stocké dans un fichier `backlog.txt` sur le bureau de l'utilisateur. Il est chargé au démarrage de l'application et mis à jour lors de chaque ajout ou complétion de téléchargement.

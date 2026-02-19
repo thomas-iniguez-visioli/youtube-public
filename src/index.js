@@ -273,6 +273,7 @@ const downloaddata = (parameter) => {
   childProcess.stderr.on('data', (data) => log.error(`stderr: ${data}`));
 };
 const web = express();
+web.locals.backlogFile = backlogFile;
 const helmet = require('helmet');
 //web.use(helmet());
 //web.use(cors(corsOptions));
