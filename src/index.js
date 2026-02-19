@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog,Menu } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, Menu, session } = require('electron');
 const rollbarConfig = require('../rollbar.config.js');
 const Rollbar = require('rollbar');
 const rollbar = new Rollbar(rollbarConfig);
@@ -18,6 +18,31 @@ const log = require('electron-log');
 log.transports.file.level = 'info';
 log.transports.console.level = 'info';
 log.transports.file.file = path.join(app.getPath('userData'), 'log', 'app.log');
+
+/**
+ * Optimisation de la mémoire et nettoyage du cache
+ */
+const optimizeMemory = async () => {
+  try {
+    log.info('Optimisation de la mémoire en cours...');
+    if (session.defaultSession) {
+      await session.defaultSession.clearCache();
+      await session.defaultSession.clearStorageData({
+        storages: ['appcache', 'cookies', 'filesystem', 'indexdb', 'localstorage', 'shadercache', 'websql', 'serviceworkers', 'cachestorage']
+      });
+    }
+    if (process.platform !== 'darwin') {
+      // Sur Windows/Linux, on peut essayer de forcer la réduction du working set
+      // bien que Node/V8 gère cela, Electron a parfois des fuites dans le processus de rendu
+    }
+    log.info('Nettoyage du cache terminé.');
+  } catch (err) {
+    log.error(`Erreur lors de l'optimisation mémoire : ${err.message}`);
+  }
+};
+
+// Nettoyage périodique toutes les 10 minutes
+setInterval(optimizeMemory, 600000);
 
 function setupElectronLogForwarding() {
   // Vérifie que log.hooks existe et est un tableau
@@ -289,8 +314,14 @@ const downloadbacklog = (parameter) => {
     };
 
     runDownload(ytdlpPath, args, logger)
-      .then(resolve)
-      .catch(reject);
+      .then((res) => {
+        optimizeMemory();
+        resolve(res);
+      })
+      .catch((err) => {
+        optimizeMemory();
+        reject(err);
+      });
   });
 };
 

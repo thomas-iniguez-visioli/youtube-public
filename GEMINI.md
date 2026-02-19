@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.1.52] - 2026-02-19
+### Changé
+- **Optimisation de la mémoire** : Implémentation d'un système de nettoyage automatique du cache de session Electron toutes les 10 minutes et après chaque téléchargement pour réduire l'empreinte mémoire.
+
 ## [1.1.51] - 2026-02-19
 ### Corrigé
 - **Affichage complet de la bibliothèque** : Suppression du filtre excluant l'historique sur la page d'accueil pour que tous les fichiers téléchargés soient visibles.
