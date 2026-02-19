@@ -193,6 +193,12 @@ class FileDatabase {
         return this.database.filter(file => file.tags.includes(tag));
     }
 
+    removeFile(yid) {
+        this.database = this.database.filter(file => file.yid !== yid);
+        this.history = this.history.filter(id => id !== yid);
+        this.saveDatabase();
+    }
+
     addToHistory(videoId) {
         // Remove existing entry for this video if it exists
         this.history = this.history.filter(id => id !== videoId);

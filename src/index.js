@@ -476,29 +476,31 @@ web.get("/", function (req, res) {
   // Algorithme de référencement simplifié
   const database = db.database;
   const referencement = database
-    .filter(item => !db.history.includes(item.yid))
     .map(item => {
     const infoJsonPath = path.join(app.getPath('userData'), 'file', item.fileName.replace(".mp4", ".info.json"));
     const mp4Path = path.join(app.getPath('userData'), 'file', item.fileName);
-    console.log(`fichier ${mp4Path} status ${fs.existsSync(infoJsonPath)}`);
-    if (!fs.existsSync(infoJsonPath)) {
-      db.removeFile(item.yid);
-      fs.unlinkSync(mp4Path);
-      return; // sort de la boucle
+    
+    // Don't delete files here, just use defaults if info.json is missing
+    let infoJson = {};
+    if (fs.existsSync(infoJsonPath)) {
+      try {
+        infoJson = require(infoJsonPath);
+      } catch (error) {
+        console.error(`Erreur lors de la lecture de ${infoJsonPath}: ${error}`);
+      }
+    } else {
+      console.warn(`Info JSON manquante pour ${item.fileName}`);
     }
-    let infoJson;
-    try {
-      infoJson = require(infoJsonPath);
-    } catch (error) {
-      console.error(`Erreur lors de la lecture de ${infoJsonPath}: ${error}`);
-      db.removeFile(item.yid);
-      fs.unlinkSync(mp4Path);
-      return; // sort de la boucle
+    
+    if (infoJson.display_id && infoJson.uploader) {
+      db.addTag(infoJson.display_id, infoJson.uploader);
     }
-    db.addTag(infoJson.display_id, infoJson.uploader);
+    
     const score = (infoJson.view_count || 0) * 0.5 + (infoJson.like_count || 0) * 0.3 + (infoJson.comment_count || 0) * 0.2;
-    return { ...item, score, uploader: infoJson.uploader };
-  }).sort((a, b) => b.score - a.score);
+    return { ...item, score, uploader: infoJson.uploader || 'Uploader inconnu' };
+  })
+  .filter(Boolean)
+  .sort((a, b) => b.score - a.score);
 
   res.render('index', {
     results: referencement,
