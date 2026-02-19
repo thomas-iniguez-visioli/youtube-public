@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.1.48] - 2026-02-19
+### Ajouté
+- **Mise à jour automatique et redémarrage** : L'application redémarre désormais automatiquement 3 secondes après avoir fini de télécharger une mise à jour pour l'installer.
+
 ## [1.1.47] - 2026-02-19
 ### Ajouté
 - **Affichage du chemin du backlog** : Le lien complet vers le fichier `backlog.txt` est désormais affiché sous la barre de téléchargement dans l'interface utilisateur.

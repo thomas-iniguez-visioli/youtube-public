@@ -173,7 +173,10 @@ autoUpdater.on('download-progress', (progressObj) => {
   sendStatusToWindow(log_message);
 })
 autoUpdater.on('update-downloaded', (info) => {
-  sendStatusToWindow('Update downloaded');
+  sendStatusToWindow('Update downloaded. Restarting to install...');
+  setTimeout(() => {
+    autoUpdater.quitAndInstall();
+  }, 3000);
 });
 const backlogFile = path.join(app.getPath('desktop'), 'backlog.txt');
 const backlog = [];
