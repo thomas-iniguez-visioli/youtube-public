@@ -33,12 +33,12 @@
       "id": 4,
       "titre": "Error: stderr: Le fichier sp�cifi� est introuvable.\r\n",
       "description": "View details in Rollbar: [https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/29](https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/29)\n\n```\n\nError: stderr: Le fichier sp�cifi� est introuvable.\r\n\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\src\\index.js\", line 65, in <unknown>\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\node_modules\\electron-log\\src\\core\\Logger.js\", line 178, in <unknown>\n  File \"<anonymous>\", line unknown, in Array.reduce\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\node_modules\\electron-log\\src\\core\\Logger.js\", line 177, in Logger.processMessage\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\node_modules\\electron-log\\src\\core\\Logger.js\", line 136, in Logger.logData\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\node_modules\\electron-log\\src\\core\\Logger.js\", line 86, in <computed> [as error]\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\src\\index.js\", line 343, in Socket.<anonymous>\n  File \"node:events\", line 518, in Socket.emit\n  File \"node:internal/streams/readable\", line 561, in addChunk\n  File \"node:internal/streams/readable\", line 512, in readableAddChunkPushByteMode\n```",
-      "icon": "🐛",
-      "color": "#FF4444",
+      "icon": "❌",
+      "color": "#CC0000",
       "criteres_acceptation": [
-        "The application successfully launches and operates without reporting \"Le fichier spécifié est introuvable\" (The specified file cannot be found).",
-        "The root cause of the \"file not found\" error (e.g., missing executable, incorrect path, or packaging issue) is identified and resolved.",
-        "All external processes or files initiated/accessed by `src/index.js` (specifically around lines 65 and 343) are correctly located and executable/readable by the Electron application."
+        "The Electron application starts and runs without encountering the 'file not found' error.",
+        "The specific operation or subprocess that previously failed due to a missing file now executes successfully.",
+        "All core functionalities of the Electron application related to the error (e.g., specific YouTube operations) are operational and stable."
       ],
       "metadata": {
         "issueNumber": 56
