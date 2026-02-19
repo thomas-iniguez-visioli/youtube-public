@@ -1,5 +1,12 @@
 # Gemini CLI - Journal des modifications
 
+## [1.1.53] - 2026-02-19
+### Ajouté
+- **Raccourcis clavier YouTube** : Support des touches `k`, `j`, `l`, `f`, `m`, `Maj+N` et `0-9` pour une navigation identique à YouTube.
+- **Persistance de lecture** : Sauvegarde automatique de la position de lecture pour reprendre chaque vidéo là où elle s'était arrêtée.
+- **Restauration de session** : L'application mémorise la dernière page consultée et y revient automatiquement au démarrage.
+- **Mise à jour forcée des assets** : Système de détection de version forçant le re-téléchargement des binaires (yt-dlp, bun) lors d'une mise à jour de l'application pour garantir la stabilité.
+
 ## [1.1.52] - 2026-02-19
 ### Changé
 - **Optimisation de la mémoire** : Implémentation d'un système de nettoyage automatique du cache de session Electron toutes les 10 minutes et après chaque téléchargement pour réduire l'empreinte mémoire.
