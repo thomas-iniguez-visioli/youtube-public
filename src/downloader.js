@@ -2,18 +2,32 @@ const child = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
-function createDownloadArgs(parameter, ffmpegDir, storagePath, outputFileFormat) {
-  return [
-    '-vU',
+function getBrowserForCookies() {
+  // Priorité Firefox, sinon Chrome
+  // Sur Windows, on peut vérifier les chemins par défaut
+  const firefoxPath = path.join(process.env.APPDATA, 'Mozilla', 'Firefox', 'Profiles');
+  if (fs.existsSync(firefoxPath)) {
+    return 'firefox';
+  }
+  return 'chrome';
+}
+
+function createDownloadArgs(parameter, ffmpegDir, storagePath, outputFileFormat, bunPath) {
+  const args = [
+    '--merge-output-format', 'mp4',
     '--ffmpeg-location', ffmpegDir,
     '--write-info-json',
-    '--remux', 'mp4',
-    parameter,
-    '-f', 'bv*+ba/b',
+    '--cookies-from-browser', getBrowserForCookies(),
+    '-f', 'bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4] / bv*+ba/b',
     '--write-playlist-metafiles',
     '--parse-metadata', 'playlist_title:.+ - (?P<folder_name>Videos|Shorts|Live)$',
-    '-o', path.join(storagePath, outputFileFormat)
+    '-o', path.join(storagePath, outputFileFormat),
+    parameter
   ];
+  if (bunPath && fs.existsSync(bunPath)) {
+    args.push('--js-runtimes', 'bun');
+  }
+  return args;
 }
 
 function runDownload(ytdlpPath, args, logger) {
@@ -23,7 +37,21 @@ function runDownload(ytdlpPath, args, logger) {
     
     if (logger) logger.info(`Executing: "${ytdlpPath}" ${quotedArgs.join(' ')}`);
 
-    const childProcess = child.spawn(ytdlpPath, args);
+    // Add ytdlp directory to PATH so it can find bun.exe
+    const env = { ...process.env };
+    const ytdlpDir = path.dirname(ytdlpPath);
+    if (process.platform === 'win32') {
+      env.Path = `${ytdlpDir};${env.Path || ''}`;
+    } else {
+      env.PATH = `${ytdlpDir}:${env.PATH || ''}`;
+    }
+
+    const childProcess = child.spawn(ytdlpPath, args, { env });
+
+    childProcess.on('error', (err) => {
+      if (logger) logger.info(`Erreur de spawn yt-dlp: ${err.message}`);
+      reject(err);
+    });
 
     childProcess.stdout.on('data', (data) => {
       if (logger) logger.info(`stdout: ${data}`);
@@ -43,20 +71,23 @@ function runDownload(ytdlpPath, args, logger) {
   });
 }
 
-function createMetadataArgs(parameter, storagePath, outputFileFormat) {
-  return [
-    '-vU',
+function createMetadataArgs(parameter, storagePath, outputFileFormat, bunPath) {
+  const args = [
     '--write-info-json',
     '--simulate',
     '--no-clean-info-json',
-    '--remux', 'mp4',
-    parameter,
-    '-f', 'bv*+ba/b',
+    '--cookies-from-browser', getBrowserForCookies(),
+    '-f', 'bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4] / bv*+ba/b',
     '--write-playlist-metafiles',
     '--parse-metadata', 'playlist_title:.+ - (?P<folder_name>Videos|Shorts|Live)$',
     '-o', path.join(storagePath, outputFileFormat),
-    '-J', "--embed-metadata"
+    '-J',
+    parameter
   ];
+  if (bunPath && fs.existsSync(bunPath)) {
+    args.push('--js-runtimes', 'bun');
+  }
+  return args;
 }
 
 module.exports = {

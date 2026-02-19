@@ -31,6 +31,7 @@
     },
     {
       "id": 4,
+<<<<<<< task-4-error-stderr-le-fichier-sp-cifi-est-introuvable
       "titre": "Error: stderr: Le fichier sp�cifi� est introuvable.\r\n",
       "description": "View details in Rollbar: [https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/29](https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/29)\n\n```\n\nError: stderr: Le fichier sp�cifi� est introuvable.\r\n\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\src\\index.js\", line 65, in <unknown>\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\node_modules\\electron-log\\src\\core\\Logger.js\", line 178, in <unknown>\n  File \"<anonymous>\", line unknown, in Array.reduce\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\node_modules\\electron-log\\src\\core\\Logger.js\", line 177, in Logger.processMessage\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\node_modules\\electron-log\\src\\core\\Logger.js\", line 136, in Logger.logData\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\node_modules\\electron-log\\src\\core\\Logger.js\", line 86, in <computed> [as error]\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\src\\index.js\", line 343, in Socket.<anonymous>\n  File \"node:events\", line 518, in Socket.emit\n  File \"node:internal/streams/readable\", line 561, in addChunk\n  File \"node:internal/streams/readable\", line 512, in readableAddChunkPushByteMode\n```",
       "icon": "🐛",
@@ -42,6 +43,20 @@
       ],
       "metadata": {
         "issueNumber": 56
+=======
+      "titre": "Error: net::ERR_INSUFFICIENT_RESOURCES",
+      "description": "View details in Rollbar: [https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/27](https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/27)\n\n```\n\nError: net::ERR_INSUFFICIENT_RESOURCES\n  File \"node:electron/js2c/browser_init\", line 2, in SimpleURLLoaderWrapper.<anonymous>\n  File \"node:events\", line 518, in SimpleURLLoaderWrapper.emit\n```",
+      "icon": "🐛",
+      "color": "#FFA500",
+      "criteres_acceptation": [
+        "The Electron application successfully completes the task that previously triggered `net::ERR_INSUFFICIENT_RESOURCES` without error.",
+        "Resource usage (e.g., memory, network connections, file handles) remains within acceptable limits during the problematic operation.",
+        "The application handles potential resource limitations gracefully, preventing crashes and providing informative feedback if resources are scarce.",
+        "The root cause of the `net::ERR_INSUFFICIENT_RESOURCES` error is identified and addressed, particularly regarding concurrent API calls or large data processing, especially within the `WorkflowManager`'s various processing functions (e.g., `processGitHubIssue`, `processPendingTasks`, `installWorkflows`)."
+      ],
+      "metadata": {
+        "issueNumber": 50
+>>>>>>> main
       }
     }
   ],

@@ -1,1 +1,103 @@
-youtube.exeelectron.exeelectron.exeelectron.exeelectron.exeelectron.exeelectron.exeelectron.exeelectron.exeelectron.exeelectron.exeelectron.exeelectron.exeelectron.exeelectron.exeelectron.exeelectron.exeelectron.exeelectron.exeelectron.exeelectron.exeelectron.exeelectron.exeelectron.exeelectron.exeelectron.exeelectron.exeelectron.exeelectron.exeelectron.exeelectron.exeelectron.exe
+
+[
+  {
+    fileName: 'DR Koncerthuset--Hunger Games - The Hanging Tree ⧸⧸ Danish National Symphony Orchestra and Andrea Lykke (Live) [hrxwS3jukf8].mp4',
+    fileUuid: 'https_//www.youtube.com/watch?v=hrxwS3jukf8',
+    yid: 'hrxwS3jukf8',
+    tags: [ 'DR Koncerthuset' ]
+  },
+  {
+    fileName: 'League of Legends--Warriors (ft. Imagine Dragons) ｜ Worlds 2014 - League of Legends [fmI_Ndrxy14].mp4',
+    fileUuid: 'https_//www.youtube.com/watch?v=fmI_Ndrxy14',
+    yid: 'fmI_Ndrxy14',
+    tags: [ 'League of Legends' ]
+  },
+  {
+    fileName: "miracleofsound--My Revolution by Miracle Of Sound (Assassin's Creed Unity) [939ACReWKfE].mp4",
+    fileUuid: 'https_//www.youtube.com/watch?v=939ACReWKfE',
+    yid: '939ACReWKfE',
+    tags: [ 'miracleofsound' ]
+  },
+  {
+    fileName: 'wattpadien Montage--Sans ma mère 2025 [0R-hcugsOrA].mp4',
+    fileUuid: 'https_//www.youtube.com/watch?v=0R-hcugsOrA',
+    yid: '0R-hcugsOrA',
+    tags: [ 'wattpadien Montage' ]
+  },
+  {
+    fileName: 'jamaga--War Thunder ｜ Undetected (feat. 2WEI) [FhdaZ9rwIGA].mp4',
+    fileUuid: 'https_//www.youtube.com/watch?v=FhdaZ9rwIGA',
+    yid: 'FhdaZ9rwIGA',
+    tags: [ 'jamaga' ]
+  },
+  {
+    fileName: "2CELLOS--2CELLOS - They Don't Care About Us - Michael Jackson [OFFICIAL VIDEO] [l-9VZZWtMfQ].mp4",
+    fileUuid: 'https_//www.youtube.com/watch?v=OFFICIAL VIDEO',
+    yid: 'l-9VZZWtMfQ',
+    tags: [ '2CELLOS' ]
+  },
+  {
+    fileName: 'Lindsey Stirling--Lindsey Stirling - Master of Tides (Official Music Video) [RrutzRWXkKs].mp4',
+    fileUuid: 'https_//www.youtube.com/watch?v=RrutzRWXkKs',
+    yid: 'RrutzRWXkKs',
+    tags: [ 'Lindsey Stirling' ]
+  },
+  {
+    fileName: 'Lindsey Stirling--Lindsey Stirling - Transcendence (Orchestral Version) [DHdkRvEzW84].mp4',
+    fileUuid: 'https_//www.youtube.com/watch?v=DHdkRvEzW84',
+    yid: 'DHdkRvEzW84',
+    tags: [ 'Lindsey Stirling' ]
+  },
+  {
+    fileName: '2CELLOS--2CELLOS - Smells Like Teen Spirit [Live at Sydney Opera House] [nji5zvkuuFg].mp4',
+    fileUuid: 'https_//www.youtube.com/watch?v=Live at Sydney Opera House',
+    yid: 'nji5zvkuuFg',
+    tags: [ '2CELLOS' ]
+  },
+  {
+    fileName: 'Shake Music--Sea Shanty - Wellerman ｜ 9D AUDIO 🎧 [5htyaXUmE3o].mp4',
+    fileUuid: 'https_//www.youtube.com/watch?v=5htyaXUmE3o',
+    yid: '5htyaXUmE3o',
+    tags: [ 'Shake Music' ]
+  },
+  {
+    fileName: 'The Longest Johns--Wellerman Official Music Video by The Longest Johns ｜ Between Wind and Water (2018) [E_8tAyecj2g].mp4',
+    fileUuid: 'https_//www.youtube.com/watch?v=E_8tAyecj2g',
+    yid: 'E_8tAyecj2g',
+    tags: [ 'The Longest Johns' ]
+  },
+  {
+    fileName: 'Shake Music--We all have our inner demons [HKQkfOlrBzY].mp4',
+    fileUuid: 'https_//www.youtube.com/watch?v=HKQkfOlrBzY',
+    yid: 'HKQkfOlrBzY',
+    tags: [ 'Shake Music' ]
+  },
+  {
+    fileName: 'Shake Music--Escape from Reality [Gaming ⧸ Electro ⧸ Energetic Vibes] [7uzGKvQWO1s].mp4',
+    fileUuid: 'https_//www.youtube.com/watch?v=Gaming ⧸ Electro ⧸ Energetic Vibes',
+    yid: '7uzGKvQWO1s',
+    tags: [ 'Shake Music' ]
+  },
+  {
+    fileName: 'Shake Music--Songs that make you feel like a badass cold character 🥶⚔️ [fnrFYgQSXIY].mp4',
+    fileUuid: 'https_//www.youtube.com/watch?v=fnrFYgQSXIY',
+    yid: 'fnrFYgQSXIY',
+    tags: [ 'Shake Music' ]
+  },
+  {
+    fileName: "Defend Intelligence--Comment disparaître d'Internet ？ [dVVsadPMNNg].mp4",
+    fileUuid: 'https_//www.youtube.com/watch?v=dVVsadPMNNg',
+    yid: 'dVVsadPMNNg',
+    tags: [ 'Defend Intelligence' ]
+  }
+]
+15:41:20.650 > boot now
+15:41:21.094 > https://github.com/thomas-iniguez-visioli/youtube-public/releases/download/v1.1.37-12/latest.yml
+Skip checkForUpdates because application is not packed and dev update config is not forced
+checkForUpdatesAndNotify called, downloadPromise is null
+15:42:22.326 > Initial builds/downloads completed
+15:42:22.459 > Initial builds/downloads completed
+15:42:24.406 > Listening on port 8000!
+Skip checkForUpdates because application is not packed and dev update config is not forced
+checkForUpdatesAndNotify called, downloadPromise is null
+electron.exeelectron.exeelectron.exeelectron.exeelectron.exeelectron.exeelectron.exeelectron.exeelectron.exeelectron.exeelectron.exeelectron.exeelectron.exeelectron.exeelectron.exeelectron.exe

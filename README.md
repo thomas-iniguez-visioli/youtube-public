@@ -30,16 +30,16 @@ my-electron-app
    cd my-electron-app
    ```
 
-2. Install the dependencies:
+2. Install the dependencies using bun:
    ```
-   npm install
+   bun install
    ```
 
 ## Running the Application
 
 To start the application, run the following command:
 ```
-npm start
+bun start
 ```
 
 ## Usage

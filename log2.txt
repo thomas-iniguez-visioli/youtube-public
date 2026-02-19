@@ -1,0 +1,509 @@
+
+[
+  {
+    fileName: 'DR Koncerthuset--Hunger Games - The Hanging Tree ⧸⧸ Danish National Symphony Orchestra and Andrea Lykke (Live) [hrxwS3jukf8].mp4',
+    fileUuid: 'https_//www.youtube.com/watch?v=hrxwS3jukf8',
+    yid: 'hrxwS3jukf8',
+    tags: [ 'DR Koncerthuset' ]
+  },
+  {
+    fileName: 'League of Legends--Warriors (ft. Imagine Dragons) ｜ Worlds 2014 - League of Legends [fmI_Ndrxy14].mp4',
+    fileUuid: 'https_//www.youtube.com/watch?v=fmI_Ndrxy14',
+    yid: 'fmI_Ndrxy14',
+    tags: [ 'League of Legends' ]
+  },
+  {
+    fileName: "miracleofsound--My Revolution by Miracle Of Sound (Assassin's Creed Unity) [939ACReWKfE].mp4",
+    fileUuid: 'https_//www.youtube.com/watch?v=939ACReWKfE',
+    yid: '939ACReWKfE',
+    tags: [ 'miracleofsound' ]
+  },
+  {
+    fileName: 'wattpadien Montage--Sans ma mère 2025 [0R-hcugsOrA].mp4',
+    fileUuid: 'https_//www.youtube.com/watch?v=0R-hcugsOrA',
+    yid: '0R-hcugsOrA',
+    tags: [ 'wattpadien Montage' ]
+  },
+  {
+    fileName: 'jamaga--War Thunder ｜ Undetected (feat. 2WEI) [FhdaZ9rwIGA].mp4',
+    fileUuid: 'https_//www.youtube.com/watch?v=FhdaZ9rwIGA',
+    yid: 'FhdaZ9rwIGA',
+    tags: [ 'jamaga' ]
+  },
+  {
+    fileName: "2CELLOS--2CELLOS - They Don't Care About Us - Michael Jackson [OFFICIAL VIDEO] [l-9VZZWtMfQ].mp4",
+    fileUuid: 'https_//www.youtube.com/watch?v=OFFICIAL VIDEO',
+    yid: 'l-9VZZWtMfQ',
+    tags: [ '2CELLOS' ]
+  },
+  {
+    fileName: 'Lindsey Stirling--Lindsey Stirling - Master of Tides (Official Music Video) [RrutzRWXkKs].mp4',
+    fileUuid: 'https_//www.youtube.com/watch?v=RrutzRWXkKs',
+    yid: 'RrutzRWXkKs',
+    tags: [ 'Lindsey Stirling' ]
+  },
+  {
+    fileName: 'Lindsey Stirling--Lindsey Stirling - Transcendence (Orchestral Version) [DHdkRvEzW84].mp4',
+    fileUuid: 'https_//www.youtube.com/watch?v=DHdkRvEzW84',
+    yid: 'DHdkRvEzW84',
+    tags: [ 'Lindsey Stirling' ]
+  },
+  {
+    fileName: '2CELLOS--2CELLOS - Smells Like Teen Spirit [Live at Sydney Opera House] [nji5zvkuuFg].mp4',
+    fileUuid: 'https_//www.youtube.com/watch?v=Live at Sydney Opera House',
+    yid: 'nji5zvkuuFg',
+    tags: [ '2CELLOS' ]
+  },
+  {
+    fileName: 'Shake Music--Sea Shanty - Wellerman ｜ 9D AUDIO 🎧 [5htyaXUmE3o].mp4',
+    fileUuid: 'https_//www.youtube.com/watch?v=5htyaXUmE3o',
+    yid: '5htyaXUmE3o',
+    tags: [ 'Shake Music' ]
+  },
+  {
+    fileName: 'The Longest Johns--Wellerman Official Music Video by The Longest Johns ｜ Between Wind and Water (2018) [E_8tAyecj2g].mp4',
+    fileUuid: 'https_//www.youtube.com/watch?v=E_8tAyecj2g',
+    yid: 'E_8tAyecj2g',
+    tags: [ 'The Longest Johns' ]
+  },
+  {
+    fileName: 'Shake Music--We all have our inner demons [HKQkfOlrBzY].mp4',
+    fileUuid: 'https_//www.youtube.com/watch?v=HKQkfOlrBzY',
+    yid: 'HKQkfOlrBzY',
+    tags: [ 'Shake Music' ]
+  },
+  {
+    fileName: 'Shake Music--Escape from Reality [Gaming ⧸ Electro ⧸ Energetic Vibes] [7uzGKvQWO1s].mp4',
+    fileUuid: 'https_//www.youtube.com/watch?v=Gaming ⧸ Electro ⧸ Energetic Vibes',
+    yid: '7uzGKvQWO1s',
+    tags: [ 'Shake Music' ]
+  },
+  {
+    fileName: 'Shake Music--Songs that make you feel like a badass cold character 🥶⚔️ [fnrFYgQSXIY].mp4',
+    fileUuid: 'https_//www.youtube.com/watch?v=fnrFYgQSXIY',
+    yid: 'fnrFYgQSXIY',
+    tags: [ 'Shake Music' ]
+  },
+  {
+    fileName: "Defend Intelligence--Comment disparaître d'Internet ？ [dVVsadPMNNg].mp4",
+    fileUuid: 'https_//www.youtube.com/watch?v=dVVsadPMNNg',
+    yid: 'dVVsadPMNNg',
+    tags: [ 'Defend Intelligence' ]
+  }
+]
+15:45:51.352 > boot now
+15:45:51.726 > https://github.com/thomas-iniguez-visioli/youtube-public/releases/download/v1.1.37-12/latest.yml
+Skip checkForUpdates because application is not packed and dev update config is not forced
+checkForUpdatesAndNotify called, downloadPromise is null
+15:46:37.928 > Initial builds/downloads completed
+15:46:38.394 > Initial builds/downloads completed
+15:46:40.399 > Listening on port 8000!
+Skip checkForUpdates because application is not packed and dev update config is not forced
+checkForUpdatesAndNotify called, downloadPromise is null
+Skip checkForUpdates because application is not packed and dev update config is not forced
+[
+  {
+    fileName: 'DR Koncerthuset--Hunger Games - The Hanging Tree ⧸⧸ Danish National Symphony Orchestra and Andrea Lykke (Live) [hrxwS3jukf8].mp4',
+    fileUuid: 'https_//www.youtube.com/watch?v=hrxwS3jukf8',
+    yid: 'hrxwS3jukf8',
+    tags: [ 'DR Koncerthuset' ]
+  },
+  {
+    fileName: 'League of Legends--Warriors (ft. Imagine Dragons) ｜ Worlds 2014 - League of Legends [fmI_Ndrxy14].mp4',
+    fileUuid: 'https_//www.youtube.com/watch?v=fmI_Ndrxy14',
+    yid: 'fmI_Ndrxy14',
+    tags: [ 'League of Legends' ]
+  },
+  {
+    fileName: "miracleofsound--My Revolution by Miracle Of Sound (Assassin's Creed Unity) [939ACReWKfE].mp4",
+    fileUuid: 'https_//www.youtube.com/watch?v=939ACReWKfE',
+    yid: '939ACReWKfE',
+    tags: [ 'miracleofsound' ]
+  },
+  {
+    fileName: 'wattpadien Montage--Sans ma mère 2025 [0R-hcugsOrA].mp4',
+    fileUuid: 'https_//www.youtube.com/watch?v=0R-hcugsOrA',
+    yid: '0R-hcugsOrA',
+    tags: [ 'wattpadien Montage' ]
+  },
+  {
+    fileName: 'jamaga--War Thunder ｜ Undetected (feat. 2WEI) [FhdaZ9rwIGA].mp4',
+    fileUuid: 'https_//www.youtube.com/watch?v=FhdaZ9rwIGA',
+    yid: 'FhdaZ9rwIGA',
+    tags: [ 'jamaga' ]
+  },
+  {
+    fileName: "2CELLOS--2CELLOS - They Don't Care About Us - Michael Jackson [OFFICIAL VIDEO] [l-9VZZWtMfQ].mp4",
+    fileUuid: 'https_//www.youtube.com/watch?v=OFFICIAL VIDEO',
+    yid: 'l-9VZZWtMfQ',
+    tags: [ '2CELLOS' ]
+  },
+  {
+    fileName: 'Lindsey Stirling--Lindsey Stirling - Master of Tides (Official Music Video) [RrutzRWXkKs].mp4',
+    fileUuid: 'https_//www.youtube.com/watch?v=RrutzRWXkKs',
+    yid: 'RrutzRWXkKs',
+    tags: [ 'Lindsey Stirling' ]
+  },
+  {
+    fileName: 'Lindsey Stirling--Lindsey Stirling - Transcendence (Orchestral Version) [DHdkRvEzW84].mp4',
+    fileUuid: 'https_//www.youtube.com/watch?v=DHdkRvEzW84',
+    yid: 'DHdkRvEzW84',
+    tags: [ 'Lindsey Stirling' ]
+  },
+  {
+    fileName: '2CELLOS--2CELLOS - Smells Like Teen Spirit [Live at Sydney Opera House] [nji5zvkuuFg].mp4',
+    fileUuid: 'https_//www.youtube.com/watch?v=Live at Sydney Opera House',
+    yid: 'nji5zvkuuFg',
+    tags: [ '2CELLOS' ]
+  },
+  {
+    fileName: 'Shake Music--Sea Shanty - Wellerman ｜ 9D AUDIO 🎧 [5htyaXUmE3o].mp4',
+    fileUuid: 'https_//www.youtube.com/watch?v=5htyaXUmE3o',
+    yid: '5htyaXUmE3o',
+    tags: [ 'Shake Music' ]
+  },
+  {
+    fileName: 'The Longest Johns--Wellerman Official Music Video by The Longest Johns ｜ Between Wind and Water (2018) [E_8tAyecj2g].mp4',
+    fileUuid: 'https_//www.youtube.com/watch?v=E_8tAyecj2g',
+    yid: 'E_8tAyecj2g',
+    tags: [ 'The Longest Johns' ]
+  },
+  {
+    fileName: 'Shake Music--We all have our inner demons [HKQkfOlrBzY].mp4',
+    fileUuid: 'https_//www.youtube.com/watch?v=HKQkfOlrBzY',
+    yid: 'HKQkfOlrBzY',
+    tags: [ 'Shake Music' ]
+  },
+  {
+    fileName: 'Shake Music--Escape from Reality [Gaming ⧸ Electro ⧸ Energetic Vibes] [7uzGKvQWO1s].mp4',
+    fileUuid: 'https_//www.youtube.com/watch?v=Gaming ⧸ Electro ⧸ Energetic Vibes',
+    yid: '7uzGKvQWO1s',
+    tags: [ 'Shake Music' ]
+  },
+  {
+    fileName: 'Shake Music--Songs that make you feel like a badass cold character 🥶⚔️ [fnrFYgQSXIY].mp4',
+    fileUuid: 'https_//www.youtube.com/watch?v=fnrFYgQSXIY',
+    yid: 'fnrFYgQSXIY',
+    tags: [ 'Shake Music' ]
+  },
+  {
+    fileName: "Defend Intelligence--Comment disparaître d'Internet ？ [dVVsadPMNNg].mp4",
+    fileUuid: 'https_//www.youtube.com/watch?v=dVVsadPMNNg',
+    yid: 'dVVsadPMNNg',
+    tags: [ 'Defend Intelligence' ]
+  }
+]
+fichier C:\Users\alpha\AppData\Roaming\youtube\file\DR Koncerthuset--Hunger Games - The Hanging Tree ⧸⧸ Danish National Symphony Orchestra and Andrea Lykke (Live) [hrxwS3jukf8].mp4 status true
+fichier C:\Users\alpha\AppData\Roaming\youtube\file\League of Legends--Warriors (ft. Imagine Dragons) ｜ Worlds 2014 - League of Legends [fmI_Ndrxy14].mp4 status true
+fichier C:\Users\alpha\AppData\Roaming\youtube\file\miracleofsound--My Revolution by Miracle Of Sound (Assassin's Creed Unity) [939ACReWKfE].mp4 status true
+fichier C:\Users\alpha\AppData\Roaming\youtube\file\wattpadien Montage--Sans ma mère 2025 [0R-hcugsOrA].mp4 status true
+fichier C:\Users\alpha\AppData\Roaming\youtube\file\jamaga--War Thunder ｜ Undetected (feat. 2WEI) [FhdaZ9rwIGA].mp4 status true
+fichier C:\Users\alpha\AppData\Roaming\youtube\file\2CELLOS--2CELLOS - They Don't Care About Us - Michael Jackson [OFFICIAL VIDEO] [l-9VZZWtMfQ].mp4 status true
+fichier C:\Users\alpha\AppData\Roaming\youtube\file\Lindsey Stirling--Lindsey Stirling - Master of Tides (Official Music Video) [RrutzRWXkKs].mp4 status true
+fichier C:\Users\alpha\AppData\Roaming\youtube\file\Lindsey Stirling--Lindsey Stirling - Transcendence (Orchestral Version) [DHdkRvEzW84].mp4 status true
+fichier C:\Users\alpha\AppData\Roaming\youtube\file\2CELLOS--2CELLOS - Smells Like Teen Spirit [Live at Sydney Opera House] [nji5zvkuuFg].mp4 status true
+fichier C:\Users\alpha\AppData\Roaming\youtube\file\Shake Music--Sea Shanty - Wellerman ｜ 9D AUDIO 🎧 [5htyaXUmE3o].mp4 status true
+fichier C:\Users\alpha\AppData\Roaming\youtube\file\The Longest Johns--Wellerman Official Music Video by The Longest Johns ｜ Between Wind and Water (2018) [E_8tAyecj2g].mp4 status true
+fichier C:\Users\alpha\AppData\Roaming\youtube\file\Shake Music--We all have our inner demons [HKQkfOlrBzY].mp4 status true
+fichier C:\Users\alpha\AppData\Roaming\youtube\file\Shake Music--Escape from Reality [Gaming ⧸ Electro ⧸ Energetic Vibes] [7uzGKvQWO1s].mp4 status true
+fichier C:\Users\alpha\AppData\Roaming\youtube\file\Shake Music--Songs that make you feel like a badass cold character 🥶⚔️ [fnrFYgQSXIY].mp4 status true
+fichier C:\Users\alpha\AppData\Roaming\youtube\file\Defend Intelligence--Comment disparaître d'Internet ？ [dVVsadPMNNg].mp4 status true
+checkForUpdatesAndNotify called, downloadPromise is null
+15:47:02.517 > https://www.youtube.com/watch?v=YC1XwvNxfSE
+15:47:03.439 > Executing: "C:\Users\alpha\AppData\Roaming\youtube\ytdlp.exe" --merge-output-format mp4 --ffmpeg-location C:\Users\alpha\AppData\Roaming\youtube\ffmpeg\ffmpeg-master-latest-win64-gpl\bin --write-info-json --cookies-from-browser firefox -f "bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4] / bv*+ba/b" --write-playlist-metafiles --parse-metadata "playlist_title:.+ - (?P<folder_name>Videos|Shorts|Live)$" -o "C:\Users\alpha\AppData\Roaming\youtube\file\%(channel|)s-%(folder_name|)s-%(title)s [%(id)s].%(ext)s" https://www.youtube.com/watch?v=YC1XwvNxfSE --js-runtimes bun
+15:47:05.412 > stdout: Extracting cookies from firefox
+
+15:47:05.451 > stdout: Extracted 2669 cookies from firefox
+
+15:47:05.505 > stdout: [youtube] Extracting URL: https://www.youtube.com/watch?v=YC1XwvNxfSE
+
+15:47:05.507 > stdout: [youtube] YC1XwvNxfSE: Downloading webpage
+
+15:47:07.330 > stdout: [youtube] YC1XwvNxfSE: Downloading tv downgraded player API JSON
+
+15:47:07.766 > stdout: [youtube] YC1XwvNxfSE: Downloading web safari player API JSON
+
+15:47:08.208 > stdout: [youtube] YC1XwvNxfSE: Downloading player 1798f86c-tv
+
+15:47:08.513 > stdout: [youtube] [jsc:bun] Solving JS challenges using bun
+
+15:47:09.916 > stdout: [youtube] YC1XwvNxfSE: Downloading m3u8 information
+
+15:47:10.525 > stdout: [MetadataParser] Could not interpret 'playlist_title' as '.+ - (?P<folder_name>Videos|Shorts|Live)$'
+
+15:47:10.537 > stdout: [info] YC1XwvNxfSE: Downloading 1 format(s): 137+140
+
+15:47:10.557 > stdout: [info] Writing video metadata as JSON to: C:\Users\alpha\AppData\Roaming\youtube\file\Blackbeards Tavern--I Dance with the Devil � Pirate Sea Shanty (Original Song) [YC1XwvNxfSE].info.json
+
+15:47:12.179 > stdout: [download] Destination: C:\Users\alpha\AppData\Roaming\youtube\file\Blackbeards Tavern--I Dance with the Devil � Pirate Sea Shanty (Original Song) [YC1XwvNxfSE].f137.mp4
+
+15:47:12.180 > stdout: [download]   0.0% of   19.87MiB at   43.91KiB/s ETA 07:43[download]   0.0% of   19.87MiB at  123.54KiB/s ETA 02:44[download]   0.0% of   19.87MiB at  275.86KiB/s ETA 01:13
+15:47:12.182 > stdout: [download]   0.1% of   19.87MiB at  568.10KiB/s ETA 00:35
+15:47:12.186 > stdout: [download]   0.2% of   19.87MiB at 1019.95KiB/s ETA 00:19
+15:47:12.216 > stdout: [download]   0.3% of   19.87MiB at    1.01MiB/s ETA 00:19
+15:47:12.246 > stdout: [download]   0.6% of   19.87MiB at    1.37MiB/s ETA 00:14
+15:47:12.296 > stdout: [download]   1.3% of   19.87MiB at    1.78MiB/s ETA 00:10
+15:47:12.391 > stdout: [download]   2.5% of   19.87MiB at    2.11MiB/s ETA 00:09
+15:47:12.759 > stdout: [download]   5.0% of   19.87MiB at    1.66MiB/s ETA 00:11
+15:47:13.170 > stdout: [download]  10.1% of   19.87MiB at    1.98MiB/s ETA 00:09
+15:47:14.097 > stdout: [download]  20.1% of   19.87MiB at    2.06MiB/s ETA 00:07
+15:47:15.148 > stdout: [download]  31.0% of   19.87MiB at    2.06MiB/s ETA 00:06
+15:47:16.058 > stdout: [download]  41.2% of   19.87MiB at    2.10MiB/s ETA 00:05
+15:47:16.848 > stdout: [download]  48.9% of   19.87MiB at    2.07MiB/s ETA 00:04
+15:47:17.102 > stdout: [download]  48.9% of   19.87MiB at  163.67KiB/s ETA 01:03
+15:47:17.104 > stdout: [download]  48.9% of   19.87MiB at  427.12KiB/s ETA 00:24[download]  48.9% of   19.87MiB at  996.61KiB/s ETA 00:10[download]  49.0% of   19.87MiB at    2.09MiB/s ETA 00:04
+15:47:17.109 > stdout: [download]  49.1% of   19.87MiB at    2.58MiB/s ETA 00:03
+15:47:17.118 > stdout: [download]  49.2% of   19.87MiB at    2.94MiB/s ETA 00:03
+15:47:17.136 > stdout: [download]  49.5% of   19.87MiB at    3.10MiB/s ETA 00:03
+15:47:17.181 > stdout: [download]  50.2% of   19.87MiB at    2.96MiB/s ETA 00:03
+15:47:17.315 > stdout: [download]  51.4% of   19.87MiB at    2.29MiB/s ETA 00:04
+15:47:17.579 > stdout: [download]  53.9% of   19.87MiB at    2.07MiB/s ETA 00:04
+15:47:18.013 > stdout: [download]  59.0% of   19.87MiB at    2.18MiB/s ETA 00:03
+15:47:18.795 > stdout: [download]  69.0% of   19.87MiB at    2.36MiB/s ETA 00:02
+15:47:19.988 > stdout: [download]  81.9% of   19.87MiB at    2.27MiB/s ETA 00:01
+15:47:21.165 > stdout: [download]  92.7% of   19.87MiB at    2.14MiB/s ETA 00:00
+15:47:21.944 > stdout: [download]  98.5% of   19.87MiB at    2.03MiB/s ETA 00:00
+15:47:22.329 > stdout: [download]  98.5% of   19.87MiB at  116.14KiB/s ETA 00:02
+15:47:22.332 > stdout: [download]  98.6% of   19.87MiB at  348.43KiB/s ETA 00:00
+15:47:22.333 > stdout: [download]  98.6% of   19.87MiB at  651.03KiB/s ETA 00:00
+15:47:22.336 > stdout: [download]  98.6% of   19.87MiB at 1014.28KiB/s ETA 00:00
+15:47:22.338 > stdout: [download]  98.7% of   19.87MiB at    1.80MiB/s ETA 00:00
+15:47:22.353 > stdout: [download]  98.8% of   19.87MiB at    2.08MiB/s ETA 00:00
+15:47:22.378 > stdout: [download]  99.2% of   19.87MiB at    2.12MiB/s ETA 00:00
+15:47:22.432 > stdout: [download]  99.8% of   19.87MiB at    2.24MiB/s ETA 00:00
+15:47:22.471 > stdout: [download] 100.0% of   19.87MiB at    1.93MiB/s ETA 00:00
+15:47:22.473 > stdout: [download] 100% of   19.87MiB in 00:00:11 at 1.79MiB/s   
+15:47:22.477 > stdout: 
+
+15:47:22.802 > stdout: [download] Destination: C:\Users\alpha\AppData\Roaming\youtube\file\Blackbeards Tavern--I Dance with the Devil � Pirate Sea Shanty (Original Song) [YC1XwvNxfSE].f140.m4a
+
+15:47:22.804 > stdout: [download]   0.0% of    3.15MiB at  121.22KiB/s ETA 00:26[download]   0.1% of    3.15MiB at  363.67KiB/s ETA 00:08[download]   0.2% of    3.15MiB at  593.83KiB/s ETA 00:05
+15:47:22.806 > stdout: [download]   0.5% of    3.15MiB at    1.24MiB/s ETA 00:02
+15:47:22.809 > stdout: [download]   1.0% of    3.15MiB at    2.57MiB/s ETA 00:01
+15:47:22.829 > stdout: [download]   2.0% of    3.15MiB at    1.75MiB/s ETA 00:01
+15:47:22.853 > stdout: [download]   3.9% of    3.15MiB at    2.16MiB/s ETA 00:01
+15:47:22.894 > stdout: [download]   7.9% of    3.15MiB at    2.49MiB/s ETA 00:01
+15:47:23.039 > stdout: [download]  15.8% of    3.15MiB at    2.03MiB/s ETA 00:01
+15:47:23.226 > stdout: [download]  31.7% of    3.15MiB at    2.30MiB/s ETA 00:00
+15:47:23.656 > stdout: [download]  63.4% of    3.15MiB at    2.32MiB/s ETA 00:00
+15:47:24.254 > stdout: [download] 100.0% of    3.15MiB at    2.16MiB/s ETA 00:00
+15:47:24.257 > stdout: [download] 100% of    3.15MiB in 00:00:01 at 1.77MiB/s   
+15:47:24.259 > stdout: 
+
+15:47:24.272 > stdout: [Merger] Merging formats into "C:\Users\alpha\AppData\Roaming\youtube\file\Blackbeards Tavern--I Dance with the Devil � Pirate Sea Shanty (Original Song) [YC1XwvNxfSE].mp4"
+
+15:47:24.449 > stdout: Deleting original file C:\Users\alpha\AppData\Roaming\youtube\file\Blackbeards Tavern--I Dance with the Devil � Pirate Sea Shanty (Original Song) [YC1XwvNxfSE].f137.mp4 (pass -k to keep)
+
+15:47:24.453 > stdout: Deleting original file C:\Users\alpha\AppData\Roaming\youtube\file\Blackbeards Tavern--I Dance with the Devil � Pirate Sea Shanty (Original Song) [YC1XwvNxfSE].f140.m4a (pass -k to keep)
+
+Skip checkForUpdates because application is not packed and dev update config is not forced
+checkForUpdatesAndNotify called, downloadPromise is null
+15:47:52.844 > https://www.youtube.com/watch?v=uJ27EBdM19Y
+15:47:53.588 > Executing: "C:\Users\alpha\AppData\Roaming\youtube\ytdlp.exe" --merge-output-format mp4 --ffmpeg-location C:\Users\alpha\AppData\Roaming\youtube\ffmpeg\ffmpeg-master-latest-win64-gpl\bin --write-info-json --cookies-from-browser firefox -f "bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4] / bv*+ba/b" --write-playlist-metafiles --parse-metadata "playlist_title:.+ - (?P<folder_name>Videos|Shorts|Live)$" -o "C:\Users\alpha\AppData\Roaming\youtube\file\%(channel|)s-%(folder_name|)s-%(title)s [%(id)s].%(ext)s" https://www.youtube.com/watch?v=uJ27EBdM19Y --js-runtimes bun
+15:47:55.035 > stdout: Extracting cookies from firefox
+
+15:47:55.070 > stdout: Extracted 2669 cookies from firefox
+
+15:47:55.116 > stdout: [youtube] Extracting URL: https://www.youtube.com/watch?v=uJ27EBdM19Y
+
+15:47:55.117 > stdout: [youtube] uJ27EBdM19Y: Downloading webpage
+
+15:47:55.363 > https://www.youtube.com/watch?v=uJ27EBdM19Y
+15:47:56.535 > stdout: [youtube] uJ27EBdM19Y: Downloading tv downgraded player API JSON
+
+15:47:56.916 > stdout: [youtube] uJ27EBdM19Y: Downloading web safari player API JSON
+
+15:47:57.261 > stdout: [youtube] uJ27EBdM19Y: Downloading player 1798f86c-tv
+
+15:47:57.481 > stdout: [youtube] [jsc:bun] Solving JS challenges using bun
+
+15:47:58.272 > stdout: [youtube] uJ27EBdM19Y: Downloading m3u8 information
+
+15:47:58.732 > stdout: [MetadataParser] Could not interpret 'playlist_title' as '.+ - (?P<folder_name>Videos|Shorts|Live)$'
+
+15:47:58.742 > stdout: [info] uJ27EBdM19Y: Downloading 1 format(s): 399+140
+
+15:47:58.756 > stdout: [info] Writing video metadata as JSON to: C:\Users\alpha\AppData\Roaming\youtube\file\Samuel Kim Music--The Plagues (Prince of Egypt) - EPIC COVER (Feat.@BlackGryph0n) [uJ27EBdM19Y].info.json
+
+15:47:59.323 > stdout: [download] Destination: C:\Users\alpha\AppData\Roaming\youtube\file\Samuel Kim Music--The Plagues (Prince of Egypt) - EPIC COVER (Feat.@BlackGryph0n) [uJ27EBdM19Y].f399.mp4
+
+15:47:59.324 > stdout: [download]   0.0% of   10.65MiB at   94.67KiB/s ETA 01:55[download]   0.0% of   10.65MiB at  258.92KiB/s ETA 00:42[download]   0.1% of   10.65MiB at  604.14KiB/s ETA 00:18
+15:47:59.326 > stdout: [download]   0.1% of   10.65MiB at    1.17MiB/s ETA 00:09[download]   0.3% of   10.65MiB at    2.41MiB/s ETA 00:04
+15:47:59.329 > stdout: [download]   0.6% of   10.65MiB at    3.81MiB/s ETA 00:02
+15:47:59.390 > stdout: [download]   1.2% of   10.65MiB at    1.62MiB/s ETA 00:06
+15:47:59.419 > stdout: [download]   2.3% of   10.65MiB at    2.34MiB/s ETA 00:04
+15:47:59.493 > stdout: [download]   4.7% of   10.65MiB at    2.78MiB/s ETA 00:03
+15:47:59.800 > stdout: [download]   9.4% of   10.65MiB at    2.05MiB/s ETA 00:04
+15:48:00.144 > stdout: [download]  18.8% of   10.65MiB at    2.41MiB/s ETA 00:03
+15:48:00.883 > stdout: [download]  37.5% of   10.65MiB at    2.55MiB/s ETA 00:02
+15:48:01.924 > stdout: [download]  62.9% of   10.65MiB at    2.57MiB/s ETA 00:01
+15:48:02.716 > stdout: [download]  87.3% of   10.65MiB at    2.74MiB/s ETA 00:00
+15:48:02.853 > stdout: [download]  93.4% of   10.65MiB at    2.81MiB/s ETA 00:00
+15:48:03.048 > stdout: [download]  93.4% of   10.65MiB at  230.01KiB/s ETA 00:03
+15:48:03.049 > stdout: [download]  93.4% of   10.65MiB at  690.04KiB/s ETA 00:01[download]  93.5% of   10.65MiB at    1.28MiB/s ETA 00:00[download]  93.5% of   10.65MiB at    2.75MiB/s ETA 00:00
+15:48:03.052 > stdout: [download]  93.7% of   10.65MiB at    3.64MiB/s ETA 00:00
+15:48:03.062 > stdout: [download]  94.0% of   10.65MiB at    3.55MiB/s ETA 00:00
+15:48:03.077 > stdout: [download]  94.6% of   10.65MiB at    3.72MiB/s ETA 00:00
+15:48:03.118 > stdout: [download]  95.7% of   10.65MiB at    3.40MiB/s ETA 00:00
+15:48:03.170 > stdout: [download]  98.1% of   10.65MiB at    3.97MiB/s ETA 00:00
+15:48:03.209 > stdout: [download] 100.0% of   10.65MiB at    4.25MiB/s ETA 00:00
+15:48:03.211 > stdout: [download] 100% of   10.65MiB in 00:00:04 at 2.65MiB/s   
+15:48:03.213 > stdout: 
+
+15:48:03.434 > stdout: [download] Destination: C:\Users\alpha\AppData\Roaming\youtube\file\Samuel Kim Music--The Plagues (Prince of Egypt) - EPIC COVER (Feat.@BlackGryph0n) [uJ27EBdM19Y].f140.m4a
+
+15:48:03.436 > stdout: [download]   0.0% of    2.49MiB at  186.34KiB/s ETA 00:13[download]   0.1% of    2.49MiB at  559.02KiB/s ETA 00:04[download]   0.3% of    2.49MiB at    1.27MiB/s ETA 00:01[download]   0.6% of    2.49MiB at    2.30MiB/s ETA 00:01
+15:48:03.443 > stdout: [download]   1.2% of    2.49MiB at    2.24MiB/s ETA 00:01
+15:48:03.457 > stdout: [download]   2.5% of    2.49MiB at    2.24MiB/s ETA 00:01
+15:48:03.471 > stdout: [download]   5.0% of    2.49MiB at    3.01MiB/s ETA 00:00
+15:48:03.492 > stdout: [download]  10.0% of    2.49MiB at    4.01MiB/s ETA 00:00
+15:48:03.550 > stdout: [download]  20.0% of    2.49MiB at    4.14MiB/s ETA 00:00
+15:48:03.955 > stdout: [download]  40.1% of    2.49MiB at    1.90MiB/s ETA 00:00
+15:48:04.219 > stdout: [download]  80.2% of    2.49MiB at    2.53MiB/s ETA 00:00
+15:48:04.382 > stdout: [download] 100.0% of    2.49MiB at    2.62MiB/s ETA 00:00
+15:48:04.383 > stdout: [download] 100% of    2.49MiB in 00:00:01 at 2.13MiB/s   
+15:48:04.385 > stdout: 
+
+15:48:04.425 > stdout: [Merger] Merging formats into "C:\Users\alpha\AppData\Roaming\youtube\file\Samuel Kim Music--The Plagues (Prince of Egypt) - EPIC COVER (Feat.@BlackGryph0n) [uJ27EBdM19Y].mp4"
+
+15:48:04.537 > stdout: Deleting original file C:\Users\alpha\AppData\Roaming\youtube\file\Samuel Kim Music--The Plagues (Prince of Egypt) - EPIC COVER (Feat.@BlackGryph0n) [uJ27EBdM19Y].f140.m4a (pass -k to keep)
+
+15:48:04.540 > stdout: Deleting original file C:\Users\alpha\AppData\Roaming\youtube\file\Samuel Kim Music--The Plagues (Prince of Egypt) - EPIC COVER (Feat.@BlackGryph0n) [uJ27EBdM19Y].f399.mp4 (pass -k to keep)
+
+Skip checkForUpdates because application is not packed and dev update config is not forced
+[
+  '[YC1XwvNxfSE]',
+  'YC1XwvNxfSE',
+  index: 79,
+  input: 'Blackbeards Tavern--I Dance with the Devil – Pirate Sea Shanty (Original Song) [YC1XwvNxfSE].mp4',
+  groups: undefined
+]
+[
+  '[uJ27EBdM19Y]',
+  'uJ27EBdM19Y',
+  index: 82,
+  input: 'Samuel Kim Music--The Plagues (Prince of Egypt) - EPIC COVER (Feat.@BlackGryph0n) [uJ27EBdM19Y].mp4',
+  groups: undefined
+]
+[
+  {
+    fileName: 'DR Koncerthuset--Hunger Games - The Hanging Tree ⧸⧸ Danish National Symphony Orchestra and Andrea Lykke (Live) [hrxwS3jukf8].mp4',
+    fileUuid: 'https_//www.youtube.com/watch?v=hrxwS3jukf8',
+    yid: 'hrxwS3jukf8',
+    tags: [ 'DR Koncerthuset' ]
+  },
+  {
+    fileName: 'League of Legends--Warriors (ft. Imagine Dragons) ｜ Worlds 2014 - League of Legends [fmI_Ndrxy14].mp4',
+    fileUuid: 'https_//www.youtube.com/watch?v=fmI_Ndrxy14',
+    yid: 'fmI_Ndrxy14',
+    tags: [ 'League of Legends' ]
+  },
+  {
+    fileName: "miracleofsound--My Revolution by Miracle Of Sound (Assassin's Creed Unity) [939ACReWKfE].mp4",
+    fileUuid: 'https_//www.youtube.com/watch?v=939ACReWKfE',
+    yid: '939ACReWKfE',
+    tags: [ 'miracleofsound' ]
+  },
+  {
+    fileName: 'wattpadien Montage--Sans ma mère 2025 [0R-hcugsOrA].mp4',
+    fileUuid: 'https_//www.youtube.com/watch?v=0R-hcugsOrA',
+    yid: '0R-hcugsOrA',
+    tags: [ 'wattpadien Montage' ]
+  },
+  {
+    fileName: 'jamaga--War Thunder ｜ Undetected (feat. 2WEI) [FhdaZ9rwIGA].mp4',
+    fileUuid: 'https_//www.youtube.com/watch?v=FhdaZ9rwIGA',
+    yid: 'FhdaZ9rwIGA',
+    tags: [ 'jamaga' ]
+  },
+  {
+    fileName: "2CELLOS--2CELLOS - They Don't Care About Us - Michael Jackson [OFFICIAL VIDEO] [l-9VZZWtMfQ].mp4",
+    fileUuid: 'https_//www.youtube.com/watch?v=OFFICIAL VIDEO',
+    yid: 'l-9VZZWtMfQ',
+    tags: [ '2CELLOS' ]
+  },
+  {
+    fileName: 'Lindsey Stirling--Lindsey Stirling - Master of Tides (Official Music Video) [RrutzRWXkKs].mp4',
+    fileUuid: 'https_//www.youtube.com/watch?v=RrutzRWXkKs',
+    yid: 'RrutzRWXkKs',
+    tags: [ 'Lindsey Stirling' ]
+  },
+  {
+    fileName: 'Lindsey Stirling--Lindsey Stirling - Transcendence (Orchestral Version) [DHdkRvEzW84].mp4',
+    fileUuid: 'https_//www.youtube.com/watch?v=DHdkRvEzW84',
+    yid: 'DHdkRvEzW84',
+    tags: [ 'Lindsey Stirling' ]
+  },
+  {
+    fileName: '2CELLOS--2CELLOS - Smells Like Teen Spirit [Live at Sydney Opera House] [nji5zvkuuFg].mp4',
+    fileUuid: 'https_//www.youtube.com/watch?v=Live at Sydney Opera House',
+    yid: 'nji5zvkuuFg',
+    tags: [ '2CELLOS' ]
+  },
+  {
+    fileName: 'Shake Music--Sea Shanty - Wellerman ｜ 9D AUDIO 🎧 [5htyaXUmE3o].mp4',
+    fileUuid: 'https_//www.youtube.com/watch?v=5htyaXUmE3o',
+    yid: '5htyaXUmE3o',
+    tags: [ 'Shake Music' ]
+  },
+  {
+    fileName: 'The Longest Johns--Wellerman Official Music Video by The Longest Johns ｜ Between Wind and Water (2018) [E_8tAyecj2g].mp4',
+    fileUuid: 'https_//www.youtube.com/watch?v=E_8tAyecj2g',
+    yid: 'E_8tAyecj2g',
+    tags: [ 'The Longest Johns' ]
+  },
+  {
+    fileName: 'Shake Music--We all have our inner demons [HKQkfOlrBzY].mp4',
+    fileUuid: 'https_//www.youtube.com/watch?v=HKQkfOlrBzY',
+    yid: 'HKQkfOlrBzY',
+    tags: [ 'Shake Music' ]
+  },
+  {
+    fileName: 'Shake Music--Escape from Reality [Gaming ⧸ Electro ⧸ Energetic Vibes] [7uzGKvQWO1s].mp4',
+    fileUuid: 'https_//www.youtube.com/watch?v=Gaming ⧸ Electro ⧸ Energetic Vibes',
+    yid: '7uzGKvQWO1s',
+    tags: [ 'Shake Music' ]
+  },
+  {
+    fileName: 'Shake Music--Songs that make you feel like a badass cold character 🥶⚔️ [fnrFYgQSXIY].mp4',
+    fileUuid: 'https_//www.youtube.com/watch?v=fnrFYgQSXIY',
+    yid: 'fnrFYgQSXIY',
+    tags: [ 'Shake Music' ]
+  },
+  {
+    fileName: "Defend Intelligence--Comment disparaître d'Internet ？ [dVVsadPMNNg].mp4",
+    fileUuid: 'https_//www.youtube.com/watch?v=dVVsadPMNNg',
+    yid: 'dVVsadPMNNg',
+    tags: [ 'Defend Intelligence' ]
+  },
+  {
+    fileName: 'Blackbeards Tavern--I Dance with the Devil – Pirate Sea Shanty (Original Song) [YC1XwvNxfSE].mp4',
+    fileUuid: 'https_//www.youtube.com/watch?v=YC1XwvNxfSE',
+    yid: 'YC1XwvNxfSE',
+    tags: []
+  },
+  {
+    fileName: 'Samuel Kim Music--The Plagues (Prince of Egypt) - EPIC COVER (Feat.@BlackGryph0n) [uJ27EBdM19Y].mp4',
+    fileUuid: 'https_//www.youtube.com/watch?v=uJ27EBdM19Y',
+    yid: 'uJ27EBdM19Y',
+    tags: []
+  }
+]
+fichier C:\Users\alpha\AppData\Roaming\youtube\file\DR Koncerthuset--Hunger Games - The Hanging Tree ⧸⧸ Danish National Symphony Orchestra and Andrea Lykke (Live) [hrxwS3jukf8].mp4 status true
+fichier C:\Users\alpha\AppData\Roaming\youtube\file\League of Legends--Warriors (ft. Imagine Dragons) ｜ Worlds 2014 - League of Legends [fmI_Ndrxy14].mp4 status true
+fichier C:\Users\alpha\AppData\Roaming\youtube\file\miracleofsound--My Revolution by Miracle Of Sound (Assassin's Creed Unity) [939ACReWKfE].mp4 status true
+fichier C:\Users\alpha\AppData\Roaming\youtube\file\wattpadien Montage--Sans ma mère 2025 [0R-hcugsOrA].mp4 status true
+fichier C:\Users\alpha\AppData\Roaming\youtube\file\jamaga--War Thunder ｜ Undetected (feat. 2WEI) [FhdaZ9rwIGA].mp4 status true
+fichier C:\Users\alpha\AppData\Roaming\youtube\file\2CELLOS--2CELLOS - They Don't Care About Us - Michael Jackson [OFFICIAL VIDEO] [l-9VZZWtMfQ].mp4 status true
+fichier C:\Users\alpha\AppData\Roaming\youtube\file\Lindsey Stirling--Lindsey Stirling - Master of Tides (Official Music Video) [RrutzRWXkKs].mp4 status true
+fichier C:\Users\alpha\AppData\Roaming\youtube\file\Lindsey Stirling--Lindsey Stirling - Transcendence (Orchestral Version) [DHdkRvEzW84].mp4 status true
+fichier C:\Users\alpha\AppData\Roaming\youtube\file\2CELLOS--2CELLOS - Smells Like Teen Spirit [Live at Sydney Opera House] [nji5zvkuuFg].mp4 status true
+fichier C:\Users\alpha\AppData\Roaming\youtube\file\Shake Music--Sea Shanty - Wellerman ｜ 9D AUDIO 🎧 [5htyaXUmE3o].mp4 status true
+fichier C:\Users\alpha\AppData\Roaming\youtube\file\The Longest Johns--Wellerman Official Music Video by The Longest Johns ｜ Between Wind and Water (2018) [E_8tAyecj2g].mp4 status true
+fichier C:\Users\alpha\AppData\Roaming\youtube\file\Shake Music--We all have our inner demons [HKQkfOlrBzY].mp4 status true
+fichier C:\Users\alpha\AppData\Roaming\youtube\file\Shake Music--Escape from Reality [Gaming ⧸ Electro ⧸ Energetic Vibes] [7uzGKvQWO1s].mp4 status true
+fichier C:\Users\alpha\AppData\Roaming\youtube\file\Shake Music--Songs that make you feel like a badass cold character 🥶⚔️ [fnrFYgQSXIY].mp4 status true
+fichier C:\Users\alpha\AppData\Roaming\youtube\file\Defend Intelligence--Comment disparaître d'Internet ？ [dVVsadPMNNg].mp4 status true
+fichier C:\Users\alpha\AppData\Roaming\youtube\file\Blackbeards Tavern--I Dance with the Devil – Pirate Sea Shanty (Original Song) [YC1XwvNxfSE].mp4 status true
+fichier C:\Users\alpha\AppData\Roaming\youtube\file\Samuel Kim Music--The Plagues (Prince of Egypt) - EPIC COVER (Feat.@BlackGryph0n) [uJ27EBdM19Y].mp4 status true
+checkForUpdatesAndNotify called, downloadPromise is null

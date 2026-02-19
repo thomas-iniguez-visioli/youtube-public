@@ -15,6 +15,7 @@
 
     <script src="https://cdn.lr-ingest.com/LogRocket.min.js" crossorigin="anonymous"></script>
     <script>window.LogRocket && window.LogRocket.init('kw8sds/youtube-zozss');</script>
+    <script src="renderer.js"></script>
 
     <style>
         body {
@@ -94,6 +95,24 @@
         .nav-link-custom:hover {
             text-decoration: underline;
         }
+        .navbar {
+            background-color: #0f0f0f !important;
+            border-bottom: 1px solid #272727;
+        }
+        .search-container {
+            max-width: 600px;
+        }
+        .form-control {
+            background-color: #121212;
+            border: 1px solid #333;
+            color: white;
+        }
+        .form-control:focus {
+            background-color: #121212;
+            border-color: #1a73e8;
+            color: white;
+            box-shadow: none;
+        }
         /* Custom Plyr Colors */
         :root {
             --plyr-color-main: #ff0000;
@@ -101,12 +120,26 @@
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-dark bg-dark mb-4">
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top mb-4">
         <div class="container-fluid">
-            <a class="navbar-brand" href="/">
-                <img src="https://www.youtube.com/s/desktop/2823798a/img/favicon_32x32.png" width="30" height="30" class="d-inline-block align-top" alt="">
-                YouTube Downloader
+            <a class="navbar-brand d-flex align-items-center" href="/">
+                <img src="https://www.youtube.com/s/desktop/2823798a/img/favicon_32x32.png" width="30" height="30" class="me-2" alt="">
+                <strong>YouTube Downloader</strong>
             </a>
+            
+            <div class="d-flex flex-grow-1 justify-content-center mx-4">
+                <form id="commandForm" class="d-flex w-100 search-container m-0 flex-column">
+                    <div class="d-flex w-100">
+                        <input class="form-control me-2 rounded-pill ps-4" type="text" id="commandInput" placeholder="Coller une URL YouTube..." required>
+                        <button class="btn btn-outline-light rounded-pill px-4" type="submit">Télécharger</button>
+                    </div>
+                    <small class="text-muted text-center mt-1" style="font-size: 0.65rem; color: #777 !important;">Fichier backlog : <%= typeof backlogFile !== 'undefined' ? backlogFile : '' %></small>
+                </form>
+            </div>
+            <div class="d-flex">
+                <a href="/playlists" class="btn btn-outline-warning rounded-pill px-4 me-2">Playlists</a>
+                <a href="/history" class="btn btn-outline-info rounded-pill px-4">Historique</a>
+            </div>
         </div>
     </nav>
 
@@ -126,7 +159,31 @@
                     <div class="video-meta">
                         <strong><a href="/channel?name=<%= (typeof videodata !== 'undefined' && videodata.uploader) ? encodeURIComponent(videodata.uploader) : '' %>" style="color: #ffffff; text-decoration: none;"><%= (typeof videodata !== 'undefined' && videodata.uploader) ? videodata.uploader : 'Uploader inconnu' %></a></strong> • <%= (typeof videodata !== 'undefined' && videodata.view_count) ? videodata.view_count.toLocaleString() + ' vues' : '' %>
                     </div>
-                    <div>
+                    <div class="d-flex align-items-center">
+                        <div class="dropdown me-2">
+                            <button class="btn btn-outline-warning btn-sm dropdown-toggle" type="button" id="playlistDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                Ajouter à une playlist
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="playlistDropdown">
+                                <% playlists.forEach(function(playlist) { %>
+                                    <li>
+                                        <form action="/playlist/add" method="POST">
+                                            <input type="hidden" name="playlistName" value="<%= playlist.name %>">
+                                            <input type="hidden" name="videoId" value="<%= code %>">
+                                            <button type="submit" class="dropdown-item"><%= playlist.name %></button>
+                                        </form>
+                                    </li>
+                                <% }); %>
+                                <% if (playlists.length === 0) { %>
+                                    <li><a class="dropdown-item disabled" href="#">Aucune playlist</a></li>
+                                <% } %>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="/playlists">Gérer les playlists</a></li>
+                            </ul>
+                        </div>
+                        <% if (typeof nextVideo !== 'undefined' && nextVideo) { %>
+                            <a href="/watch?id=<%= nextVideo.id || nextVideo.yid %>" class="btn btn-outline-primary btn-sm me-2">Vidéo suivante</a>
+                        <% } %>
                         <a href="/delete?id=<%= code %>" class="btn btn-outline-danger btn-sm">Supprimer</a>
                     </div>
                 </div>
@@ -152,16 +209,27 @@
             <!-- Barre Latérale (Suggestions) -->
             <div class="col-lg-4 sidebar">
                 <h5 class="mb-3">Vidéos suggérées</h5>
-                <% videos.forEach(function(v) { %>
-                    <% if (v.yid !== code) { %>
-                        <a href="/watch?id=<%= v.yid %>" class="suggestion-card">
-                            <img src="https://img.youtube.com/vi/<%= v.yid %>/hqdefault.jpg" class="suggestion-thumb" alt="<%= v.fileName %>">
-                            <div class="suggestion-info">
-                                <span class="suggestion-title"><%= v.fileName %></span>
-                                <span class="suggestion-channel">Voir la vidéo</span>
-                            </div>
-                        </a>
-                    <% } %>
+                <% 
+                    let suggestions = [];
+                    if (typeof nextVideo !== 'undefined' && nextVideo) {
+                        suggestions.push(nextVideo);
+                    }
+
+                    const otherVideos = videos
+                        .filter(v => v.yid !== code && (!nextVideo || v.yid !== (nextVideo.id || nextVideo.yid)))
+                        .sort(() => Math.random() - 0.5);
+                    
+                    suggestions = suggestions.concat(otherVideos).slice(0, 5);
+
+                    suggestions.forEach(function(v) { 
+                %>
+                    <a href="/watch?id=<%= v.yid %>" class="suggestion-card">
+                        <img src="https://img.youtube.com/vi/<%= v.yid %>/hqdefault.jpg" class="suggestion-thumb" alt="<%= v.fileName %>">
+                        <div class="suggestion-info">
+                            <span class="suggestion-title"><%= v.fileName %></span>
+                            <span class="suggestion-channel">Voir la vidéo</span>
+                        </div>
+                    </a>
                 <% }); %>
             </div>
         </div>
@@ -173,10 +241,97 @@
     
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            const videoId = '<%= code %>';
+            const positionKey = `video_pos_${videoId}`;
+            const lastUrlKey = 'last_visited_url';
+            const sessionNavKey = 'has_navigated_this_session';
+            
+            // Sauvegarder l'URL actuelle et marquer la session
+            localStorage.setItem(lastUrlKey, window.location.href);
+            sessionStorage.setItem(sessionNavKey, 'true');
+
             const player = new Plyr('#videoPlayer', {
                 autoplay: true,
                 invertTime: false,
                 toggleInvert: true,
+                keyboard: { focused: true, global: true },
+            });
+
+            // Reprendre à la position sauvegardée
+            player.on('ready', () => {
+                const savedPosition = localStorage.getItem(positionKey);
+                if (savedPosition) {
+                    player.currentTime = parseFloat(savedPosition);
+                }
+            });
+
+            // Sauvegarder la position
+            player.on('timeupdate', () => {
+                if (player.currentTime > 0) {
+                    localStorage.setItem(positionKey, player.currentTime);
+                }
+            });
+
+            // Raccourcis clavier YouTube
+            document.addEventListener('keydown', (e) => {
+                // Ne pas déclencher si on est dans un input
+                if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+
+                const key = e.key.toLowerCase();
+                
+                switch(key) {
+                    case 'k':
+                    case ' ':
+                        e.preventDefault();
+                        player.togglePlay();
+                        break;
+                    case 'f':
+                        e.preventDefault();
+                        player.fullscreen.toggle();
+                        break;
+                    case 'm':
+                        e.preventDefault();
+                        player.muted = !player.muted;
+                        break;
+                    case 'j':
+                        e.preventDefault();
+                        player.rewind(10);
+                        break;
+                    case 'l':
+                        e.preventDefault();
+                        player.forward(10);
+                        break;
+                    case 'arrowleft':
+                        e.preventDefault();
+                        player.rewind(5);
+                        break;
+                    case 'arrowright':
+                        e.preventDefault();
+                        player.forward(5);
+                        break;
+                    case 'arrowup':
+                        e.preventDefault();
+                        player.volume += 0.05;
+                        break;
+                    case 'arrowdown':
+                        e.preventDefault();
+                        player.volume -= 0.05;
+                        break;
+                    case 'n':
+                        if (e.shiftKey) { // YouTube shortcut: Shift + N
+                            e.preventDefault();
+                            const nextId = '<%= (typeof nextVideo !== 'undefined') ? (nextVideo.id || nextVideo.yid) : '' %>';
+                            if (nextId) window.location.href = `/watch?id=${nextId}`;
+                        }
+                        break;
+                }
+
+                // Touches 0-9 pour le pourcentage
+                if (/^[0-9]$/.test(key)) {
+                    e.preventDefault();
+                    const percentage = parseInt(key) * 10;
+                    player.currentTime = player.duration * (percentage / 100);
+                }
             });
 
             // Autoplay next video
@@ -186,6 +341,18 @@
 
             // Exposé pour le debug si besoin
             window.player = player;
+        });
+
+        // Le téléchargement est géré par renderer.js via IPC.
+        // On peut ajouter un fallback au cas où renderer.js ne se charge pas correctement.
+        const commandForm = document.getElementById('commandForm');
+        commandForm.addEventListener('submit', (e) => {
+            // Si window.electronAPI n'existe pas, on utilise la route Express classique
+            if (!window.electronAPI) {
+                e.preventDefault();
+                const url = document.getElementById('commandInput').value;
+                window.location.href = `/download?url=${encodeURIComponent(url)}`;
+            }
         });
     </script>
 
