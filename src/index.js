@@ -327,6 +327,12 @@ const downloadbacklog = (parameter) => {
 
 const downloaddata = (parameter) => {
   const ytdlpPath = process.platform === 'win32' ? path.join(app.getPath('userData'), 'ytdlp.exe') : path.join(app.getPath('userData'), 'ytdlp');
+  
+  if (!fs.existsSync(ytdlpPath)) {
+    log.error(`yt-dlp non trouvé : ${ytdlpPath}`);
+    return;
+  }
+
   const bunPath = process.platform === 'win32' ? path.join(app.getPath('userData'), 'bun.exe') : path.join(app.getPath('userData'), 'bun');
   const args = createMetadataArgs(parameter, config.storagePath, config.outputFileFormat, bunPath);
 
@@ -338,7 +344,10 @@ const downloaddata = (parameter) => {
     env.PATH = `${ytdlpDir}:${env.PATH || ''}`;
   }
 
-  const childProcess = child.spawn(ytdlpPath, args, { shell: true, env });
+  const childProcess = child.spawn(ytdlpPath, args, { env });
+  childProcess.on('error', (err) => {
+    log.error(`Erreur lors du lancement de yt-dlp : ${err.message}`);
+  });
   childProcess.stdout.on('data', (data) => log.info(`stdout: ${data}`));
   childProcess.stderr.on('data', (data) => log.error(`stderr: ${data}`));
 };

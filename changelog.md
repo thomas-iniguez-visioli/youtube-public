@@ -1,5 +1,10 @@
 # Gemini CLI - Journal des modifications
 
+## [1.1.55] - 2026-02-19
+### Corrigé
+- **Lancement de yt-dlp** : Suppression de l'option `shell: true` qui provoquait des erreurs "Fichier introuvable" sur certains systèmes Windows.
+- **Journalisation des erreurs** : Amélioration de la capture des erreurs lors du lancement des processus externes (spawn) pour faciliter le diagnostic.
+
 ## [1.1.54] - 2026-02-19
 ### Ajouté
 - **Système de Playlists** : Création, gestion et lecture de listes de lecture personnalisées.

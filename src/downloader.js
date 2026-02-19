@@ -48,6 +48,11 @@ function runDownload(ytdlpPath, args, logger) {
 
     const childProcess = child.spawn(ytdlpPath, args, { env });
 
+    childProcess.on('error', (err) => {
+      if (logger) logger.info(`Erreur de spawn yt-dlp: ${err.message}`);
+      reject(err);
+    });
+
     childProcess.stdout.on('data', (data) => {
       if (logger) logger.info(`stdout: ${data}`);
     });
