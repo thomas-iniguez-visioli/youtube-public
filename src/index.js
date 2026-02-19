@@ -178,7 +178,12 @@ autoUpdater.on('update-downloaded', (info) => {
     autoUpdater.quitAndInstall();
   }, 3000);
 });
-const backlogFile = path.join(app.getPath('desktop'), 'backlog.txt');
+let backlogFile = 'backlog.txt';
+try {
+  backlogFile = path.join(app.getPath('desktop'), 'backlog.txt');
+} catch (err) {
+  log.error(`Erreur lors de la récupération du chemin desktop : ${err.message}`);
+}
 const backlog = [];
 
 const saveBacklog = () => {

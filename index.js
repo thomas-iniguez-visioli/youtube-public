@@ -6,8 +6,15 @@ const io = require('socket.io')(http);
 const rateLimit = require('express-rate-limit');
 
 const d=require("./src/db.js")
+const path = require('path');
+const { app } = require('electron');
+let backlogFile = './backlog.txt';
+try {
+  if (app) backlogFile = path.join(app.getPath('desktop'), 'backlog.txt');
+} catch (e) {}
 const base ="./video"
 const db=new d(base)
+web.locals.backlogFile = backlogFile;
 
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes

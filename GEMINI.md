@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.1.49] - 2026-02-19
+### Corrigé
+- **ReferenceError: backlogFile is not defined** : Correction de l'erreur de rendu dans les templates EJS en rendant la variable optionnelle et en assurant sa définition dans toutes les configurations possibles de l'application (root et src).
+
 ## [1.1.48] - 2026-02-19
 ### Ajouté
 - **Mise à jour automatique et redémarrage** : L'application redémarre désormais automatiquement 3 secondes après avoir fini de télécharger une mise à jour pour l'installer.
