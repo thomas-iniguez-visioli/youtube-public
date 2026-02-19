@@ -137,6 +137,7 @@
                 </form>
             </div>
             <div class="d-flex">
+                <a href="/playlists" class="btn btn-outline-warning rounded-pill px-4 me-2">Playlists</a>
                 <a href="/history" class="btn btn-outline-info rounded-pill px-4">Historique</a>
             </div>
         </div>
@@ -158,7 +159,28 @@
                     <div class="video-meta">
                         <strong><a href="/channel?name=<%= (typeof videodata !== 'undefined' && videodata.uploader) ? encodeURIComponent(videodata.uploader) : '' %>" style="color: #ffffff; text-decoration: none;"><%= (typeof videodata !== 'undefined' && videodata.uploader) ? videodata.uploader : 'Uploader inconnu' %></a></strong> • <%= (typeof videodata !== 'undefined' && videodata.view_count) ? videodata.view_count.toLocaleString() + ' vues' : '' %>
                     </div>
-                    <div>
+                    <div class="d-flex align-items-center">
+                        <div class="dropdown me-2">
+                            <button class="btn btn-outline-warning btn-sm dropdown-toggle" type="button" id="playlistDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                Ajouter à une playlist
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="playlistDropdown">
+                                <% playlists.forEach(function(playlist) { %>
+                                    <li>
+                                        <form action="/playlist/add" method="POST">
+                                            <input type="hidden" name="playlistName" value="<%= playlist.name %>">
+                                            <input type="hidden" name="videoId" value="<%= code %>">
+                                            <button type="submit" class="dropdown-item"><%= playlist.name %></button>
+                                        </form>
+                                    </li>
+                                <% }); %>
+                                <% if (playlists.length === 0) { %>
+                                    <li><a class="dropdown-item disabled" href="#">Aucune playlist</a></li>
+                                <% } %>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="/playlists">Gérer les playlists</a></li>
+                            </ul>
+                        </div>
                         <% if (typeof nextVideo !== 'undefined' && nextVideo) { %>
                             <a href="/watch?id=<%= nextVideo.id || nextVideo.yid %>" class="btn btn-outline-primary btn-sm me-2">Vidéo suivante</a>
                         <% } %>

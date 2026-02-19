@@ -343,6 +343,8 @@ const downloaddata = (parameter) => {
   childProcess.stderr.on('data', (data) => log.error(`stderr: ${data}`));
 };
 const web = express();
+web.use(express.json());
+web.use(express.urlencoded({ extended: true }));
 web.locals.backlogFile = backlogFile;
 const helmet = require('helmet');
 //web.use(helmet());
@@ -573,7 +575,8 @@ web.get("/", function (req, res) {
   res.render('index', {
     results: referencement,
     channel: null,
-    channelUrl: null
+    channelUrl: null,
+    playlists: db.getPlaylists()
   });
 })
 web.get("/watch", function (req, res) {
@@ -624,7 +627,8 @@ web.get("/watch", function (req, res) {
     videos: filteredReferencement,
     title: fileData.fileName,
     videodata: videodata,
-    nextVideo: filteredReferencement.findIndex(item => item.yid === req.query.id) === filteredReferencement.length - 1 ? filteredReferencement[0] : filteredReferencement[filteredReferencement.findIndex(item => item.yid === req.query.id) + 1]
+    nextVideo: filteredReferencement.findIndex(item => item.yid === req.query.id) === filteredReferencement.length - 1 ? filteredReferencement[0] : filteredReferencement[filteredReferencement.findIndex(item => item.yid === req.query.id) + 1],
+    playlists: db.getPlaylists()
   });
 });
 web.get("/download", function (req, res) {
@@ -705,7 +709,8 @@ web.get("/channel", function (req, res) {
   res.render('index', {
     results: results,
     channel: channelName,
-    channelUrl: channelUrl
+    channelUrl: channelUrl,
+    playlists: db.getPlaylists()
   });
 });
 
@@ -725,8 +730,72 @@ web.get("/history", function (req, res) {
   res.render('index', {
     results: history,
     channel: "Historique",
-    channelUrl: null
+    channelUrl: null,
+    playlists: db.getPlaylists()
   });
+});
+
+web.get("/playlists", function (req, res) {
+  res.render('index', {
+    results: [],
+    channel: "Mes Playlists",
+    channelUrl: null,
+    playlists: db.getPlaylists()
+  });
+});
+
+web.get("/playlist", function (req, res) {
+  const name = req.query.name;
+  const playlist = db.getPlaylist(name);
+  
+  if (!playlist) return res.redirect("/playlists");
+
+  const results = playlist.videos.map(item => {
+    const infoPath = path.join(config.storagePath, item.fileName.replace(".mp4", ".info.json"));
+    let uploader = "Inconnu";
+    if (fs.existsSync(infoPath)) {
+      try {
+        const info = JSON.parse(fs.readFileSync(infoPath, 'utf8'));
+        uploader = info.uploader;
+      } catch (e) {}
+    }
+    return { ...item, uploader };
+  });
+
+  res.render('index', {
+    results: results,
+    channel: `Playlist : ${name}`,
+    channelUrl: null,
+    playlists: db.getPlaylists()
+  });
+});
+
+web.post("/playlist/create", function (req, res) {
+  const name = req.body.name;
+  if (name) db.createPlaylist(name);
+  res.redirect("/playlists");
+});
+
+web.post("/playlist/add", function (req, res) {
+  const { playlistName, videoId } = req.body;
+  if (playlistName && videoId) {
+    db.addVideoToPlaylist(playlistName, videoId);
+  }
+  res.redirect(`/watch?id=${videoId}`);
+});
+
+web.get("/playlist/remove", function (req, res) {
+  const { name, videoId } = req.query;
+  if (name && videoId) {
+    db.removeVideoFromPlaylist(name, videoId);
+  }
+  res.redirect(`/playlist?name=${encodeURIComponent(name)}`);
+});
+
+web.get("/playlist/delete", function (req, res) {
+  const name = req.query.name;
+  if (name) db.deletePlaylist(name);
+  res.redirect("/playlists");
 });
 
 

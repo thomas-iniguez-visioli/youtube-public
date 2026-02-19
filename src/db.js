@@ -141,11 +141,13 @@ class FileDatabase {
                 const data = JSON.parse(fs.readFileSync(databaseFilePath));
                 this.database = data.database || data; // Fallback for old structure
                 this.history = data.history || [];
+                this.playlists = data.playlists || [];
             } catch (error) {
                 console.error("Failed to parse database file:", error);
                 //LogRocket.captureException(error);
                 this.database = [];
                 this.history = [];
+                this.playlists = [];
             }
         }
     }
@@ -158,7 +160,8 @@ class FileDatabase {
         }
         fs.writeFileSync(databaseFilePath, JSON.stringify({
             database: this.database,
-            history: this.history
+            history: this.history,
+            playlists: this.playlists
         }));
     }
 
@@ -166,7 +169,59 @@ class FileDatabase {
     createDatabase() {
         this.database = [];
         this.history = [];
+        this.playlists = [];
         this.saveDatabase();
+    }
+
+    // Gestion des Playlists
+    createPlaylist(name) {
+        if (!this.playlists.find(p => p.name === name)) {
+            this.playlists.push({
+                name: name,
+                videoIds: []
+            });
+            this.saveDatabase();
+            return true;
+        }
+        return false;
+    }
+
+    deletePlaylist(name) {
+        this.playlists = this.playlists.filter(p => p.name !== name);
+        this.saveDatabase();
+    }
+
+    addVideoToPlaylist(playlistName, videoId) {
+        const playlist = this.playlists.find(p => p.name === playlistName);
+        if (playlist && !playlist.videoIds.includes(videoId)) {
+            playlist.videoIds.push(videoId);
+            this.saveDatabase();
+            return true;
+        }
+        return false;
+    }
+
+    removeVideoFromPlaylist(playlistName, videoId) {
+        const playlist = this.playlists.find(p => p.name === playlistName);
+        if (playlist) {
+            playlist.videoIds = playlist.videoIds.filter(id => id !== videoId);
+            this.saveDatabase();
+        }
+    }
+
+    getPlaylists() {
+        return this.playlists;
+    }
+
+    getPlaylist(name) {
+        const playlist = this.playlists.find(p => p.name === name);
+        if (playlist) {
+            return {
+                ...playlist,
+                videos: playlist.videoIds.map(id => this.getFile(id)).filter(file => !!file)
+            };
+        }
+        return null;
     }
 
     // Ajoute un tag à un fichier spécifié par son UUID

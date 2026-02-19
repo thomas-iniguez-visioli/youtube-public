@@ -1,5 +1,10 @@
 # Gemini CLI - Journal des modifications
 
+## [1.1.54] - 2026-02-19
+### Ajouté
+- **Système de Playlists** : Création, gestion et lecture de listes de lecture personnalisées.
+- **Organisation** : Possibilité d'ajouter/retirer des vidéos des playlists directement depuis l'interface de lecture.
+
 ## [1.1.53] - 2026-02-19
 ### Ajouté
 - **Raccourcis clavier YouTube** : Support des touches `k`, `j`, `l`, `f`, `m`, `Maj+N` et `0-9` pour une navigation identique à YouTube.
