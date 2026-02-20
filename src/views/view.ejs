@@ -182,7 +182,7 @@
                             </ul>
                         </div>
                         <% if (typeof nextVideo !== 'undefined' && nextVideo) { %>
-                            <a href="/watch?id=<%= nextVideo.id || nextVideo.yid %>" class="btn btn-outline-primary btn-sm me-2">Vidéo suivante</a>
+                            <a href="/watch?id=<%= nextVideo.id || nextVideo.yid %><%= (typeof playlistName !== 'undefined' && playlistName) ? '&playlist=' + encodeURIComponent(playlistName) : '' %>" class="btn btn-outline-primary btn-sm me-2">Vidéo suivante</a>
                         <% } %>
                         <a href="/delete?id=<%= code %>" class="btn btn-outline-danger btn-sm">Supprimer</a>
                     </div>
@@ -321,7 +321,8 @@
                         if (e.shiftKey) { // YouTube shortcut: Shift + N
                             e.preventDefault();
                             const nextId = '<%= (typeof nextVideo !== 'undefined') ? (nextVideo.id || nextVideo.yid) : '' %>';
-                            if (nextId) window.location.href = `/watch?id=${nextId}`;
+                            const playlistParam = '<%= (typeof playlistName !== 'undefined' && playlistName) ? "&playlist=" + encodeURIComponent(playlistName) : "" %>';
+                            if (nextId) window.location.href = `/watch?id=${nextId}${playlistParam}`;
                         }
                         break;
                 }
@@ -336,7 +337,9 @@
 
             // Autoplay next video
             document.getElementById('videoPlayer').addEventListener('ended', function() {
-                window.location.href = "/watch?id=<%= (typeof nextVideo !== 'undefined') ? (nextVideo.id || nextVideo.yid) : '' %>";
+                const nextId = '<%= (typeof nextVideo !== 'undefined') ? (nextVideo.id || nextVideo.yid) : '' %>';
+                const playlistParam = '<%= (typeof playlistName !== 'undefined' && playlistName) ? "&playlist=" + encodeURIComponent(playlistName) : "" %>';
+                if (nextId) window.location.href = `/watch?id=${nextId}${playlistParam}`;
             });
 
             // Exposé pour le debug si besoin

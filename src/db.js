@@ -225,6 +225,13 @@ class FileDatabase {
         return null;
     }
 
+    ensureChannelPlaylist(videoId, channelName) {
+        if (!channelName) return;
+        const playlistName = `Channel: ${channelName}`;
+        this.createPlaylist(playlistName);
+        this.addVideoToPlaylist(playlistName, videoId);
+    }
+
     // Ajoute un tag à un fichier spécifié par son UUID
     addTag(uuid, tag) {
         const file = this.database.find(file => file.yid === uuid);

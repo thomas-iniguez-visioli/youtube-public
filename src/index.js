@@ -573,6 +573,7 @@ web.get("/", function (req, res) {
     
     if (infoJson.display_id && infoJson.uploader) {
       db.addTag(infoJson.display_id, infoJson.uploader);
+      db.ensureChannelPlaylist(infoJson.display_id, infoJson.uploader);
     }
     
     const score = (infoJson.view_count || 0) * 0.5 + (infoJson.like_count || 0) * 0.3 + (infoJson.comment_count || 0) * 0.2;
@@ -606,6 +607,10 @@ web.get("/watch", function (req, res) {
   if (fs.existsSync(infoPath)) {
     try {
       videodata = JSON.parse(fs.readFileSync(infoPath, 'utf8'));
+      if (videodata.display_id && videodata.uploader) {
+        db.addTag(videodata.display_id, videodata.uploader);
+        db.ensureChannelPlaylist(videodata.display_id, videodata.uploader);
+      }
       // Trigger update metadata in background only if needed
       if (videodata.webpage_url) {
         downloaddata(videodata.webpage_url);
@@ -631,12 +636,31 @@ web.get("/watch", function (req, res) {
 
   const filteredReferencement = referencement.filter(item => !historyWithoutCurrent.includes(item.yid));
 
+  const playlistName = req.query.playlist;
+  let nextVideo = null;
+  if (playlistName) {
+    const playlist = db.getPlaylist(playlistName);
+    if (playlist) {
+      const currentIndex = playlist.videoIds.indexOf(req.query.id);
+      if (currentIndex !== -1 && currentIndex < playlist.videoIds.length - 1) {
+        nextVideo = db.getFile(playlist.videoIds[currentIndex + 1]);
+      }
+    }
+  }
+
+  // Fallback if not in playlist or end of playlist
+  if (!nextVideo) {
+    const currentIdx = filteredReferencement.findIndex(item => item.yid === req.query.id);
+    nextVideo = currentIdx === filteredReferencement.length - 1 ? filteredReferencement[0] : filteredReferencement[currentIdx + 1];
+  }
+
   res.render('view', {
     code: req.query.id,
     videos: filteredReferencement,
     title: fileData.fileName,
     videodata: videodata,
-    nextVideo: filteredReferencement.findIndex(item => item.yid === req.query.id) === filteredReferencement.length - 1 ? filteredReferencement[0] : filteredReferencement[filteredReferencement.findIndex(item => item.yid === req.query.id) + 1],
+    nextVideo: nextVideo,
+    playlistName: playlistName,
     playlists: db.getPlaylists()
   });
 });

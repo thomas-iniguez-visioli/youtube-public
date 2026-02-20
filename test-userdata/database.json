@@ -1,1 +1,1 @@
-{"database":[{"fileName":"test [abc].mp4","fileUuid":"uuid-abc","yid":"abc","tags":[]},{"fileName":"test [def].mp4","fileUuid":"uuid-def","yid":"def","tags":[]}],"history":["abc","def"]}
+{"database":[{"fileName":"vid1 [id1].mp4","yid":"id1","tags":[]},{"fileName":"vid2 [id2].mp4","yid":"id2","tags":[]}],"history":["v1","v8","v7","v6","v5","v4","v3","v2"],"playlists":[]}

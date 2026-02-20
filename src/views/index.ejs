@@ -214,7 +214,18 @@
         <div class="row" id="resultsList">
             <% results.forEach(function(result){ %>
                 <div class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-2 video-item" data-tags="<%= result.tags.join(',') %>">
-                    <div class="video-card" onclick="location.href='/watch?id=<%= result.yid %>'">
+                    <% 
+                        let playlistParam = '';
+                        if (channel) {
+                            if (channel.startsWith('Playlist : ')) {
+                                playlistParam = '&playlist=' + encodeURIComponent(channel.replace('Playlist : ', ''));
+                            } else if (channel !== 'Mes Playlists' && channel !== 'Historique') {
+                                // C'est probablement une vue par chaîne
+                                playlistParam = '&playlist=' + encodeURIComponent('Channel: ' + channel);
+                            }
+                        }
+                    %>
+                    <div class="video-card" onclick="location.href='/watch?id=<%= result.yid %><%= playlistParam %>'">
                         <img src="https://img.youtube.com/vi/<%=result.yid %>/hqdefault.jpg" class="video-thumbnail" alt="Thumbnail">
                         <div class="video-info">
                             <div class="video-details w-100">

@@ -1,5 +1,10 @@
 # Gemini CLI - Journal des modifications
 
+## [1.1.58] - 2026-02-20
+### Ajouté
+- **Playlists par chaîne** : Création automatique de playlists basées sur l'uploader pour une meilleure organisation.
+- **Lecture séquentielle intelligente** : Le système détecte désormais si une vidéo est lue via une playlist (personnalisée ou par chaîne) et enchaîne automatiquement sur la vidéo suivante de cette liste.
+
 ## [1.1.57] - 2026-02-19
 ### Corrigé
 - **Compatibilité Extension** : Correction du port API dans `background.js` (passage de 3000 à 8001) pour correspondre à l'application.
