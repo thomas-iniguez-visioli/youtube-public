@@ -1,0 +1,66 @@
+{
+  "issueNumber": 60,
+  "created": "2026-02-22T16:02:12.490Z",
+  "history": [
+    {
+      "timestamp": "2026-02-22T16:02:12.490Z",
+      "role": "user",
+      "content": {
+        "number": 60,
+        "title": "Error: ENOSPC: no space left on device, write",
+        "body": "View details in Rollbar: [https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/31](https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/31)\n\n```\n\nError: ENOSPC: no space left on device, write\n  File \"node:fs\", line 2367, in Object.writeFileSync\n  File \"node:fs\", line 2448, in Object.appendFileSync\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\src\\index.js\", line 312, in Object.info\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\src\\downloader.js\", line 57, in Socket.<anonymous>\n  File \"node:events\", line 518, in Socket.emit\n  File \"node:internal/streams/readable\", line 561, in addChunk\n  File \"node:internal/streams/readable\", line 512, in readableAddChunkPushByteMode\n  File \"node:internal/streams/readable\", line 392, in Readable.push\n  File \"node:internal/stream_base_commons\", line 191, in Pipe.onStreamRead\n```",
+        "labels": [
+          "bug",
+          "complexity:medium"
+        ],
+        "author": "alphaleadership",
+        "createdAt": "2026-02-22T16:01:25Z"
+      },
+      "metadata": {
+        "event": "issue_opened/labeled"
+      }
+    },
+    {
+      "timestamp": "2026-02-22T16:02:20.134Z",
+      "role": "assistant",
+      "content": {
+        "complexity": "medium",
+        "type": "bug",
+        "suggestedColumn": "a_faire",
+        "acceptanceCriteria": [
+          "The application should gracefully handle ENOSPC errors during file write operations, preventing crashes and informing the user.",
+          "The application should provide clear guidance or configuration options to the user regarding storage locations for downloads and temporary files.",
+          "The application should implement a mechanism to check for available disk space before initiating large write operations (e.g., downloads)."
+        ],
+        "icon": "💾",
+        "color": "#FF5733",
+        "missingInformation": {
+          "isMissing": true,
+          "details": [
+            "The specific file path the application was attempting to write to when the 'ENOSPC' error occurred.",
+            "Details about the user's system disk space (total, free) on the drive where the application is installed or attempting to save data.",
+            "Steps to reproduce the issue consistently.",
+            "What operation was the user performing immediately before the error occurred (e.g., downloading a specific video, logging an event)?"
+          ]
+        },
+        "fileActions": [
+          {
+            "action": "read",
+            "path": "src/index.js",
+            "explanation": "To investigate line 312 (`Object.info`) and understand what files are being written to and for what purpose (e.g., logging, application data)."
+          },
+          {
+            "action": "read",
+            "path": "src/downloader.js",
+            "explanation": "To investigate line 57 and identify how downloaded content is being saved, what paths are used, and if any temporary files are created."
+          }
+        ]
+      },
+      "metadata": {
+        "type": "analysis",
+        "iteration": 0
+      }
+    }
+  ],
+  "updated": "2026-02-22T16:02:20.143Z"
+}

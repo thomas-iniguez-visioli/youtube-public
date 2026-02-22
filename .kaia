@@ -31,32 +31,17 @@
     },
     {
       "id": 4,
-<<<<<<< task-4-error-stderr-le-fichier-sp-cifi-est-introuvable
-      "titre": "Error: stderr: Le fichier sp�cifi� est introuvable.\r\n",
-      "description": "View details in Rollbar: [https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/29](https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/29)\n\n```\n\nError: stderr: Le fichier sp�cifi� est introuvable.\r\n\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\src\\index.js\", line 65, in <unknown>\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\node_modules\\electron-log\\src\\core\\Logger.js\", line 178, in <unknown>\n  File \"<anonymous>\", line unknown, in Array.reduce\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\node_modules\\electron-log\\src\\core\\Logger.js\", line 177, in Logger.processMessage\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\node_modules\\electron-log\\src\\core\\Logger.js\", line 136, in Logger.logData\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\node_modules\\electron-log\\src\\core\\Logger.js\", line 86, in <computed> [as error]\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\src\\index.js\", line 343, in Socket.<anonymous>\n  File \"node:events\", line 518, in Socket.emit\n  File \"node:internal/streams/readable\", line 561, in addChunk\n  File \"node:internal/streams/readable\", line 512, in readableAddChunkPushByteMode\n```",
-      "icon": "🐛",
-      "color": "#CC0000",
+      "titre": "Error: ENOSPC: no space left on device, write",
+      "description": "View details in Rollbar: [https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/31](https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/31)\n\n```\n\nError: ENOSPC: no space left on device, write\n  File \"node:fs\", line 2367, in Object.writeFileSync\n  File \"node:fs\", line 2448, in Object.appendFileSync\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\src\\index.js\", line 312, in Object.info\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\src\\downloader.js\", line 57, in Socket.<anonymous>\n  File \"node:events\", line 518, in Socket.emit\n  File \"node:internal/streams/readable\", line 561, in addChunk\n  File \"node:internal/streams/readable\", line 512, in readableAddChunkPushByteMode\n  File \"node:internal/streams/readable\", line 392, in Readable.push\n  File \"node:internal/stream_base_commons\", line 191, in Pipe.onStreamRead\n```",
+      "icon": "💾",
+      "color": "#FF5733",
       "criteres_acceptation": [
-        "The process within `github-gemini-integration` that invokes or monitors the 'youtube' application should complete without receiving 'file not found' errors from its `stderr` output.",
-        "If the 'youtube' application is an intended dependency or target for interaction, its required files and execution environment must be correctly configured and accessible to the `github-gemini-integration`.",
-        "If the 'youtube' application is being invoked erroneously or in an unexpected context, the underlying logic causing its invocation should be identified and corrected."
+        "The application should gracefully handle ENOSPC errors during file write operations, preventing crashes and informing the user.",
+        "The application should provide clear guidance or configuration options to the user regarding storage locations for downloads and temporary files.",
+        "The application should implement a mechanism to check for available disk space before initiating large write operations (e.g., downloads)."
       ],
       "metadata": {
-        "issueNumber": 56
-=======
-      "titre": "Error: net::ERR_INSUFFICIENT_RESOURCES",
-      "description": "View details in Rollbar: [https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/27](https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/27)\n\n```\n\nError: net::ERR_INSUFFICIENT_RESOURCES\n  File \"node:electron/js2c/browser_init\", line 2, in SimpleURLLoaderWrapper.<anonymous>\n  File \"node:events\", line 518, in SimpleURLLoaderWrapper.emit\n```",
-      "icon": "🐛",
-      "color": "#FFA500",
-      "criteres_acceptation": [
-        "The Electron application successfully completes the task that previously triggered `net::ERR_INSUFFICIENT_RESOURCES` without error.",
-        "Resource usage (e.g., memory, network connections, file handles) remains within acceptable limits during the problematic operation.",
-        "The application handles potential resource limitations gracefully, preventing crashes and providing informative feedback if resources are scarce.",
-        "The root cause of the `net::ERR_INSUFFICIENT_RESOURCES` error is identified and addressed, particularly regarding concurrent API calls or large data processing, especially within the `WorkflowManager`'s various processing functions (e.g., `processGitHubIssue`, `processPendingTasks`, `installWorkflows`)."
-      ],
-      "metadata": {
-        "issueNumber": 50
->>>>>>> main
+        "issueNumber": 60
       }
     }
   ],
