@@ -1,9 +1,9 @@
 {
   "issueNumber": 60,
-  "created": "2026-02-22T16:02:08.891Z",
+  "created": "2026-02-22T16:02:12.490Z",
   "history": [
     {
-      "timestamp": "2026-02-22T16:02:08.891Z",
+      "timestamp": "2026-02-22T16:02:12.490Z",
       "role": "user",
       "content": {
         "number": 60,
@@ -21,38 +21,38 @@
       }
     },
     {
-      "timestamp": "2026-02-22T16:02:15.714Z",
+      "timestamp": "2026-02-22T16:02:20.134Z",
       "role": "assistant",
       "content": {
         "complexity": "medium",
         "type": "bug",
         "suggestedColumn": "a_faire",
         "acceptanceCriteria": [
-          "The application should gracefully handle and inform the user when an 'ENOSPC: no space left on device' error occurs during file write operations.",
-          "Temporary files created by the downloader (referenced in `src/downloader.js`) must be properly cleaned up, especially in cases of incomplete or failed downloads.",
-          "The application should proactively check for sufficient disk space before initiating large file write operations, providing a warning or error message if space is low."
+          "The application should gracefully handle ENOSPC errors during file write operations, preventing crashes and informing the user.",
+          "The application should provide clear guidance or configuration options to the user regarding storage locations for downloads and temporary files.",
+          "The application should implement a mechanism to check for available disk space before initiating large write operations (e.g., downloads)."
         ],
-        "icon": "🚫",
-        "color": "#D32F2F",
+        "icon": "💾",
+        "color": "#FF5733",
         "missingInformation": {
           "isMissing": true,
           "details": [
-            "Specific steps to reproduce the error, including what kind of content was being downloaded/processed.",
-            "The exact target directory where the application was attempting to write files.",
-            "Information about the user's available disk space at the time of the error.",
-            "The typical size of files being handled by the `downloader.js` module."
+            "The specific file path the application was attempting to write to when the 'ENOSPC' error occurred.",
+            "Details about the user's system disk space (total, free) on the drive where the application is installed or attempting to save data.",
+            "Steps to reproduce the issue consistently.",
+            "What operation was the user performing immediately before the error occurred (e.g., downloading a specific video, logging an event)?"
           ]
         },
         "fileActions": [
           {
             "action": "read",
             "path": "src/index.js",
-            "explanation": "To understand the context of `Object.info` at line 312 and how it interacts with file system writes, especially if it's logging or creating temporary files."
+            "explanation": "To investigate line 312 (`Object.info`) and understand what files are being written to and for what purpose (e.g., logging, application data)."
           },
           {
             "action": "read",
             "path": "src/downloader.js",
-            "explanation": "To investigate the file write operations, temporary file handling, and potential cleanup mechanisms within the download process, specifically around line 57."
+            "explanation": "To investigate line 57 and identify how downloaded content is being saved, what paths are used, and if any temporary files are created."
           }
         ]
       },
@@ -62,5 +62,5 @@
       }
     }
   ],
-  "updated": "2026-02-22T16:02:15.715Z"
+  "updated": "2026-02-22T16:02:20.143Z"
 }
