@@ -1,0 +1,58 @@
+{
+  "issueNumber": 60,
+  "created": "2026-02-22T16:01:42.687Z",
+  "history": [
+    {
+      "timestamp": "2026-02-22T16:01:42.688Z",
+      "role": "user",
+      "content": {
+        "number": 60,
+        "title": "Error: ENOSPC: no space left on device, write",
+        "body": "View details in Rollbar: [https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/31](https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/31)\n\n```\n\nError: ENOSPC: no space left on device, write\n  File \"node:fs\", line 2367, in Object.writeFileSync\n  File \"node:fs\", line 2448, in Object.appendFileSync\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\src\\index.js\", line 312, in Object.info\n  File \"C:\\Users\\alpha\\AppData\\Local\\Programs\\youtube\\resources\\app.asar\\src\\downloader.js\", line 57, in Socket.<anonymous>\n  File \"node:events\", line 518, in Socket.emit\n  File \"node:internal/streams/readable\", line 561, in addChunk\n  File \"node:internal/streams/readable\", line 512, in readableAddChunkPushByteMode\n  File \"node:internal/streams/readable\", line 392, in Readable.push\n  File \"node:internal/stream_base_commons\", line 191, in Pipe.onStreamRead\n```",
+        "labels": [],
+        "author": "alphaleadership",
+        "createdAt": "2026-02-22T16:01:25Z"
+      },
+      "metadata": {
+        "event": "issue_opened/labeled"
+      }
+    },
+    {
+      "timestamp": "2026-02-22T16:01:51.670Z",
+      "role": "assistant",
+      "content": {
+        "complexity": "medium",
+        "type": "bug",
+        "suggestedColumn": "a_faire",
+        "acceptanceCriteria": [
+          "The application should not crash with an ENOSPC error when attempting to write to a full disk.",
+          "Users should be informed via an appropriate message when there is insufficient disk space to complete an operation.",
+          "The application should gracefully handle scenarios where the disk becomes full during an ongoing write operation, preventing data corruption or loss where possible."
+        ],
+        "icon": "⚠️",
+        "color": "#FF5733",
+        "missingInformation": {
+          "isMissing": false,
+          "details": []
+        },
+        "fileActions": [
+          {
+            "action": "read",
+            "path": "src/index.js",
+            "explanation": "To understand the context of `Object.info` at line 312 and what data is being written, which leads to the ENOSPC error."
+          },
+          {
+            "action": "read",
+            "path": "src/downloader.js",
+            "explanation": "To understand the context of the `Socket.<anonymous>` function at line 57 and how it interacts with file writing operations during downloading."
+          }
+        ]
+      },
+      "metadata": {
+        "type": "analysis",
+        "iteration": 0
+      }
+    }
+  ],
+  "updated": "2026-02-22T16:01:51.671Z"
+}
