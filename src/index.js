@@ -1,4 +1,5 @@
 const { app, BrowserWindow, ipcMain, dialog, Menu, session } = require('electron');
+const binaryResolver = require('./binaryResolver');
 const rollbarConfig = require('../rollbar.config.js');
 const Rollbar = require('rollbar');
 const rollbar = new Rollbar(rollbarConfig);
@@ -43,6 +44,43 @@ const optimizeMemory = async () => {
 
 // Nettoyage périodique toutes les 10 minutes
 setInterval(optimizeMemory, 600000);
+
+/**
+ * File d'attente pour limiter le nombre de processus yt-dlp simultanés
+ */
+class DownloadQueue {
+  constructor(concurrency = 2) {
+    this.concurrency = concurrency;
+    this.running = 0;
+    this.queue = [];
+  }
+
+  async add(task) {
+    return new Promise((resolve, reject) => {
+      this.queue.push({ task, resolve, reject });
+      this.next();
+    });
+  }
+
+  next() {
+    if (this.running >= this.concurrency || this.queue.length === 0) {
+      return;
+    }
+
+    const { task, resolve, reject } = this.queue.shift();
+    this.running++;
+
+    task()
+      .then(resolve)
+      .catch(reject)
+      .finally(() => {
+        this.running--;
+        this.next();
+      });
+  }
+}
+
+const downloadQueue = new DownloadQueue(2);
 
 function setupElectronLogForwarding() {
   // Vérifie que log.hooks existe et est un tableau
@@ -300,9 +338,14 @@ const downloadbacklog = (parameter) => {
     fs.appendFileSync(path.join(app.getPath('userData'), 'historic.txt'), `${parameter}\n`);
     const logFilePath = path.join(app.getPath('userData'), 'download.log');
     
-    const ytdlpPath = process.platform === 'win32' ? path.join(app.getPath('userData'), 'ytdlp.exe') : path.join(app.getPath('userData'), 'ytdlp');
-    const ffmpegDir = path.join(app.getPath('userData'), 'ffmpeg', 'ffmpeg-master-latest-win64-gpl', 'bin');
-    const bunPath = process.platform === 'win32' ? path.join(app.getPath('userData'), 'bun.exe') : path.join(app.getPath('userData'), 'bun');
+    const ytdlpPath = binaryResolver.ytdlp;
+    const ffmpegDir = binaryResolver.ffmpegDir;
+    const bunPath = binaryResolver.bun;
+
+    if (!ytdlpPath) {
+      log.error('yt-dlp non trouvé');
+      return reject(new Error('yt-dlp non trouvé'));
+    }
 
     const args = createDownloadArgs(parameter, ffmpegDir, config.storagePath, config.outputFileFormat, bunPath);
 
@@ -326,15 +369,15 @@ const downloadbacklog = (parameter) => {
 };
 
 const downloaddata = (parameter) => {
-  const ytdlpPath = process.platform === 'win32' ? path.join(app.getPath('userData'), 'ytdlp.exe') : path.join(app.getPath('userData'), 'ytdlp');
+  const ytdlpPath = binaryResolver.ytdlp;
   
-  if (!fs.existsSync(ytdlpPath)) {
-    log.error(`yt-dlp non trouvé : ${ytdlpPath}`);
+  if (!ytdlpPath) {
+    log.error(`yt-dlp non trouvé`);
     return;
   }
 
-  const bunPath = process.platform === 'win32' ? path.join(app.getPath('userData'), 'bun.exe') : path.join(app.getPath('userData'), 'bun');
-  const args = createMetadataArgs(parameter, config.storagePath, config.outputFileFormat, bunPath);
+  const bunPath = binaryResolver.bun;
+  const args = createMetadataArgs(parameter, binaryResolver.ffmpegDir, config.storagePath, config.outputFileFormat, bunPath);
 
   const env = { ...process.env };
   const ytdlpDir = path.dirname(ytdlpPath);
@@ -360,6 +403,18 @@ const helmet = require('helmet');
 //web.use(cors(corsOptions));
 const http = require('http').Server(web);
 const io = require('socket.io')(http);
+
+// Forward errors to the UI via Socket.io
+log.hooks.push((message) => {
+  if (message.level === 'error' && io) {
+    const text = Array.isArray(message.data) ? message.data.map(String).join(' ') : String(message.data);
+    io.emit('error-notification', {
+      message: text,
+      type: 'error'
+    });
+  }
+  return message;
+});
 const morgan = require('morgan');
 const accessLogStream=fs.createWriteStream(path.join(app.getPath('userData'), "./log/access-"+`${new Date().toDateString()}`+".log"))
 const errorLogStream=fs.createWriteStream(path.join(app.getPath('userData'), "./log/error-"+`${new Date().toDateString()}`+".log"))
@@ -485,6 +540,13 @@ async function build() {
           fs.chmodSync(bunPath, '755');
         }
       }
+    }
+    
+    // Validate binaries after potential updates
+    const validation = await binaryResolver.validateBinaries();
+    log.info('Binary validation results:', validation);
+    if (!validation.ytdlp || !validation.ffmpeg) {
+      log.warn('Some essential binaries (yt-dlp or ffmpeg) are missing or non-functional.');
     }
   } catch (error) {
     log.error('Error during build downloads:', error);
