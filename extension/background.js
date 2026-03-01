@@ -31,7 +31,7 @@ function pruneRecent(now = Date.now()) {
 }
 
 function triggerApiDownload(videoUrl) {
-  const apiUrl = `http://localhost:3000/download?url=${encodeURIComponent(videoUrl)}`;
+  const apiUrl = `http://localhost:8001/download?url=${encodeURIComponent(videoUrl)}`;
   fetch(apiUrl, { method: "GET", mode: "no-cors" }).catch(() => undefined);
 }
 

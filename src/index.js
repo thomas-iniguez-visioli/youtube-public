@@ -1,4 +1,5 @@
-const { app, BrowserWindow, ipcMain, dialog,Menu } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, Menu, session } = require('electron');
+const binaryResolver = require('./binaryResolver');
 const rollbarConfig = require('../rollbar.config.js');
 const Rollbar = require('rollbar');
 const rollbar = new Rollbar(rollbarConfig);
@@ -10,6 +11,7 @@ const express = require('express');
 const RateLimit = require('express-rate-limit');
 const fs = require('fs');const https = require('https');
 const path = require('path');
+const os = require('os');
 const { updateFile } = require('./updater');
 const { createDownloadArgs, runDownload, createMetadataArgs } = require('./downloader');
 
@@ -18,6 +20,74 @@ const log = require('electron-log');
 log.transports.file.level = 'info';
 log.transports.console.level = 'info';
 log.transports.file.file = path.join(app.getPath('userData'), 'log', 'app.log');
+
+/**
+ * Optimisation de la mémoire et nettoyage du cache
+ */
+const optimizeMemory = async () => {
+  try {
+    log.info('Optimisation de la mémoire en cours...');
+    if (session.defaultSession) {
+      await session.defaultSession.clearCache();
+      await session.defaultSession.clearStorageData({
+        storages: ['appcache', 'cookies', 'filesystem', 'indexdb', 'localstorage', 'shadercache', 'websql', 'serviceworkers', 'cachestorage']
+      });
+    }
+    
+    // Trigger garbage collection if exposed
+    if (global.gc) {
+      global.gc();
+      log.info('Garbage collection manuelle effectuée.');
+    }
+
+    if (process.platform !== 'darwin') {
+      // Sur Windows/Linux, on peut essayer de forcer la réduction du working set
+    }
+    log.info('Nettoyage du cache terminé.');
+  } catch (err) {
+    log.error(`Erreur lors de l'optimisation mémoire : ${err.message}`);
+  }
+};
+
+// Nettoyage périodique toutes les 10 minutes
+setInterval(optimizeMemory, 600000);
+
+/**
+ * File d'attente pour limiter le nombre de processus yt-dlp simultanés
+ */
+class DownloadQueue {
+  constructor(concurrency = 2) {
+    this.concurrency = concurrency;
+    this.running = 0;
+    this.queue = [];
+  }
+
+  async add(task) {
+    return new Promise((resolve, reject) => {
+      this.queue.push({ task, resolve, reject });
+      this.next();
+    });
+  }
+
+  next() {
+    if (this.running >= this.concurrency || this.queue.length === 0) {
+      return;
+    }
+
+    const { task, resolve, reject } = this.queue.shift();
+    this.running++;
+
+    task()
+      .then(resolve)
+      .catch(reject)
+      .finally(() => {
+        this.running--;
+        this.next();
+      });
+  }
+}
+
+const downloadQueue = new DownloadQueue(2);
 
 function setupElectronLogForwarding() {
   // Vérifie que log.hooks existe et est un tableau
@@ -173,14 +243,82 @@ autoUpdater.on('download-progress', (progressObj) => {
   sendStatusToWindow(log_message);
 })
 autoUpdater.on('update-downloaded', (info) => {
-  sendStatusToWindow('Update downloaded');
+  sendStatusToWindow('Update downloaded. Restarting to install...');
+  setTimeout(() => {
+    autoUpdater.quitAndInstall();
+  }, 3000);
 });
+let backlogFile = 'backlog.txt';
+try {
+  backlogFile = path.join(app.getPath('desktop'), 'backlog.txt');
+} catch (err) {
+  log.error(`Erreur lors de la récupération du chemin desktop : ${err.message}`);
+}
 const backlog = [];
+let isSavingBacklog = false;
+
+const saveBacklog = () => {
+  try {
+    isSavingBacklog = true;
+    fs.writeFileSync(backlogFile, backlog.join('\n'), 'utf8');
+    // On laisse un petit délai pour que l'OS traite l'événement de modification
+    setTimeout(() => { isSavingBacklog = false; }, 500);
+  } catch (err) {
+    log.error(`Erreur lors de la sauvegarde du backlog : ${err.message}`);
+    isSavingBacklog = false;
+  }
+};
+
+const loadBacklog = () => {
+  try {
+    if (fs.existsSync(backlogFile)) {
+      const data = fs.readFileSync(backlogFile, 'utf8');
+      const lines = data.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+      
+      // On remplace le contenu du backlog par celui du fichier, 
+      // tout en préservant l'ordre.
+      backlog.length = 0;
+      lines.forEach(line => {
+        if (!backlog.includes(line)) {
+          backlog.push(line);
+        }
+      });
+      log.info(`Backlog rechargé : ${backlog.length} éléments.`);
+    }
+  } catch (err) {
+    log.error(`Erreur lors du chargement du backlog : ${err.message}`);
+  }
+};
+
+// Surveillance du fichier pour rechargement externe
+if (fs.existsSync(backlogFile)) {
+  fs.watch(backlogFile, (eventType) => {
+    if (eventType === 'change' && !isSavingBacklog) {
+      log.info('Modification externe du backlog détectée, rechargement...');
+      loadBacklog();
+    }
+  });
+} else {
+  // Si le fichier n'existe pas encore, on le crée vide pour pouvoir le surveiller
+  try {
+    fs.writeFileSync(backlogFile, '', 'utf8');
+    fs.watch(backlogFile, (eventType) => {
+      if (eventType === 'change' && !isSavingBacklog) {
+        log.info('Modification externe du backlog détectée, rechargement...');
+        loadBacklog();
+      }
+    });
+  } catch (e) {}
+}
+
+loadBacklog();
+
 let isDownloading = false;
 
 const download = (url) => {
   if (!backlog.includes(url)) {
     backlog.push(url);
+    saveBacklog();
   }
 };
 
@@ -194,6 +332,7 @@ const processBacklog = async () => {
       log.error(`Erreur de téléchargement pour ${url}: ${err.message}`);
     } finally {
       backlog.shift();
+      saveBacklog();
       isDownloading = false;
     }
   }
@@ -202,13 +341,18 @@ const processBacklog = async () => {
 setInterval(processBacklog, 1000);
 
 const downloadbacklog = (parameter) => {
-  return new Promise((resolve, reject) => {
+  return downloadQueue.add(() => new Promise((resolve, reject) => {
     fs.appendFileSync(path.join(app.getPath('userData'), 'historic.txt'), `${parameter}\n`);
     const logFilePath = path.join(app.getPath('userData'), 'download.log');
     
-    const ytdlpPath = process.platform === 'win32' ? path.join(app.getPath('userData'), 'ytdlp.exe') : path.join(app.getPath('userData'), 'ytdlp');
-    const ffmpegDir = path.join(app.getPath('userData'), 'ffmpeg', 'ffmpeg-master-latest-win64-gpl', 'bin');
-    const bunPath = process.platform === 'win32' ? path.join(app.getPath('userData'), 'bun.exe') : path.join(app.getPath('userData'), 'bun');
+    const ytdlpPath = binaryResolver.ytdlp;
+    const ffmpegDir = binaryResolver.ffmpegDir;
+    const bunPath = binaryResolver.bun;
+
+    if (!ytdlpPath) {
+      log.error('yt-dlp non trouvé');
+      return reject(new Error('yt-dlp non trouvé'));
+    }
 
     const args = createDownloadArgs(parameter, ffmpegDir, config.storagePath, config.outputFileFormat, bunPath);
 
@@ -220,34 +364,81 @@ const downloadbacklog = (parameter) => {
     };
 
     runDownload(ytdlpPath, args, logger)
-      .then(resolve)
-      .catch(reject);
-  });
+      .then((res) => {
+        optimizeMemory();
+        resolve(res);
+      })
+      .catch((err) => {
+        optimizeMemory();
+        reject(err);
+      });
+  }));
 };
 
 const downloaddata = (parameter) => {
-  const ytdlpPath = process.platform === 'win32' ? path.join(app.getPath('userData'), 'ytdlp.exe') : path.join(app.getPath('userData'), 'ytdlp');
-  const bunPath = process.platform === 'win32' ? path.join(app.getPath('userData'), 'bun.exe') : path.join(app.getPath('userData'), 'bun');
-  const args = createMetadataArgs(parameter, config.storagePath, config.outputFileFormat, bunPath);
+  return downloadQueue.add(() => new Promise((resolve, reject) => {
+    const ytdlpPath = binaryResolver.ytdlp;
+    
+    if (!ytdlpPath) {
+      log.error(`yt-dlp non trouvé`);
+      return reject(new Error('yt-dlp non trouvé'));
+    }
 
-  const env = { ...process.env };
-  const ytdlpDir = path.dirname(ytdlpPath);
-  if (process.platform === 'win32') {
-    env.Path = `${ytdlpDir};${env.Path || ''}`;
-  } else {
-    env.PATH = `${ytdlpDir}:${env.PATH || ''}`;
-  }
+    const bunPath = binaryResolver.bun;
+    const args = createMetadataArgs(parameter, binaryResolver.ffmpegDir, config.storagePath, config.outputFileFormat, bunPath);
 
-  const childProcess = child.spawn(ytdlpPath, args, { shell: true, env });
-  childProcess.stdout.on('data', (data) => log.info(`stdout: ${data}`));
-  childProcess.stderr.on('data', (data) => log.error(`stderr: ${data}`));
+    const env = { ...process.env };
+    const ytdlpDir = path.dirname(ytdlpPath);
+    if (process.platform === 'win32') {
+      env.Path = `${ytdlpDir};${env.Path || ''}`;
+    } else {
+      env.PATH = `${ytdlpDir}:${env.PATH || ''}`;
+    }
+
+    const childProcess = child.spawn(ytdlpPath, args, { env });
+    childProcess.on('error', (err) => {
+      log.error(`Erreur lors du lancement de yt-dlp : ${err.message}`);
+      reject(err);
+    });
+    childProcess.stdout.on('data', (data) => log.info(`stdout: ${data}`));
+    childProcess.stderr.on('data', (data) => log.error(`stderr: ${data}`));
+    childProcess.on('close', (code) => {
+      optimizeMemory();
+      if (code === 0) resolve();
+      else reject(new Error(`yt-dlp (metadata) exited with code ${code}`));
+    });
+  }));
 };
+const { version } = require('../package.json');
 const web = express();
+web.use(express.json());
+web.use(express.urlencoded({ extended: true }));
+web.locals.appVersion = version;
+web.locals.backlogFile = backlogFile;
+web.use((req, res, next) => {
+  res.locals.historyLimit = Math.floor(db.database.length * 0.8);
+  res.locals.historyCount = db.history.length;
+  res.locals.queueCount = db.queue.length;
+  res.locals.backlogFile = path.join(os.homedir(), 'Desktop', 'backlog.txt');
+  next();
+});
 const helmet = require('helmet');
 //web.use(helmet());
 //web.use(cors(corsOptions));
 const http = require('http').Server(web);
 const io = require('socket.io')(http);
+
+// Forward errors to the UI via Socket.io
+log.hooks.push((message) => {
+  if (message.level === 'error' && io) {
+    const text = Array.isArray(message.data) ? message.data.map(String).join(' ') : String(message.data);
+    io.emit('error-notification', {
+      message: text,
+      type: 'error'
+    });
+  }
+  return message;
+});
 const morgan = require('morgan');
 const accessLogStream=fs.createWriteStream(path.join(app.getPath('userData'), "./log/access-"+`${new Date().toDateString()}`+".log"))
 const errorLogStream=fs.createWriteStream(path.join(app.getPath('userData'), "./log/error-"+`${new Date().toDateString()}`+".log"))
@@ -261,29 +452,51 @@ web.use((err, req, res, next) => {
 });
 
 const d = require('./db.js');
-const zipUrl='https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip'
-updateFile(zipUrl, path.join(app.getPath('userData'), 'ffmpeg.zip')) // Correction pour utiliser path.join pour une construction de chemin valide
-.then(() => {
-  const unzipper = require('unzipper');
-  fs.createReadStream(path.join(app.getPath('userData'), 'ffmpeg.zip')) // Correction pour utiliser path.join pour une construction de chemin valide
-    .pipe(unzipper.Extract({ path: path.join(app.getPath('userData'), 'ffmpeg')})) // Correction pour utiliser path.join pour une construction de chemin valide
+const zipUrl = 'https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip';
+const ffmpegExePath = path.join(app.getPath('userData'), process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg');
+
+if (!fs.existsSync(ffmpegExePath)) {
+  updateFile(zipUrl, path.join(app.getPath('userData'), 'ffmpeg.zip'))
     .then(() => {
-      const binPath = path.join(app.getPath('userData'), 'ffmpeg', 'ffmpeg-master-latest-win64-gpl','bin');
-      fs.readdir(binPath, (err, files) => {
-        console.log(`les fichier sont : ${files}`)
-        files.forEach(file => {
-          console.log(file)
-          fs.copyFileSync(path.join(binPath, file), path.join(app.getPath('userData'), file));
+      const unzipper = require('unzipper');
+      fs.createReadStream(path.join(app.getPath('userData'), 'ffmpeg.zip'))
+        .pipe(unzipper.Extract({ path: path.join(app.getPath('userData'), 'ffmpeg') }))
+        .promise()
+        .then(() => {
+          const binPath = path.join(app.getPath('userData'), 'ffmpeg', 'ffmpeg-master-latest-win64-gpl', 'bin');
+          if (fs.existsSync(binPath)) {
+            const files = fs.readdirSync(binPath);
+            files.forEach(file => {
+              fs.copyFileSync(path.join(binPath, file), path.join(app.getPath('userData'), file));
+              if (process.platform !== 'win32') {
+                fs.chmodSync(path.join(app.getPath('userData'), file), '755');
+              }
+            });
+          }
         });
-      });
-    });
-});
+    })
+    .catch(err => log.error('Erreur lors de la mise à jour de FFmpeg:', err));
+}
 const base = config.storagePath;
 
 web.set('view engine', 'ejs');
 web.set('views', path.join(app.getPath('userData'), 'views'));
 
 async function build() {
+  const currentVersion = require('../package.json').version;
+  const versionFilePath = path.join(app.getPath('userData'), 'version.txt');
+  let lastVersion = '';
+  try {
+    if (fs.existsSync(versionFilePath)) {
+      lastVersion = fs.readFileSync(versionFilePath, 'utf8').trim();
+    }
+  } catch (e) {}
+
+  const isNewVersion = currentVersion !== lastVersion;
+  if (isNewVersion) {
+    log.info(`Nouvelle version détectée : ${lastVersion} -> ${currentVersion}. Mise à jour forcée des assets.`);
+  }
+
   fs.mkdir(path.join(app.getPath('userData'), "src/"), { recursive: true }, (err) => {
     if (err){} //log.info(err);
   });
@@ -299,44 +512,67 @@ async function build() {
   fs.mkdir(base, { recursive: true }, (err) => {
     if (err) {}
   });
+  const bunBinary = process.platform === 'win32' ? 'bun.exe' : 'bun';
+  const bunPath = path.join(app.getPath('userData'), bunBinary);
   const bunUrl = process.platform === 'win32' 
     ? 'https://github.com/oven-sh/bun/releases/latest/download/bun-windows-x64.zip' 
     : 'https://github.com/oven-sh/bun/releases/latest/download/bun-linux-x64.zip';
   const bunZipName = 'bun.zip';
 
-  const downloads = [
-    updateFile('https://cdn.socket.io/4.4.1/socket.io.js', path.join(app.getPath('userData'), 'src/client-dist/socket.io.js')),
-    updateFile('https://cdn.socket.io/4.4.1/socket.io.js.map', path.join(app.getPath('userData'), 'src/client-dist/socket.io.js.map')),
-    updateFile(process.platform === 'win32' ? 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe' : 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp', path.join(app.getPath('userData'), process.platform === 'win32' ? 'ytdlp.exe' : 'ytdlp')),
-    updateFile(bunUrl, path.join(app.getPath('userData'), bunZipName)),
-    updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/views/index.ejs', path.join(app.getPath('userData'), 'views','index.ejs')),
-    updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/views/view.ejs', path.join(app.getPath('userData'), 'views','view.ejs')),
-    updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/renderer.js', path.join(app.getPath('userData'), 'src/renderer.js'))
-  ];
+  // Optimisation: skip heavy downloads if binary already exists and it's not a new version
+  const downloads = [];
+  if (isNewVersion || !fs.existsSync(path.join(app.getPath('userData'), 'src/client-dist/socket.io.js'))) {
+    downloads.push(updateFile('https://cdn.socket.io/4.4.1/socket.io.js', path.join(app.getPath('userData'), 'src/client-dist/socket.io.js'), isNewVersion));
+    downloads.push(updateFile('https://cdn.socket.io/4.4.1/socket.io.js.map', path.join(app.getPath('userData'), 'src/client-dist/socket.io.js.map'), isNewVersion));
+  }
+  
+  if (isNewVersion || !fs.existsSync(path.join(app.getPath('userData'), process.platform === 'win32' ? 'ytdlp.exe' : 'ytdlp'))) {
+    downloads.push(updateFile(process.platform === 'win32' ? 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe' : 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp', path.join(app.getPath('userData'), process.platform === 'win32' ? 'ytdlp.exe' : 'ytdlp'), isNewVersion));
+  }
+
+  if (isNewVersion || !fs.existsSync(bunPath)) {
+    downloads.push(updateFile(bunUrl, path.join(app.getPath('userData'), bunZipName), isNewVersion));
+  }
+
+  // Always update small template files to ensure latest UI
+  downloads.push(updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/views/index.ejs', path.join(app.getPath('userData'), 'views','index.ejs'), true));
+  downloads.push(updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/views/view.ejs', path.join(app.getPath('userData'), 'views','view.ejs'), true));
+  downloads.push(updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/renderer.js', path.join(app.getPath('userData'), 'src/renderer.js'), true));
 
   try {
-    await Promise.allSettled(downloads);
-    log.info('Initial builds/downloads completed');
+    if (downloads.length > 0) {
+      await Promise.allSettled(downloads);
+      log.info('Initial builds/downloads completed');
+      // Sauvegarder la nouvelle version après succès
+      fs.writeFileSync(versionFilePath, currentVersion);
+    }
     
-    // Unzip Bun
+    // Unzip Bun only if binary is missing
     const bunZipPath = path.join(app.getPath('userData'), 'bun.zip');
-    if (fs.existsSync(bunZipPath)) {
+    if (fs.existsSync(bunZipPath) && !fs.existsSync(bunPath)) {
       const unzipper = require('unzipper');
       await fs.createReadStream(bunZipPath)
         .pipe(unzipper.Extract({ path: path.join(app.getPath('userData'), 'bun-temp') }))
         .promise();
       
       const bunFolder = process.platform === 'win32' ? 'bun-windows-x64' : 'bun-linux-x64';
-      const bunBinary = process.platform === 'win32' ? 'bun.exe' : 'bun';
       const bunTempDir = path.join(app.getPath('userData'), 'bun-temp', bunFolder);
       
       if (fs.existsSync(path.join(bunTempDir, bunBinary))) {
-        fs.copyFileSync(path.join(bunTempDir, bunBinary), path.join(app.getPath('userData'), bunBinary));
+        fs.copyFileSync(path.join(bunTempDir, bunBinary), bunPath);
         if (process.platform !== 'win32') {
-          fs.chmodSync(path.join(app.getPath('userData'), bunBinary), '755');
+          fs.chmodSync(bunPath, '755');
         }
       }
     }
+    
+    // Validate binaries after potential updates
+    const validation = await binaryResolver.validateBinaries();
+    log.info('Binary validation results:', validation);
+    if (!validation.ytdlp || !validation.ffmpeg) {
+      log.warn('Some essential binaries (yt-dlp or ffmpeg) are missing or non-functional.');
+    }
+    optimizeMemory();
   } catch (error) {
     log.error('Error during build downloads:', error);
   }
@@ -350,7 +586,7 @@ try {
 }
 build().then((d)=>{
   web.listen(8001, function () {
-    log.info('Listening on port 8000!');
+    log.info('Listening on port 8001!');
     booted=!booted
   });
 })
@@ -405,34 +641,80 @@ web.get("/", function (req, res) {
 
   // Algorithme de référencement simplifié
   const database = db.database;
-  const referencement = database.map(item => {
+  const referencement = database
+    .map(item => {
     const infoJsonPath = path.join(app.getPath('userData'), 'file', item.fileName.replace(".mp4", ".info.json"));
     const mp4Path = path.join(app.getPath('userData'), 'file', item.fileName);
-    console.log(`fichier ${mp4Path} status ${fs.existsSync(infoJsonPath)}`);
-    if (!fs.existsSync(infoJsonPath)) {
-      db.removeFile(item.yid);
-      fs.unlinkSync(mp4Path);
-      return; // sort de la boucle
+    
+    // Don't delete files here, just use defaults if info.json is missing
+    let infoJson = {};
+    if (fs.existsSync(infoJsonPath)) {
+      try {
+        infoJson = require(infoJsonPath);
+      } catch (error) {
+        console.error(`Erreur lors de la lecture de ${infoJsonPath}: ${error}`);
+      }
+    } else {
+      console.warn(`Info JSON manquante pour ${item.fileName}`);
     }
-    let infoJson;
-    try {
-      infoJson = require(infoJsonPath);
-    } catch (error) {
-      console.error(`Erreur lors de la lecture de ${infoJsonPath}: ${error}`);
-      db.removeFile(item.yid);
-      fs.unlinkSync(mp4Path);
-      return; // sort de la boucle
+    
+    if (infoJson.display_id && infoJson.uploader) {
+      db.addTag(infoJson.display_id, infoJson.uploader);
+      db.ensureChannelPlaylist(infoJson.display_id, infoJson.uploader);
     }
-    db.addTag(infoJson.display_id, infoJson.uploader);
+    
     const score = (infoJson.view_count || 0) * 0.5 + (infoJson.like_count || 0) * 0.3 + (infoJson.comment_count || 0) * 0.2;
-    return { ...item, score, uploader: infoJson.uploader };
-  }).sort((a, b) => b.score - a.score);
+    return { ...item, score, uploader: infoJson.uploader || 'Uploader inconnu' };
+  })
+  .filter(Boolean)
+  .sort((a, b) => b.score - a.score);
 
   res.render('index', {
     results: referencement,
-    channel: null
+    channel: null,
+    channelUrl: null,
+    playlists: db.getPlaylists()
   });
 })
+web.get("/queue", function (req, res) {
+  const queue = db.getQueue();
+  res.render('index', {
+    results: queue,
+    channel: "Ma File d'attente",
+    channelUrl: null,
+    playlists: db.getPlaylists()
+  });
+});
+
+web.get("/queue/add", function (req, res) {
+  const videoId = req.query.id;
+  if (videoId) {
+    db.addToQueue(videoId);
+  }
+  if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+    res.json({ success: true, queueCount: db.queue.length });
+  } else {
+    res.redirect("back");
+  }
+});
+
+web.get("/queue/remove", function (req, res) {
+  const videoId = req.query.id;
+  if (videoId) {
+    db.removeFromQueue(videoId);
+  }
+  if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+    res.json({ success: true, queueCount: db.queue.length });
+  } else {
+    res.redirect("back");
+  }
+});
+
+web.get("/queue/clear", function (req, res) {
+  db.clearQueue();
+  res.redirect("/queue");
+});
+
 web.get("/watch", function (req, res) {
   autoUpdater.checkForUpdatesAndNotify();
   const fileData = db.getFile(req.query.id);
@@ -451,6 +733,10 @@ web.get("/watch", function (req, res) {
   if (fs.existsSync(infoPath)) {
     try {
       videodata = JSON.parse(fs.readFileSync(infoPath, 'utf8'));
+      if (videodata.display_id && videodata.uploader) {
+        db.addTag(videodata.display_id, videodata.uploader);
+        db.ensureChannelPlaylist(videodata.display_id, videodata.uploader);
+      }
       // Trigger update metadata in background only if needed
       if (videodata.webpage_url) {
         downloaddata(videodata.webpage_url);
@@ -461,6 +747,7 @@ web.get("/watch", function (req, res) {
   }
 
   const database = db.database;
+  const historyWithoutCurrent = db.history.filter(id => id !== req.query.id);
   const referencement = database.map(item => {
     const itemInfoPath = path.join(config.storagePath, item.fileName.replace(".mp4", ".info.json"));
     let score = 0;
@@ -473,12 +760,52 @@ web.get("/watch", function (req, res) {
     return { ...item, score };
   }).sort((a, b) => b.score - a.score);
 
+  const filteredReferencement = referencement.filter(item => !historyWithoutCurrent.includes(item.yid));
+
+  const playlistName = req.query.playlist;
+  let nextVideo = null;
+  const currentInQueue = db.queue.includes(req.query.id);
+
+  // Check user queue first
+  if (db.queue.length > 0) {
+    // Si la vidéo actuelle est dans la file, on propose la suivante dans la file
+    const queueIdx = db.queue.indexOf(req.query.id);
+    if (queueIdx !== -1) {
+      if (queueIdx < db.queue.length - 1) {
+        nextVideo = db.getFile(db.queue[queueIdx + 1]);
+      }
+    } else {
+      // Sinon on propose la première de la file
+      nextVideo = db.getFile(db.queue[0]);
+    }
+  }
+
+  // If no queue, check playlist
+  if (!nextVideo && playlistName) {
+    const playlist = db.getPlaylist(playlistName);
+    if (playlist) {
+      const currentIndex = playlist.videoIds.indexOf(req.query.id);
+      if (currentIndex !== -1 && currentIndex < playlist.videoIds.length - 1) {
+        nextVideo = db.getFile(playlist.videoIds[currentIndex + 1]);
+      }
+    }
+  }
+
+  // Fallback if not in playlist or end of playlist/queue
+  if (!nextVideo) {
+    const currentIdx = filteredReferencement.findIndex(item => item.yid === req.query.id);
+    nextVideo = currentIdx === filteredReferencement.length - 1 ? filteredReferencement[0] : filteredReferencement[currentIdx + 1];
+  }
+
   res.render('view', {
     code: req.query.id,
-    videos: db.database,
+    videos: filteredReferencement,
     title: fileData.fileName,
     videodata: videodata,
-    nextVideo: referencement.findIndex(item => item.yid === req.query.id) === referencement.length - 1 ? referencement[0] : referencement[referencement.findIndex(item => item.yid === req.query.id) + 1]
+    nextVideo: nextVideo,
+    playlistName: playlistName,
+    currentInQueue: currentInQueue,
+    playlists: db.getPlaylists()
   });
 });
 web.get("/download", function (req, res) {
@@ -537,12 +864,16 @@ web.get("/channel", function (req, res) {
   const channelName = req.query.name;
   db.readDatabase();
   
+  let channelUrl = null;
   const results = db.database.filter(item => {
     const infoPath = path.join(config.storagePath, item.fileName.replace(".mp4", ".info.json"));
     if (fs.existsSync(infoPath)) {
       try {
         const info = JSON.parse(fs.readFileSync(infoPath, 'utf8'));
-        return info.uploader === channelName;
+        if (info.uploader === channelName) {
+          if (!channelUrl) channelUrl = info.channel_url || info.uploader_url;
+          return true;
+        }
       } catch (e) {
         return false;
       }
@@ -554,7 +885,9 @@ web.get("/channel", function (req, res) {
 
   res.render('index', {
     results: results,
-    channel: channelName
+    channel: channelName,
+    channelUrl: channelUrl,
+    playlists: db.getPlaylists()
   });
 });
 
@@ -573,8 +906,73 @@ web.get("/history", function (req, res) {
 
   res.render('index', {
     results: history,
-    channel: "Historique"
+    channel: "Historique",
+    channelUrl: null,
+    playlists: db.getPlaylists()
   });
+});
+
+web.get("/playlists", function (req, res) {
+  res.render('index', {
+    results: [],
+    channel: "Mes Playlists",
+    channelUrl: null,
+    playlists: db.getPlaylists()
+  });
+});
+
+web.get("/playlist", function (req, res) {
+  const name = req.query.name;
+  const playlist = db.getPlaylist(name);
+  
+  if (!playlist) return res.redirect("/playlists");
+
+  const results = playlist.videos.map(item => {
+    const infoPath = path.join(config.storagePath, item.fileName.replace(".mp4", ".info.json"));
+    let uploader = "Inconnu";
+    if (fs.existsSync(infoPath)) {
+      try {
+        const info = JSON.parse(fs.readFileSync(infoPath, 'utf8'));
+        uploader = info.uploader;
+      } catch (e) {}
+    }
+    return { ...item, uploader };
+  });
+
+  res.render('index', {
+    results: results,
+    channel: `Playlist : ${name}`,
+    channelUrl: null,
+    playlists: db.getPlaylists()
+  });
+});
+
+web.post("/playlist/create", function (req, res) {
+  const name = req.body.name;
+  if (name) db.createPlaylist(name);
+  res.redirect("/playlists");
+});
+
+web.post("/playlist/add", function (req, res) {
+  const { playlistName, videoId } = req.body;
+  if (playlistName && videoId) {
+    db.addVideoToPlaylist(playlistName, videoId);
+  }
+  res.redirect(`/watch?id=${videoId}`);
+});
+
+web.get("/playlist/remove", function (req, res) {
+  const { name, videoId } = req.query;
+  if (name && videoId) {
+    db.removeVideoFromPlaylist(name, videoId);
+  }
+  res.redirect(`/playlist?name=${encodeURIComponent(name)}`);
+});
+
+web.get("/playlist/delete", function (req, res) {
+  const name = req.query.name;
+  if (name) db.deletePlaylist(name);
+  res.redirect("/playlists");
 });
 
 
