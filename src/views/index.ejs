@@ -180,7 +180,7 @@
             <div class="d-flex align-items-center mb-4 mt-3">
                 <h2 class="text-white"><%= channel %></h2>
                 <% if (typeof channelUrl !== 'undefined' && channelUrl) { %>
-                    <button class="btn btn-primary btn-sm ms-3" onclick="downloadChannel('<%= channelUrl %>')">Télécharger la chaîne</button>
+                    <button class="btn btn-primary btn-sm ms-3" onclick="downloadChannel('<%= channelUrl.replace(/'/g, "\\'") %>')">Télécharger la chaîne</button>
                 <% } %>
                 <% if (channel.startsWith('Playlist : ')) { %>
                     <a href="/playlist/delete?name=<%= encodeURIComponent(channel.replace('Playlist : ', '')) %>" class="btn btn-danger btn-sm ms-3" onclick="return confirm('Supprimer cette playlist ?')">Supprimer la playlist</a>
@@ -226,7 +226,7 @@
             <div class="filter-chip active" onclick="filterByTag('all', this)">Tous</div>
             <% const uniqueTags = [... new Set(results.reduce((acc, result) => acc.concat(result.tags), []))]; %>
             <% uniqueTags.forEach(function(tag){ %>
-                <div class="filter-chip" onclick="filterByTag('<%= tag %>', this)"><%= tag %></div>
+                <div class="filter-chip" onclick="filterByTag('<%= tag.replace(/'/g, "\\'") %>', this)"><%= tag %></div>
             <% }); %>
         </div>
 
@@ -268,9 +268,9 @@
                 let playlistParam = '';
                 if (channel) {
                     if (channel.startsWith('Playlist : ')) {
-                        playlistParam = '&playlist=' + encodeURIComponent(channel.replace('Playlist : ', ''));
+                        playlistParam = '&playlist=' + encodeURIComponent(channel.replace('Playlist : ', '')).replace(/'/g, "%27");
                     } else if (channel !== 'Mes Playlists' && channel !== 'Historique') {
-                        playlistParam = '&playlist=' + encodeURIComponent('Channel: ' + channel);
+                        playlistParam = '&playlist=' + encodeURIComponent('Channel: ' + channel).replace(/'/g, "%27");
                     }
                 }
 
@@ -282,7 +282,7 @@
                 let actionBtns = '';
                 
                 if (channel && channel.startsWith('Playlist : ')) {
-                    actionBtns += `<button class="btn btn-sm btn-outline-warning" onclick="event.stopPropagation(); if(confirm('Retirer de la playlist ?')) window.location.href='/playlist/remove?name=${encodeURIComponent(channel.replace('Playlist : ', ''))}&videoId=${result.yid}'">Retirer</button>`;
+                    actionBtns += `<button class="btn btn-sm btn-outline-warning" onclick="event.stopPropagation(); if(confirm('Retirer de la playlist ?')) window.location.href='/playlist/remove?name=${encodeURIComponent(channel.replace('Playlist : ', '')).replace(/'/g, "\\'")}&videoId=${result.yid}'">Retirer</button>`;
                 }
                 if (channel === "Ma File d'attente") {
                     actionBtns += `<button class="btn btn-sm btn-outline-warning" onclick="event.stopPropagation(); window.location.href='/queue/remove?id=${result.yid}'">Retirer</button>`;

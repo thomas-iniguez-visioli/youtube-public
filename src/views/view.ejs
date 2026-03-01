@@ -337,7 +337,7 @@
                         if (e.shiftKey) { // YouTube shortcut: Shift + N
                             e.preventDefault();
                             const nextId = '<%= (typeof nextVideo !== 'undefined') ? (nextVideo.id || nextVideo.yid) : '' %>';
-                            const playlistParam = '<%= (typeof playlistName !== 'undefined' && playlistName) ? "&playlist=" + encodeURIComponent(playlistName) : "" %>';
+                            const playlistParam = '<%= (typeof playlistName !== 'undefined' && playlistName) ? "&playlist=" + encodeURIComponent(playlistName).replace(/'/g, "%27") : "" %>';
                             if (nextId) window.location.href = `/watch?id=${nextId}${playlistParam}`;
                         }
                         break;
@@ -354,7 +354,7 @@
             // Autoplay next video
             document.getElementById('videoPlayer').addEventListener('ended', function() {
                 const nextId = '<%= (typeof nextVideo !== 'undefined') ? (nextVideo.id || nextVideo.yid) : '' %>';
-                const playlistParam = '<%= (typeof playlistName !== 'undefined' && playlistName) ? "&playlist=" + encodeURIComponent(playlistName) : "" %>';
+                const playlistParam = '<%= (typeof playlistName !== 'undefined' && playlistName) ? "&playlist=" + encodeURIComponent(playlistName).replace(/'/g, "%27") : "" %>';
                 if (nextId) window.location.href = `/watch?id=${nextId}${playlistParam}`;
             });
 
