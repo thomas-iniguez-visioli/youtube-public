@@ -1,6 +1,6 @@
 # Gemini CLI - Journal des modifications
 
-## [1.1.59] - 2026-03-01
+## [1.1.59a] - 2026-03-01
 ### Ajouté
 - **File d'attente de lecture (Queue)** : Système permettant d'ajouter des vidéos à une file d'attente prioritaire avec gestion AJAX, retrait automatique après lecture et vue dédiée pour la gestion.
 - **Indicateur d'historique** : Affichage dynamique de l'utilisation de l'historique (nombre actuel / limite maximale) dans la barre de navigation.
