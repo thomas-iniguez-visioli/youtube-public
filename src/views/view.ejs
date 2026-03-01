@@ -198,7 +198,7 @@
                             </ul>
                         </div>
                         <% if (typeof nextVideo !== 'undefined' && nextVideo) { %>
-                            <a href="/watch?id=<%= nextVideo.id || nextVideo.yid %><%= (typeof playlistName !== 'undefined' && playlistName) ? '&playlist=' + encodeURIComponent(playlistName) : '' %>" class="btn btn-outline-primary btn-sm me-2">Vidéo suivante</a>
+                            <button onclick="playNext()" class="btn btn-outline-primary btn-sm me-2">Vidéo suivante</button>
                         <% } %>
                         <a href="/delete?id=<%= code %>" class="btn btn-outline-danger btn-sm">Supprimer</a>
                     </div>
@@ -336,9 +336,7 @@
                     case 'n':
                         if (e.shiftKey) { // YouTube shortcut: Shift + N
                             e.preventDefault();
-                            const nextId = '<%= (typeof nextVideo !== 'undefined') ? (nextVideo.id || nextVideo.yid) : '' %>';
-                            const playlistParam = '<%= (typeof playlistName !== 'undefined' && playlistName) ? "&playlist=" + encodeURIComponent(playlistName).replace(/'/g, "%27") : "" %>';
-                            if (nextId) window.location.href = `/watch?id=${nextId}${playlistParam}`;
+                            playNext();
                         }
                         break;
                 }
@@ -353,14 +351,33 @@
 
             // Autoplay next video
             document.getElementById('videoPlayer').addEventListener('ended', function() {
-                const nextId = '<%= (typeof nextVideo !== 'undefined') ? (nextVideo.id || nextVideo.yid) : '' %>';
-                const playlistParam = '<%= (typeof playlistName !== 'undefined' && playlistName) ? "&playlist=" + encodeURIComponent(playlistName).replace(/'/g, "%27") : "" %>';
-                if (nextId) window.location.href = `/watch?id=${nextId}${playlistParam}`;
+                playNext();
             });
 
             // Exposé pour le debug si besoin
             window.player = player;
         });
+
+        async function playNext() {
+            const nextId = '<%= (typeof nextVideo !== 'undefined') ? (nextVideo.id || nextVideo.yid) : '' %>';
+            const playlistParam = '<%= (typeof playlistName !== 'undefined' && playlistName) ? "&playlist=" + encodeURIComponent(playlistName).replace(/'/g, "%27") : "" %>';
+            const currentInQueue = <%= typeof currentInQueue !== 'undefined' ? currentInQueue : 'false' %>;
+            
+            if (currentInQueue) {
+                try {
+                    await fetch(`/queue/remove?id=<%= code %>`, { headers: { 'Accept': 'application/json' } });
+                } catch(e) {
+                    console.error("Erreur suppression file :", e);
+                }
+            }
+
+            if (nextId) {
+                window.location.href = `/watch?id=${nextId}${playlistParam}`;
+            } else if (currentInQueue) {
+                // Si on était dans la file et qu'il n'y a pas de vidéo suivante, on retourne à l'accueil
+                window.location.href = '/';
+            }
+        }
 
         async function addToQueue(videoId) {
             try {

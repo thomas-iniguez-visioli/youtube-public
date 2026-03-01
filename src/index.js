@@ -703,7 +703,11 @@ web.get("/queue/remove", function (req, res) {
   if (videoId) {
     db.removeFromQueue(videoId);
   }
-  res.redirect("back");
+  if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+    res.json({ success: true, queueCount: db.queue.length });
+  } else {
+    res.redirect("back");
+  }
 });
 
 web.get("/queue/clear", function (req, res) {
@@ -760,15 +764,20 @@ web.get("/watch", function (req, res) {
 
   const playlistName = req.query.playlist;
   let nextVideo = null;
-
-  // Remove current video from queue if it was in it
-  if (db.queue.includes(req.query.id)) {
-    db.removeFromQueue(req.query.id);
-  }
+  const currentInQueue = db.queue.includes(req.query.id);
 
   // Check user queue first
   if (db.queue.length > 0) {
-    nextVideo = db.getFile(db.queue[0]);
+    // Si la vidéo actuelle est dans la file, on propose la suivante dans la file
+    const queueIdx = db.queue.indexOf(req.query.id);
+    if (queueIdx !== -1) {
+      if (queueIdx < db.queue.length - 1) {
+        nextVideo = db.getFile(db.queue[queueIdx + 1]);
+      }
+    } else {
+      // Sinon on propose la première de la file
+      nextVideo = db.getFile(db.queue[0]);
+    }
   }
 
   // If no queue, check playlist
@@ -795,6 +804,7 @@ web.get("/watch", function (req, res) {
     videodata: videodata,
     nextVideo: nextVideo,
     playlistName: playlistName,
+    currentInQueue: currentInQueue,
     playlists: db.getPlaylists()
   });
 });
