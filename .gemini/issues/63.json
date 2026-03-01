@@ -1,0 +1,52 @@
+{
+  "issueNumber": 63,
+  "created": "2026-03-01T18:38:19.126Z",
+  "history": [
+    {
+      "timestamp": "2026-03-01T18:38:19.126Z",
+      "role": "user",
+      "content": {
+        "number": 63,
+        "title": "Error: listen EADDRINUSE: address already in use :::8001",
+        "body": "View details in Rollbar: [https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/33](https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/33)\n\n```\n\nError: listen EADDRINUSE: address already in use :::8001\n  File \"node:net\", line 1908, in Server.setupListenHandle [as _listen2]\n  File \"node:net\", line 1965, in listenInCluster\n  File \"node:net\", line 2067, in Server.listen\n  File \"C:\\Users\\alpha\\AppData\\Local\\Temp\\3AM6P7NubvwTm7PrX4xXyHZkbdy\\resources\\app.asar\\node_modules\\express\\lib\\application.js\", line 635, in Function.listen\n  File \"C:\\Users\\alpha\\AppData\\Local\\Temp\\3AM6P7NubvwTm7PrX4xXyHZkbdy\\resources\\app.asar\\src\\index.js\", line 588, in <unknown>\n```",
+        "labels": [],
+        "author": "alphaleadership",
+        "createdAt": "2026-03-01T18:38:03Z"
+      },
+      "metadata": {
+        "event": "issue_opened/labeled"
+      }
+    },
+    {
+      "timestamp": "2026-03-01T18:38:38.075Z",
+      "role": "assistant",
+      "content": {
+        "complexity": "medium",
+        "type": "bug",
+        "suggestedColumn": "a_faire",
+        "acceptanceCriteria": [
+          "The application starts successfully without encountering an 'EADDRINUSE' error when attempting to listen on port 8001 (or a configured alternative).",
+          "The application provides a mechanism (e.g., configurable port, graceful error message, or automatic port retry) to handle scenarios where the default port is already in use.",
+          "If applicable to this project, documentation includes guidance for users on how to troubleshoot and resolve 'EADDRINUSE' errors."
+        ],
+        "icon": "🛑",
+        "color": "#FF0000",
+        "missingInformation": {
+          "isMissing": true,
+          "details": [
+            "Clarification on whether 'FirstProject' (the application referenced in the stack trace and Rollbar link) is part of this `github-gemini-integration` repository, or if this issue is misfiled from a different project.",
+            "Exact steps to reproduce the error.",
+            "Details about the execution environment (e.g., if multiple instances of the application are intended to run, or if other services are expected on port 8001).",
+            "Whether the port 8001 is configurable within the application."
+          ]
+        },
+        "fileActions": []
+      },
+      "metadata": {
+        "type": "analysis",
+        "iteration": 0
+      }
+    }
+  ],
+  "updated": "2026-03-01T18:38:38.076Z"
+}
