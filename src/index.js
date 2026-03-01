@@ -11,6 +11,7 @@ const express = require('express');
 const RateLimit = require('express-rate-limit');
 const fs = require('fs');const https = require('https');
 const path = require('path');
+const os = require('os');
 const { updateFile } = require('./updater');
 const { createDownloadArgs, runDownload, createMetadataArgs } = require('./downloader');
 
@@ -32,9 +33,15 @@ const optimizeMemory = async () => {
         storages: ['appcache', 'cookies', 'filesystem', 'indexdb', 'localstorage', 'shadercache', 'websql', 'serviceworkers', 'cachestorage']
       });
     }
+    
+    // Trigger garbage collection if exposed
+    if (global.gc) {
+      global.gc();
+      log.info('Garbage collection manuelle effectuée.');
+    }
+
     if (process.platform !== 'darwin') {
       // Sur Windows/Linux, on peut essayer de forcer la réduction du working set
-      // bien que Node/V8 gère cela, Electron a parfois des fuites dans le processus de rendu
     }
     log.info('Nettoyage du cache terminé.');
   } catch (err) {
@@ -334,7 +341,7 @@ const processBacklog = async () => {
 setInterval(processBacklog, 1000);
 
 const downloadbacklog = (parameter) => {
-  return new Promise((resolve, reject) => {
+  return downloadQueue.add(() => new Promise((resolve, reject) => {
     fs.appendFileSync(path.join(app.getPath('userData'), 'historic.txt'), `${parameter}\n`);
     const logFilePath = path.join(app.getPath('userData'), 'download.log');
     
@@ -365,38 +372,53 @@ const downloadbacklog = (parameter) => {
         optimizeMemory();
         reject(err);
       });
-  });
+  }));
 };
 
 const downloaddata = (parameter) => {
-  const ytdlpPath = binaryResolver.ytdlp;
-  
-  if (!ytdlpPath) {
-    log.error(`yt-dlp non trouvé`);
-    return;
-  }
+  return downloadQueue.add(() => new Promise((resolve, reject) => {
+    const ytdlpPath = binaryResolver.ytdlp;
+    
+    if (!ytdlpPath) {
+      log.error(`yt-dlp non trouvé`);
+      return reject(new Error('yt-dlp non trouvé'));
+    }
 
-  const bunPath = binaryResolver.bun;
-  const args = createMetadataArgs(parameter, binaryResolver.ffmpegDir, config.storagePath, config.outputFileFormat, bunPath);
+    const bunPath = binaryResolver.bun;
+    const args = createMetadataArgs(parameter, binaryResolver.ffmpegDir, config.storagePath, config.outputFileFormat, bunPath);
 
-  const env = { ...process.env };
-  const ytdlpDir = path.dirname(ytdlpPath);
-  if (process.platform === 'win32') {
-    env.Path = `${ytdlpDir};${env.Path || ''}`;
-  } else {
-    env.PATH = `${ytdlpDir}:${env.PATH || ''}`;
-  }
+    const env = { ...process.env };
+    const ytdlpDir = path.dirname(ytdlpPath);
+    if (process.platform === 'win32') {
+      env.Path = `${ytdlpDir};${env.Path || ''}`;
+    } else {
+      env.PATH = `${ytdlpDir}:${env.PATH || ''}`;
+    }
 
-  const childProcess = child.spawn(ytdlpPath, args, { env });
-  childProcess.on('error', (err) => {
-    log.error(`Erreur lors du lancement de yt-dlp : ${err.message}`);
-  });
-  childProcess.stdout.on('data', (data) => log.info(`stdout: ${data}`));
-  childProcess.stderr.on('data', (data) => log.error(`stderr: ${data}`));
+    const childProcess = child.spawn(ytdlpPath, args, { env });
+    childProcess.on('error', (err) => {
+      log.error(`Erreur lors du lancement de yt-dlp : ${err.message}`);
+      reject(err);
+    });
+    childProcess.stdout.on('data', (data) => log.info(`stdout: ${data}`));
+    childProcess.stderr.on('data', (data) => log.error(`stderr: ${data}`));
+    childProcess.on('close', (code) => {
+      optimizeMemory();
+      if (code === 0) resolve();
+      else reject(new Error(`yt-dlp (metadata) exited with code ${code}`));
+    });
+  }));
 };
 const web = express();
 web.use(express.json());
 web.use(express.urlencoded({ extended: true }));
+web.use((req, res, next) => {
+  res.locals.historyLimit = Math.floor(db.database.length * 0.8);
+  res.locals.historyCount = db.history.length;
+  res.locals.queueCount = db.queue.length;
+  res.locals.backlogFile = path.join(os.homedir(), 'Desktop', 'backlog.txt');
+  next();
+});
 web.locals.backlogFile = backlogFile;
 const helmet = require('helmet');
 //web.use(helmet());
@@ -548,6 +570,7 @@ async function build() {
     if (!validation.ytdlp || !validation.ffmpeg) {
       log.warn('Some essential binaries (yt-dlp or ffmpeg) are missing or non-functional.');
     }
+    optimizeMemory();
   } catch (error) {
     log.error('Error during build downloads:', error);
   }
@@ -651,6 +674,41 @@ web.get("/", function (req, res) {
     playlists: db.getPlaylists()
   });
 })
+web.get("/queue", function (req, res) {
+  const queue = db.getQueue();
+  res.render('index', {
+    results: queue,
+    channel: "Ma File d'attente",
+    channelUrl: null,
+    playlists: db.getPlaylists()
+  });
+});
+
+web.get("/queue/add", function (req, res) {
+  const videoId = req.query.id;
+  if (videoId) {
+    db.addToQueue(videoId);
+  }
+  if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+    res.json({ success: true, queueCount: db.queue.length });
+  } else {
+    res.redirect("back");
+  }
+});
+
+web.get("/queue/remove", function (req, res) {
+  const videoId = req.query.id;
+  if (videoId) {
+    db.removeFromQueue(videoId);
+  }
+  res.redirect("back");
+});
+
+web.get("/queue/clear", function (req, res) {
+  db.clearQueue();
+  res.redirect("/queue");
+});
+
 web.get("/watch", function (req, res) {
   autoUpdater.checkForUpdatesAndNotify();
   const fileData = db.getFile(req.query.id);
@@ -700,7 +758,19 @@ web.get("/watch", function (req, res) {
 
   const playlistName = req.query.playlist;
   let nextVideo = null;
-  if (playlistName) {
+
+  // Remove current video from queue if it was in it
+  if (db.queue.includes(req.query.id)) {
+    db.removeFromQueue(req.query.id);
+  }
+
+  // Check user queue first
+  if (db.queue.length > 0) {
+    nextVideo = db.getFile(db.queue[0]);
+  }
+
+  // If no queue, check playlist
+  if (!nextVideo && playlistName) {
     const playlist = db.getPlaylist(playlistName);
     if (playlist) {
       const currentIndex = playlist.videoIds.indexOf(req.query.id);
@@ -710,7 +780,7 @@ web.get("/watch", function (req, res) {
     }
   }
 
-  // Fallback if not in playlist or end of playlist
+  // Fallback if not in playlist or end of playlist/queue
   if (!nextVideo) {
     const currentIdx = filteredReferencement.findIndex(item => item.yid === req.query.id);
     nextVideo = currentIdx === filteredReferencement.length - 1 ? filteredReferencement[0] : filteredReferencement[currentIdx + 1];

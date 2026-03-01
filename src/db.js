@@ -143,6 +143,7 @@ class FileDatabase {
                 this.database = data.database || data; // Fallback for old structure
                 this.history = data.history || [];
                 this.playlists = data.playlists || [];
+                this.queue = data.queue || [];
             } catch (error) {
                 console.error("Failed to parse database file:", error);
                 //LogRocket.captureException(error);
@@ -162,7 +163,8 @@ class FileDatabase {
         fs.writeFileSync(databaseFilePath, JSON.stringify({
             database: this.database,
             history: this.history,
-            playlists: this.playlists
+            playlists: this.playlists,
+            queue: this.queue
         }));
     }
 
@@ -171,6 +173,7 @@ class FileDatabase {
         this.database = [];
         this.history = [];
         this.playlists = [];
+        this.queue = [];
         this.saveDatabase();
     }
 
@@ -277,5 +280,29 @@ class FileDatabase {
 
     getHistory() {
         return this.history.map(id => this.getFile(id)).filter(file => !!file);
+    }
+
+    // Gestion de la file d'attente (Queue)
+    addToQueue(videoId) {
+        if (!this.queue.includes(videoId)) {
+            this.queue.push(videoId);
+            this.saveDatabase();
+            return true;
+        }
+        return false;
+    }
+
+    removeFromQueue(videoId) {
+        this.queue = this.queue.filter(id => id !== videoId);
+        this.saveDatabase();
+    }
+
+    getQueue() {
+        return this.queue.map(id => this.getFile(id)).filter(file => !!file);
+    }
+
+    clearQueue() {
+        this.queue = [];
+        this.saveDatabase();
     }
 }

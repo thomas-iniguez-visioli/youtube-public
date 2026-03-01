@@ -15,7 +15,6 @@ function getBrowserForCookies() {
 function createDownloadArgs(parameter, ffmpegDir, storagePath, outputFileFormat, bunPath) {
   const args = [
     '--merge-output-format', 'mp4',
-    '--ffmpeg-location', ffmpegDir,
     '--write-info-json',
     '--cookies-from-browser', getBrowserForCookies(),
     '-f', 'bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4] / bv*+ba/b',
@@ -24,6 +23,9 @@ function createDownloadArgs(parameter, ffmpegDir, storagePath, outputFileFormat,
     '-o', path.join(storagePath, outputFileFormat),
     parameter
   ];
+  if (ffmpegDir) {
+    args.push('--ffmpeg-location', ffmpegDir);
+  }
   if (bunPath && fs.existsSync(bunPath)) {
     args.push('--js-runtimes', 'bun');
   }
@@ -71,7 +73,7 @@ function runDownload(ytdlpPath, args, logger) {
   });
 }
 
-function createMetadataArgs(parameter, storagePath, outputFileFormat, bunPath) {
+function createMetadataArgs(parameter, ffmpegDir, storagePath, outputFileFormat, bunPath) {
   const args = [
     '--write-info-json',
     '--simulate',
@@ -84,6 +86,9 @@ function createMetadataArgs(parameter, storagePath, outputFileFormat, bunPath) {
     '-J',
     parameter
   ];
+  if (ffmpegDir) {
+    args.push('--ffmpeg-location', ffmpegDir);
+  }
   if (bunPath && fs.existsSync(bunPath)) {
     args.push('--js-runtimes', 'bun');
   }
