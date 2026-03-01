@@ -33,12 +33,12 @@
       "id": 4,
       "titre": "Error: listen EADDRINUSE: address already in use :::8001",
       "description": "View details in Rollbar: [https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/33](https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/33)\n\n```\n\nError: listen EADDRINUSE: address already in use :::8001\n  File \"node:net\", line 1908, in Server.setupListenHandle [as _listen2]\n  File \"node:net\", line 1965, in listenInCluster\n  File \"node:net\", line 2067, in Server.listen\n  File \"C:\\Users\\alpha\\AppData\\Local\\Temp\\3AM6P7NubvwTm7PrX4xXyHZkbdy\\resources\\app.asar\\node_modules\\express\\lib\\application.js\", line 635, in Function.listen\n  File \"C:\\Users\\alpha\\AppData\\Local\\Temp\\3AM6P7NubvwTm7PrX4xXyHZkbdy\\resources\\app.asar\\src\\index.js\", line 588, in <unknown>\n```",
-      "icon": "🛑",
+      "icon": "🐞",
       "color": "#FF0000",
       "criteres_acceptation": [
-        "The application starts successfully without encountering an 'EADDRINUSE' error when attempting to listen on port 8001 (or a configured alternative).",
-        "The application provides a mechanism (e.g., configurable port, graceful error message, or automatic port retry) to handle scenarios where the default port is already in use.",
-        "If applicable to this project, documentation includes guidance for users on how to troubleshoot and resolve 'EADDRINUSE' errors."
+        "The application should start successfully without an 'EADDRINUSE' error when no other process is actively using port 8001.",
+        "If another instance of the application is detected to be already running on port 8001, the new instance should gracefully handle the conflict (e.g., exit cleanly, prompt the user, or log a clear message).",
+        "The application should reliably release port 8001 upon normal shutdown or process termination to prevent lingering port usage."
       ],
       "metadata": {
         "issueNumber": 63
