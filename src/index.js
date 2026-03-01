@@ -413,15 +413,15 @@ const { version } = require('../package.json');
 const web = express();
 web.use(express.json());
 web.use(express.urlencoded({ extended: true }));
+web.locals.appVersion = version;
+web.locals.backlogFile = backlogFile;
 web.use((req, res, next) => {
   res.locals.historyLimit = Math.floor(db.database.length * 0.8);
   res.locals.historyCount = db.history.length;
   res.locals.queueCount = db.queue.length;
   res.locals.backlogFile = path.join(os.homedir(), 'Desktop', 'backlog.txt');
-  res.locals.appVersion = version;
   next();
 });
-web.locals.backlogFile = backlogFile;
 const helmet = require('helmet');
 //web.use(helmet());
 //web.use(cors(corsOptions));
