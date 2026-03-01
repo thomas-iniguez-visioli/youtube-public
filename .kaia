@@ -31,17 +31,17 @@
     },
     {
       "id": 4,
-      "titre": "Error: File already exists",
-      "description": "View details in Rollbar: [https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/15](https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/15)\n\n```\n\nError: File already exists\n  File \"C:\\Users\\alpha\\youtube-public\\src\\updater.js\", line 17, in WriteStream.<anonymous>\n  File \"node:events\", line 530, in WriteStream.emit\n  File \"node:internal/streams/destroy\", line 169, in emitErrorNT\n  File \"node:internal/streams/destroy\", line 128, in emitErrorCloseNT\n  File \"node:internal/process/task_queues\", line 82, in process.processTicksAndRejections\n```",
-      "icon": "💾",
-      "color": "#FF4500",
+      "titre": "Error: listen EADDRINUSE: address already in use :::8001",
+      "description": "View details in Rollbar: [https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/33](https://app.rollbar.com/a/thomas.iniguez/fix/item/FirstProject/33)\n\n```\n\nError: listen EADDRINUSE: address already in use :::8001\n  File \"node:net\", line 1908, in Server.setupListenHandle [as _listen2]\n  File \"node:net\", line 1965, in listenInCluster\n  File \"node:net\", line 2067, in Server.listen\n  File \"C:\\Users\\alpha\\AppData\\Local\\Temp\\3AM6P7NubvwTm7PrX4xXyHZkbdy\\resources\\app.asar\\node_modules\\express\\lib\\application.js\", line 635, in Function.listen\n  File \"C:\\Users\\alpha\\AppData\\Local\\Temp\\3AM6P7NubvwTm7PrX4xXyHZkbdy\\resources\\app.asar\\src\\index.js\", line 588, in <unknown>\n```",
+      "icon": "🛑",
+      "color": "#FF0000",
       "criteres_acceptation": [
-        "The application should gracefully handle attempts to write to a file that already exists, without throwing a 'File already exists' error.",
-        "The `updater.js` logic should be reviewed to determine the intended behavior when a target file exists (e.g., overwrite, append, skip, or prompt).",
-        "The system should ensure that any file write operations initiated by `updater.js` do not lead to crashes or unexpected termination due to existing file conflicts."
+        "The application starts successfully without encountering an 'EADDRINUSE' error when attempting to listen on port 8001 (or a configured alternative).",
+        "The application provides a mechanism (e.g., configurable port, graceful error message, or automatic port retry) to handle scenarios where the default port is already in use.",
+        "If applicable to this project, documentation includes guidance for users on how to troubleshoot and resolve 'EADDRINUSE' errors."
       ],
       "metadata": {
-        "issueNumber": 35
+        "issueNumber": 63
       }
     }
   ],
