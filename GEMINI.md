@@ -1,5 +1,11 @@
 # Gemini CLI - Journal des modifications
 
+## [1.2.5] - 2026-03-13
+### Ajouté
+- **Système de favoris** : Possibilité de marquer des vidéos comme favorites avec une vue dédiée `/favorites`, un bouton dédié sur le lecteur et des icônes d'action sur la bibliothèque.
+- **Compteur de favoris** : Affichage dynamique du nombre de favoris dans la barre de navigation.
+- **Gestion AJAX** : Ajout/retrait des favoris sans rechargement de page.
+
 ## [1.1.61] - 2026-03-01
 ### Ajouté
 - **File d'attente de lecture (Queue)** : Système permettant d'ajouter des vidéos à une file d'attente prioritaire avec gestion AJAX, retrait automatique après lecture et vue dédiée pour la gestion.

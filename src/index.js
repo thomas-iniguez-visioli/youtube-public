@@ -420,6 +420,7 @@ web.use((req, res, next) => {
   res.locals.historyLimit = Math.floor(db.database.length * 0.8);
   res.locals.historyCount = db.history.length;
   res.locals.queueCount = db.queue.length;
+  res.locals.favoritesCount = db.favorites.length;
   res.locals.backlogFile = path.join(os.homedir(), 'Desktop', 'backlog.txt');
   next();
 });
@@ -813,6 +814,7 @@ web.get("/watch", function (req, res) {
   const playlistName = req.query.playlist;
   let nextVideo = null;
   const currentInQueue = db.queue.includes(req.query.id);
+  const isFavorite = db.isFavorite(req.query.id);
 
   // Check user queue first
   if (db.queue.length > 0) {
@@ -853,6 +855,7 @@ web.get("/watch", function (req, res) {
     nextVideo: nextVideo,
     playlistName: playlistName,
     currentInQueue: currentInQueue,
+    isFavorite: isFavorite,
     playlists: db.getPlaylists()
   });
 });
@@ -937,6 +940,40 @@ web.get("/channel", function (req, res) {
     channelUrl: channelUrl,
     playlists: db.getPlaylists()
   });
+});
+
+web.get("/favorites", function (req, res) {
+  const favorites = db.getFavorites().map(item => {
+    const infoPath = path.join(config.storagePath, item.fileName.replace(".mp4", ".info.json"));
+    let uploader = "Inconnu";
+    if (fs.existsSync(infoPath)) {
+      try {
+        const info = JSON.parse(fs.readFileSync(infoPath, 'utf8'));
+        uploader = info.uploader;
+      } catch (e) {}
+    }
+    return { ...item, uploader };
+  });
+
+  res.render('index', {
+    results: favorites,
+    channel: "Mes Favoris",
+    channelUrl: null,
+    playlists: db.getPlaylists()
+  });
+});
+
+web.get("/favorite/toggle", function (req, res) {
+  const videoId = req.query.id;
+  let status = false;
+  if (videoId) {
+    status = db.toggleFavorite(videoId);
+  }
+  if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+    res.json({ success: true, isFavorite: status, favoritesCount: db.favorites.length });
+  } else {
+    res.redirect("back");
+  }
 });
 
 web.get("/history", function (req, res) {

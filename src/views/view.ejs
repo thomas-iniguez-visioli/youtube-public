@@ -151,6 +151,7 @@
                 </form>
             </div>
             <div class="d-flex">
+                <a href="/favorites" class="btn btn-outline-danger rounded-pill px-4 me-2">Favoris (<%= favoritesCount %>)</a>
                 <a href="/queue" class="btn btn-outline-success rounded-pill px-4 me-2">File (<%= queueCount %>)</a>
                 <a href="/playlists" class="btn btn-outline-warning rounded-pill px-4 me-2">Playlists</a>
                 <a href="/history" class="btn btn-outline-info rounded-pill px-4">Historique (<%= historyCount %>/<%= historyLimit %>)</a>
@@ -175,6 +176,9 @@
                         <strong><a href="/channel?name=<%= (typeof videodata !== 'undefined' && videodata.uploader) ? encodeURIComponent(videodata.uploader) : '' %>" style="color: #ffffff; text-decoration: none;"><%= (typeof videodata !== 'undefined' && videodata.uploader) ? videodata.uploader : 'Uploader inconnu' %></a></strong> • <%= (typeof videodata !== 'undefined' && videodata.view_count) ? videodata.view_count.toLocaleString() + ' vues' : '' %>
                     </div>
                     <div class="d-flex align-items-center">
+                        <button id="favoriteBtn" class="btn <%= isFavorite ? 'btn-danger' : 'btn-outline-danger' %> btn-sm me-2" onclick="toggleFavorite('<%= code %>')">
+                            <%= isFavorite ? '❤' : '♡' %> Favori
+                        </button>
                         <button class="btn btn-outline-success btn-sm me-2" onclick="addToQueue('<%= code %>')">File d'attente</button>
                         <div class="dropdown me-2">
                             <button class="btn btn-outline-warning btn-sm dropdown-toggle" type="button" id="playlistDropdown" data-bs-toggle="dropdown" aria-expanded="false">
@@ -398,6 +402,35 @@
                 }
             } catch (err) {
                 console.error("Erreur ajout file :", err);
+            }
+        }
+
+        async function toggleFavorite(videoId) {
+            try {
+                const response = await fetch(`/favorite/toggle?id=${videoId}`, {
+                    headers: { 'Accept': 'application/json' }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    const favBtn = document.getElementById('favoriteBtn');
+                    const favNavBtn = document.querySelector('a[href="/favorites"]');
+                    
+                    if (favNavBtn) {
+                        favNavBtn.textContent = `Favoris (${data.favoritesCount})`;
+                    }
+
+                    if (data.isFavorite) {
+                        favBtn.classList.remove('btn-outline-danger');
+                        favBtn.classList.add('btn-danger');
+                        favBtn.textContent = '❤ Favori';
+                    } else {
+                        favBtn.classList.remove('btn-danger');
+                        favBtn.classList.add('btn-outline-danger');
+                        favBtn.textContent = '♡ Favori';
+                    }
+                }
+            } catch (err) {
+                console.error("Erreur toggle favori :", err);
             }
         }
 

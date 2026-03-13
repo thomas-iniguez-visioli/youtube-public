@@ -152,12 +152,14 @@ class FileDatabase {
                 this.history = data.history || [];
                 this.playlists = data.playlists || [];
                 this.queue = data.queue || [];
+                this.favorites = data.favorites || [];
             } catch (error) {
                 console.error("Failed to parse database file:", error);
                 //LogRocket.captureException(error);
                 this.database = [];
                 this.history = [];
                 this.playlists = [];
+                this.favorites = [];
             }
         }
     }
@@ -172,7 +174,8 @@ class FileDatabase {
             database: this.database,
             history: this.history,
             playlists: this.playlists,
-            queue: this.queue
+            queue: this.queue,
+            favorites: this.favorites
         }));
     }
 
@@ -182,7 +185,27 @@ class FileDatabase {
         this.history = [];
         this.playlists = [];
         this.queue = [];
+        this.favorites = [];
         this.saveDatabase();
+    }
+
+    // Gestion des Favoris
+    toggleFavorite(videoId) {
+        if (this.favorites.includes(videoId)) {
+            this.favorites = this.favorites.filter(id => id !== videoId);
+        } else {
+            this.favorites.push(videoId);
+        }
+        this.saveDatabase();
+        return this.favorites.includes(videoId);
+    }
+
+    isFavorite(videoId) {
+        return this.favorites.includes(videoId);
+    }
+
+    getFavorites() {
+        return this.favorites.map(id => this.getFile(id)).filter(file => !!file);
     }
 
     // Gestion des Playlists

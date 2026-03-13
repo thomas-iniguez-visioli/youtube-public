@@ -162,6 +162,7 @@
                 </form>
             </div>
             <div class="d-flex">
+                <a href="/favorites" class="btn btn-outline-danger rounded-pill px-4 me-2">Favoris (<%= favoritesCount %>)</a>
                 <a href="/queue" class="btn btn-outline-success rounded-pill px-4 me-2">File (<%= queueCount %>)</a>
                 <a href="/playlists" class="btn btn-outline-warning rounded-pill px-4 me-2">Playlists</a>
                 <a href="/history" class="btn btn-outline-info rounded-pill px-4">Historique (<%= historyCount %>/<%= historyLimit %>)</a>
@@ -289,6 +290,7 @@
                 } else {
                     actionBtns += `<button class="btn btn-sm btn-outline-success" onclick="event.stopPropagation(); addToQueue('${result.yid}')">File</button>`;
                 }
+                actionBtns += `<button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); toggleFavorite('${result.yid}', this)">❤</button>`;
                 actionBtns += `<button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); if(confirm('Supprimer cette vidéo ?')) window.location.href='/delete?id=${result.yid}'">Supprimer</button>`;
 
                 col.innerHTML = `
@@ -375,6 +377,34 @@
                 }
             } catch (err) {
                 console.error("Erreur ajout file :", err);
+            }
+        }
+
+        async function toggleFavorite(videoId, btn) {
+            try {
+                const response = await fetch(`/favorite/toggle?id=${videoId}`, {
+                    headers: { 'Accept': 'application/json' }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    const favBtn = document.querySelector('a[href="/favorites"]');
+                    if (favBtn) {
+                        favBtn.textContent = `Favoris (${data.favoritesCount})`;
+                    }
+                    if (data.isFavorite) {
+                        btn.classList.remove('btn-outline-danger');
+                        btn.classList.add('btn-danger');
+                    } else {
+                        btn.classList.remove('btn-danger');
+                        btn.classList.add('btn-outline-danger');
+                        // Si on est sur la page des favoris, on retire l'élément de la liste
+                        if (channel === "Mes Favoris") {
+                            btn.closest('.video-item').remove();
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error("Erreur toggle favori :", err);
             }
         }
 
