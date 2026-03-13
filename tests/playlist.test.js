@@ -1,4 +1,5 @@
-import { expect, test, describe, beforeAll, afterAll } from "bun:test";
+const { test, describe, before, after } = require('node:test');
+const assert = require('node:assert');
 const fs = require("fs");
 const path = require("path");
 const os = require("os");
@@ -24,7 +25,7 @@ describe("Playlist System", () => {
     let db;
     const tempDir = path.join(os.tmpdir(), "youtube-test-playlists");
 
-    beforeAll(() => {
+    before(() => {
         if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir);
         db = new FileDatabase(tempDir);
         // Mock some videos
@@ -34,36 +35,36 @@ describe("Playlist System", () => {
         ];
     });
 
-    afterAll(() => {
+    after(() => {
         if (fs.existsSync(tempDir)) fs.rmSync(tempDir, { recursive: true });
     });
 
     test("should create a playlist", () => {
         const result = db.createPlaylist("Ma Liste");
-        expect(result).toBe(true);
-        expect(db.playlists.length).toBe(1);
-        expect(db.playlists[0].name).toBe("Ma Liste");
+        assert.strictEqual(result, true);
+        assert.strictEqual(db.playlists.length, 1);
+        assert.strictEqual(db.playlists[0].name, "Ma Liste");
     });
 
     test("should not create duplicate playlist", () => {
         const result = db.createPlaylist("Ma Liste");
-        expect(result).toBe(false);
-        expect(db.playlists.length).toBe(1);
+        assert.strictEqual(result, false);
+        assert.strictEqual(db.playlists.length, 1);
     });
 
     test("should add video to playlist", () => {
         const result = db.addVideoToPlaylist("Ma Liste", "id1");
-        expect(result).toBe(true);
-        expect(db.playlists[0].videoIds).toContain("id1");
+        assert.strictEqual(result, true);
+        assert.ok(db.playlists[0].videoIds.includes("id1"));
     });
 
     test("should remove video from playlist", () => {
         db.removeVideoFromPlaylist("Ma Liste", "id1");
-        expect(db.playlists[0].videoIds).not.toContain("id1");
+        assert.ok(!db.playlists[0].videoIds.includes("id1"));
     });
 
     test("should delete playlist", () => {
         db.deletePlaylist("Ma Liste");
-        expect(db.playlists.length).toBe(0);
+        assert.strictEqual(db.playlists.length, 0);
     });
 });

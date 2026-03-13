@@ -12,7 +12,7 @@ function getBrowserForCookies() {
   return 'chrome';
 }
 
-function createDownloadArgs(parameter, ffmpegDir, storagePath, outputFileFormat, bunPath) {
+function createDownloadArgs(parameter, ffmpegDir, storagePath, outputFileFormat, denoPath) {
   const args = [
     '--merge-output-format', 'mp4',
     '--write-info-json',
@@ -26,8 +26,8 @@ function createDownloadArgs(parameter, ffmpegDir, storagePath, outputFileFormat,
   if (ffmpegDir) {
     args.push('--ffmpeg-location', ffmpegDir);
   }
-  if (bunPath && fs.existsSync(bunPath)) {
-    args.push('--js-runtimes', 'bun');
+  if (denoPath && fs.existsSync(denoPath)) {
+    args.push('--js-runtimes', 'deno');
   }
   return args;
 }
@@ -39,7 +39,7 @@ function runDownload(ytdlpPath, args, logger) {
     
     if (logger) logger.info(`Executing: "${ytdlpPath}" ${quotedArgs.join(' ')}`);
 
-    // Add ytdlp directory to PATH so it can find bun.exe
+    // Add ytdlp directory to PATH so it can find deno.exe
     const env = { ...process.env };
     const ytdlpDir = path.dirname(ytdlpPath);
     if (process.platform === 'win32') {
@@ -73,7 +73,7 @@ function runDownload(ytdlpPath, args, logger) {
   });
 }
 
-function createMetadataArgs(parameter, ffmpegDir, storagePath, outputFileFormat, bunPath) {
+function createMetadataArgs(parameter, ffmpegDir, storagePath, outputFileFormat, denoPath) {
   const args = [
     '--write-info-json',
     '--simulate',
@@ -89,8 +89,8 @@ function createMetadataArgs(parameter, ffmpegDir, storagePath, outputFileFormat,
   if (ffmpegDir) {
     args.push('--ffmpeg-location', ffmpegDir);
   }
-  if (bunPath && fs.existsSync(bunPath)) {
-    args.push('--js-runtimes', 'bun');
+  if (denoPath && fs.existsSync(denoPath)) {
+    args.push('--js-runtimes', 'deno');
   }
   return args;
 }

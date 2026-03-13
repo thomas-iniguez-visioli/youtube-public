@@ -347,14 +347,14 @@ const downloadbacklog = (parameter) => {
     
     const ytdlpPath = binaryResolver.ytdlp;
     const ffmpegDir = binaryResolver.ffmpegDir;
-    const bunPath = binaryResolver.bun;
+    const denoPath = binaryResolver.deno;
 
     if (!ytdlpPath) {
       log.error('yt-dlp non trouvé');
       return reject(new Error('yt-dlp non trouvé'));
     }
 
-    const args = createDownloadArgs(parameter, ffmpegDir, config.storagePath, config.outputFileFormat, bunPath);
+    const args = createDownloadArgs(parameter, ffmpegDir, config.storagePath, config.outputFileFormat, denoPath);
 
     const logger = {
       info: (msg) => {
@@ -384,8 +384,8 @@ const downloaddata = (parameter) => {
       return reject(new Error('yt-dlp non trouvé'));
     }
 
-    const bunPath = binaryResolver.bun;
-    const args = createMetadataArgs(parameter, binaryResolver.ffmpegDir, config.storagePath, config.outputFileFormat, bunPath);
+    const denoPath = binaryResolver.deno;
+    const args = createMetadataArgs(parameter, binaryResolver.ffmpegDir, config.storagePath, config.outputFileFormat, denoPath);
 
     const env = { ...process.env };
     const ytdlpDir = path.dirname(ytdlpPath);
@@ -451,29 +451,55 @@ web.use((err, req, res, next) => {
   next(err);
 });
 
-const d = require('./db.js');
-const zipUrl = 'https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip';
+const zipUrl = process.platform === 'win32'
+  ? 'https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip'
+  : 'https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz';
 const ffmpegExePath = path.join(app.getPath('userData'), process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg');
 
 if (!fs.existsSync(ffmpegExePath)) {
-  updateFile(zipUrl, path.join(app.getPath('userData'), 'ffmpeg.zip'))
-    .then(() => {
-      const unzipper = require('unzipper');
-      fs.createReadStream(path.join(app.getPath('userData'), 'ffmpeg.zip'))
-        .pipe(unzipper.Extract({ path: path.join(app.getPath('userData'), 'ffmpeg') }))
-        .promise()
-        .then(() => {
-          const binPath = path.join(app.getPath('userData'), 'ffmpeg', 'ffmpeg-master-latest-win64-gpl', 'bin');
-          if (fs.existsSync(binPath)) {
-            const files = fs.readdirSync(binPath);
-            files.forEach(file => {
-              fs.copyFileSync(path.join(binPath, file), path.join(app.getPath('userData'), file));
-              if (process.platform !== 'win32') {
-                fs.chmodSync(path.join(app.getPath('userData'), file), '755');
-              }
-            });
+  const ffmpegZipPath = path.join(app.getPath('userData'), process.platform === 'win32' ? 'ffmpeg.zip' : 'ffmpeg.tar.xz');
+  updateFile(zipUrl, ffmpegZipPath)
+    .then(async () => {
+      const extractDir = path.join(app.getPath('userData'), 'ffmpeg-temp');
+      if (process.platform === 'win32') {
+        const unzipper = require('unzipper');
+        await fs.createReadStream(ffmpegZipPath)
+          .pipe(unzipper.Extract({ path: extractDir }))
+          .promise();
+      } else {
+        // Pour Linux, il faudrait utiliser tar, mais restons simple pour Windows pour l'instant
+        // Si besoin de Linux, ajouter child_process.execSync(`tar -xf ${ffmpegZipPath} -C ${extractDir}`)
+      }
+
+      // Recherche récursive du binaire ffmpeg dans le dossier d'extraction
+      const findBinary = (dir, name) => {
+        const files = fs.readdirSync(dir);
+        for (const file of files) {
+          const fullPath = path.join(dir, file);
+          if (fs.statSync(fullPath).isDirectory()) {
+            const found = findBinary(fullPath, name);
+            if (found) return found;
+          } else if (file === name) {
+            return fullPath;
+          }
+        }
+        return null;
+      };
+
+      if (fs.existsSync(extractDir)) {
+        const binaries = ['ffmpeg', 'ffprobe', 'ffplay'];
+        binaries.forEach(name => {
+          const binName = process.platform === 'win32' ? `${name}.exe` : name;
+          const sourcePath = findBinary(extractDir, binName);
+          if (sourcePath) {
+            const destPath = path.join(app.getPath('userData'), binName);
+            fs.copyFileSync(sourcePath, destPath);
+            if (process.platform !== 'win32') {
+              fs.chmodSync(destPath, '755');
+            }
           }
         });
+      }
     })
     .catch(err => log.error('Erreur lors de la mise à jour de FFmpeg:', err));
 }
@@ -512,12 +538,12 @@ async function build() {
   fs.mkdir(base, { recursive: true }, (err) => {
     if (err) {}
   });
-  const bunBinary = process.platform === 'win32' ? 'bun.exe' : 'bun';
-  const bunPath = path.join(app.getPath('userData'), bunBinary);
-  const bunUrl = process.platform === 'win32' 
-    ? 'https://github.com/oven-sh/bun/releases/latest/download/bun-windows-x64.zip' 
-    : 'https://github.com/oven-sh/bun/releases/latest/download/bun-linux-x64.zip';
-  const bunZipName = 'bun.zip';
+  const denoBinary = process.platform === 'win32' ? 'deno.exe' : 'deno';
+  const denoPath = path.join(app.getPath('userData'), denoBinary);
+  const denoUrl = process.platform === 'win32' 
+    ? 'https://github.com/denoland/deno/releases/latest/download/deno-x86_64-pc-windows-msvc.zip' 
+    : 'https://github.com/denoland/deno/releases/latest/download/deno-x86_64-unknown-linux-gnu.zip';
+  const denoZipName = 'deno.zip';
 
   // Optimisation: skip heavy downloads if binary already exists and it's not a new version
   const downloads = [];
@@ -530,8 +556,8 @@ async function build() {
     downloads.push(updateFile(process.platform === 'win32' ? 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe' : 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp', path.join(app.getPath('userData'), process.platform === 'win32' ? 'ytdlp.exe' : 'ytdlp'), isNewVersion));
   }
 
-  if (isNewVersion || !fs.existsSync(bunPath)) {
-    downloads.push(updateFile(bunUrl, path.join(app.getPath('userData'), bunZipName), isNewVersion));
+  if (isNewVersion || !fs.existsSync(denoPath)) {
+    downloads.push(updateFile(denoUrl, path.join(app.getPath('userData'), denoZipName), isNewVersion));
   }
 
   // Always update small template files to ensure latest UI
@@ -547,22 +573,16 @@ async function build() {
       fs.writeFileSync(versionFilePath, currentVersion);
     }
     
-    // Unzip Bun only if binary is missing
-    const bunZipPath = path.join(app.getPath('userData'), 'bun.zip');
-    if (fs.existsSync(bunZipPath) && !fs.existsSync(bunPath)) {
+    // Unzip Deno only if binary is missing
+    const denoZipPath = path.join(app.getPath('userData'), 'deno.zip');
+    if (fs.existsSync(denoZipPath) && !fs.existsSync(denoPath)) {
       const unzipper = require('unzipper');
-      await fs.createReadStream(bunZipPath)
-        .pipe(unzipper.Extract({ path: path.join(app.getPath('userData'), 'bun-temp') }))
+      await fs.createReadStream(denoZipPath)
+        .pipe(unzipper.Extract({ path: app.getPath('userData') }))
         .promise();
       
-      const bunFolder = process.platform === 'win32' ? 'bun-windows-x64' : 'bun-linux-x64';
-      const bunTempDir = path.join(app.getPath('userData'), 'bun-temp', bunFolder);
-      
-      if (fs.existsSync(path.join(bunTempDir, bunBinary))) {
-        fs.copyFileSync(path.join(bunTempDir, bunBinary), bunPath);
-        if (process.platform !== 'win32') {
-          fs.chmodSync(bunPath, '755');
-        }
+      if (fs.existsSync(denoPath) && process.platform !== 'win32') {
+        fs.chmodSync(denoPath, '755');
       }
     }
     
