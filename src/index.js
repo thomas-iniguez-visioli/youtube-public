@@ -505,31 +505,25 @@ async function build() {
   
   const ytdlpPath = path.join(app.getPath('userData'), process.platform === 'win32' ? 'ytdlp.exe' : 'ytdlp');
 
-  // Si nouvelle version, on supprime les anciens binaires pour forcer le re-téléchargement/extraction
-  if (isNewVersion) {
-    [ffmpegExePath, denoPath, ytdlpPath].forEach(p => {
-      if (fs.existsSync(p)) {
-        try { fs.unlinkSync(p); } catch (e) { log.error(`Impossible de supprimer ${p}: ${e.message}`); }
-      }
-    });
-  }
-
   const downloads = [];
+  // For small essential files, always update on new version
   if (isNewVersion || !fs.existsSync(path.join(app.getPath('userData'), 'src/client-dist/socket.io.js'))) {
     downloads.push(updateFile('https://cdn.socket.io/4.4.1/socket.io.js', path.join(app.getPath('userData'), 'src/client-dist/socket.io.js'), isNewVersion));
     downloads.push(updateFile('https://cdn.socket.io/4.4.1/socket.io.js.map', path.join(app.getPath('userData'), 'src/client-dist/socket.io.js.map'), isNewVersion));
   }
   
+  // ytdlp changes frequently, better to keep it updated on app version change
   if (isNewVersion || !fs.existsSync(ytdlpPath)) {
     downloads.push(updateFile(process.platform === 'win32' ? 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe' : 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp', ytdlpPath, isNewVersion));
   }
 
-  if (isNewVersion || !fs.existsSync(denoPath)) {
-    downloads.push(updateFile(denoUrl, denoZipPath, isNewVersion));
+  // Deno and FFmpeg are large, only download if missing
+  if (!fs.existsSync(denoPath)) {
+    downloads.push(updateFile(denoUrl, denoZipPath, false));
   }
 
-  if (isNewVersion || !fs.existsSync(ffmpegExePath)) {
-    downloads.push(updateFile(ffmpegZipUrl, ffmpegZipPath, isNewVersion));
+  if (!fs.existsSync(ffmpegExePath)) {
+    downloads.push(updateFile(ffmpegZipUrl, ffmpegZipPath, false));
   }
 
   // Always update small template files to ensure latest UI

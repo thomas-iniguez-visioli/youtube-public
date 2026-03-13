@@ -1,32 +1,52 @@
 const fs = require('fs');
 const https = require('https');
 const path = require('path');
+const log = require('electron-log');
 
 function get(url, dest) {
   return new Promise((resolve, reject) => {
-    const request = https.get(url, (response) => {
-      if (response.statusCode === 200) {
-        const file = fs.createWriteStream(dest);
-        file.on('finish', () => {
-          file.close();
-          resolve();
-        });
-        file.on('error', (err) => {
-          fs.unlink(dest, () => reject(err));
-        });
-        response.pipe(file);
-      } else if (response.statusCode === 302 || response.statusCode === 301) {
-        get(response.headers.location, dest).then(resolve).catch(reject);
-      } else {
-        reject(new Error(`Server responded with ${response.statusCode}: ${response.statusMessage} for ${url}`));
+    https.get(url, (response) => {
+      if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
+        return get(response.headers.location, dest).then(resolve).catch(reject);
       }
-    });
-    request.on('error', reject);
+      
+      if (response.statusCode !== 200) {
+        return reject(new Error(`Server responded with ${response.statusCode} for ${url}`));
+      }
+
+      const totalSize = parseInt(response.headers['content-length'], 10);
+      let downloadedSize = 0;
+      let lastLogTime = Date.now();
+
+      const file = fs.createWriteStream(dest);
+      response.pipe(file);
+
+      response.on('data', (chunk) => {
+        downloadedSize += chunk.length;
+        const now = Date.now();
+        if (now - lastLogTime > 5000) { // Log progress every 5 seconds
+          const percent = totalSize ? Math.round((downloadedSize / totalSize) * 100) : '?';
+          log.info(`Downloading ${path.basename(dest)}: ${percent}% (${Math.round(downloadedSize/1024/1024)}MB / ${totalSize ? Math.round(totalSize/1024/1024)+'MB' : '?'})`);
+          lastLogTime = now;
+        }
+      });
+
+      file.on('finish', () => {
+        file.close();
+        resolve();
+      });
+
+      file.on('error', (err) => {
+        fs.unlink(dest, () => reject(err));
+      });
+    }).on('error', reject);
   });
 }
 
 async function updateFile(url, dest, force = false) {
-  // If not forced and file exists, skip download to speed up "installation"/boot
+  const fileName = path.basename(dest);
+  
+  // If not forced and file exists, skip download
   if (!force && fs.existsSync(dest)) {
     return;
   }
@@ -39,28 +59,34 @@ async function updateFile(url, dest, force = false) {
     }
     
     if (fs.existsSync(tempDest)) {
-      fs.unlinkSync(tempDest);
+      try { fs.unlinkSync(tempDest); } catch (e) {}
     }
 
+    log.info(`Starting download: ${url} -> ${dest}`);
     await get(url, tempDest);
 
     if (!fs.existsSync(tempDest)) {
       throw new Error(`Temp file ${tempDest} not found after download`);
     }
 
-    // If destination exists, check if it's the same
+    // Comparison logic: use file size as a quick check instead of reading everything to memory
     if (fs.existsSync(dest)) {
-      const originalFile = fs.readFileSync(dest);
-      const newFile = fs.readFileSync(tempDest);
-      if (originalFile.equals(newFile)) {
+      const oldStat = fs.statSync(dest);
+      const newStat = fs.statSync(tempDest);
+      
+      if (oldStat.size === newStat.size) {
+        log.info(`${fileName} is already up to date (same size).`);
         fs.unlinkSync(tempDest);
-        return; // No update needed
+        return;
       }
+      
       fs.unlinkSync(dest);
     }
 
     fs.renameSync(tempDest, dest);
+    log.info(`Successfully updated ${fileName}`);
   } catch (err) {
+    log.error(`Failed to update ${fileName}: ${err.message}`);
     if (fs.existsSync(tempDest)) {
       try { fs.unlinkSync(tempDest); } catch (e) {}
     }

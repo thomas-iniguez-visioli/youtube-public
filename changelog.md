@@ -1,5 +1,11 @@
 # Gemini CLI - Journal des modifications
 
+## [1.2.3] - 2026-03-13
+### Optimisé
+- **Téléchargement des binaires** : Optimisation drastique de `updateFile` pour éviter le re-téléchargement et la lecture en mémoire des gros fichiers (FFmpeg/Deno).
+- **Consommation RAM** : Remplacement de la comparaison en mémoire par une comparaison de taille sur disque.
+- **Feedback** : Ajout de logs de progression pour les téléchargements longs.
+
 ## [1.2.2] - 2026-03-13
 ### Corrigé
 - **Initialisation DB** : Correction de l'erreur "cannot access db before init" en important correctement FileDatabase et en gérant l'ordre d'initialisation.
