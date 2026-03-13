@@ -77,10 +77,8 @@ class FileDatabase {
             return;
         }
         fs.readdirSync(this.directoryPath).forEach((item) => {
-           if (!ispresent({
-               fileName: item,
-             
-           }, this.database)) {
+           const existingEntry = this.database.find(e => e.fileName === item);
+           if (!existingEntry) {
                if (item.endsWith(".mp4")) {
                    let id = item.match(regex)
                    console.log(id)
@@ -95,20 +93,26 @@ class FileDatabase {
                                console.error(`Error reading info file ${infoPath}:`, e);
                            }
                        }
+                       const stats = fs.statSync(path.join(this.directoryPath, item));
                        this.database.push({
                            fileName: item,
                            fileUuid: `https://www.youtube.com/watch?v=${id[1]}`.replace(":",'_'), 
                            yid: displayId,
+                           mtime: stats.mtimeMs,
                            tags: [] // Ajout d'un champ tags vide pour chaque nouvelle entrée
                        })
                    }
                }
-               
-                
+           } else if (!existingEntry.mtime && item.endsWith(".mp4")) {
+               // Update existing entry with mtime if missing
+               try {
+                   const stats = fs.statSync(path.join(this.directoryPath, item));
+                   existingEntry.mtime = stats.mtimeMs;
+               } catch (e) {
+                   console.error(`Error updating mtime for ${item}:`, e);
+               }
            }
-           
         })
-        console.log(this.database)
         this.saveDatabase(); // Sauvegarde la base de données JSON après chaque lecture
     }
     save() {

@@ -1,5 +1,12 @@
 # Gemini CLI - Journal des modifications
 
+## [1.2.4] - 2026-03-13
+### Ajouté
+- **Tri chronologique** : Affichage des vidéos sur la page d'accueil par date de téléchargement (les plus récentes en premier), avec le score en critère secondaire.
+- **Rétrocompatibilité** : Mise à jour automatique des anciennes vidéos dans la base de données pour leur attribuer leur date de téléchargement initiale.
+### Changé
+- **Logs** : Suppression du log du contenu complet de la base de données au démarrage pour éviter de polluer la console.
+
 ## [1.2.3] - 2026-03-13
 ### Optimisé
 - **Téléchargement des binaires** : Optimisation drastique de `updateFile` pour éviter le re-téléchargement et la lecture en mémoire des gros fichiers (FFmpeg/Deno).

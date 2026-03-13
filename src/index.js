@@ -706,7 +706,16 @@ web.get("/", function (req, res) {
     return { ...item, score, uploader: infoJson.uploader || 'Uploader inconnu' };
   })
   .filter(Boolean)
-  .sort((a, b) => b.score - a.score);
+  .sort((a, b) => {
+    // Sort by download date (mtime) descending (newest first)
+    const dateA = a.mtime || 0;
+    const dateB = b.mtime || 0;
+    if (dateB !== dateA) {
+      return dateB - dateA;
+    }
+    // Fallback to score
+    return b.score - a.score;
+  });
 
   res.render('index', {
     results: referencement,
