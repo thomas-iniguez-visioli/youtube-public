@@ -72,6 +72,10 @@ class FileDatabase {
        return results;
      }
     readDatabase() {
+        if (!fs.existsSync(this.directoryPath)) {
+            console.warn(`Directory ${this.directoryPath} does not exist, skipping read.`);
+            return;
+        }
         fs.readdirSync(this.directoryPath).forEach((item) => {
            if (!ispresent({
                fileName: item,

@@ -14,6 +14,7 @@ const path = require('path');
 const os = require('os');
 const { updateFile } = require('./updater');
 const { createDownloadArgs, runDownload, createMetadataArgs } = require('./downloader');
+const FileDatabase = require('./db');
 
 const child = require('child_process');
 const log = require('electron-log');
@@ -451,15 +452,100 @@ web.use((err, req, res, next) => {
   next(err);
 });
 
-const zipUrl = process.platform === 'win32'
-  ? 'https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip'
-  : 'https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz';
-const ffmpegExePath = path.join(app.getPath('userData'), process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg');
+const base = config.storagePath;
 
-if (!fs.existsSync(ffmpegExePath)) {
-  const ffmpegZipPath = path.join(app.getPath('userData'), process.platform === 'win32' ? 'ffmpeg.zip' : 'ffmpeg.tar.xz');
-  updateFile(zipUrl, ffmpegZipPath)
-    .then(async () => {
+web.set('view engine', 'ejs');
+web.set('views', path.join(app.getPath('userData'), 'views'));
+
+async function build() {
+  const currentVersion = require('../package.json').version;
+  const versionFilePath = path.join(app.getPath('userData'), 'version.txt');
+  let lastVersion = '';
+  try {
+    if (fs.existsSync(versionFilePath)) {
+      lastVersion = fs.readFileSync(versionFilePath, 'utf8').trim();
+    }
+  } catch (e) {}
+
+  const isNewVersion = currentVersion !== lastVersion;
+  if (isNewVersion) {
+    log.info(`Nouvelle version détectée : ${lastVersion} -> ${currentVersion}. Mise à jour forcée des assets.`);
+  }
+
+  // Create necessary directories
+  const dirs = [
+    path.join(app.getPath('userData'), "src/"),
+    path.join(app.getPath('userData'), "src/client-dist"),
+    path.join(app.getPath('userData'), 'views'),
+    path.join(app.getPath('userData'), 'log'),
+    base
+  ];
+  
+  for (const dir of dirs) {
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+  }
+
+  const denoBinary = process.platform === 'win32' ? 'deno.exe' : 'deno';
+  const denoPath = path.join(app.getPath('userData'), denoBinary);
+  const denoUrl = process.platform === 'win32' 
+    ? 'https://github.com/denoland/deno/releases/latest/download/deno-x86_64-pc-windows-msvc.zip' 
+    : 'https://github.com/denoland/deno/releases/latest/download/deno-x86_64-unknown-linux-gnu.zip';
+  const denoZipName = 'deno.zip';
+  const denoZipPath = path.join(app.getPath('userData'), denoZipName);
+
+  const ffmpegZipUrl = process.platform === 'win32'
+    ? 'https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip'
+    : 'https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz';
+  const ffmpegExeName = process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg';
+  const ffmpegExePath = path.join(app.getPath('userData'), ffmpegExeName);
+  const ffmpegZipName = process.platform === 'win32' ? 'ffmpeg.zip' : 'ffmpeg.tar.xz';
+  const ffmpegZipPath = path.join(app.getPath('userData'), ffmpegZipName);
+  
+  const ytdlpPath = path.join(app.getPath('userData'), process.platform === 'win32' ? 'ytdlp.exe' : 'ytdlp');
+
+  // Si nouvelle version, on supprime les anciens binaires pour forcer le re-téléchargement/extraction
+  if (isNewVersion) {
+    [ffmpegExePath, denoPath, ytdlpPath].forEach(p => {
+      if (fs.existsSync(p)) {
+        try { fs.unlinkSync(p); } catch (e) { log.error(`Impossible de supprimer ${p}: ${e.message}`); }
+      }
+    });
+  }
+
+  const downloads = [];
+  if (isNewVersion || !fs.existsSync(path.join(app.getPath('userData'), 'src/client-dist/socket.io.js'))) {
+    downloads.push(updateFile('https://cdn.socket.io/4.4.1/socket.io.js', path.join(app.getPath('userData'), 'src/client-dist/socket.io.js'), isNewVersion));
+    downloads.push(updateFile('https://cdn.socket.io/4.4.1/socket.io.js.map', path.join(app.getPath('userData'), 'src/client-dist/socket.io.js.map'), isNewVersion));
+  }
+  
+  if (isNewVersion || !fs.existsSync(ytdlpPath)) {
+    downloads.push(updateFile(process.platform === 'win32' ? 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe' : 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp', ytdlpPath, isNewVersion));
+  }
+
+  if (isNewVersion || !fs.existsSync(denoPath)) {
+    downloads.push(updateFile(denoUrl, denoZipPath, isNewVersion));
+  }
+
+  if (isNewVersion || !fs.existsSync(ffmpegExePath)) {
+    downloads.push(updateFile(ffmpegZipUrl, ffmpegZipPath, isNewVersion));
+  }
+
+  // Always update small template files to ensure latest UI
+  downloads.push(updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/views/index.ejs', path.join(app.getPath('userData'), 'views','index.ejs'), true));
+  downloads.push(updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/views/view.ejs', path.join(app.getPath('userData'), 'views','view.ejs'), true));
+  downloads.push(updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/renderer.js', path.join(app.getPath('userData'), 'src/renderer.js'), true));
+
+  try {
+    if (downloads.length > 0) {
+      await Promise.allSettled(downloads);
+      log.info('Initial builds/downloads completed');
+    }
+
+    // Extraction de FFmpeg si nécessaire
+    if (fs.existsSync(ffmpegZipPath) && !fs.existsSync(ffmpegExePath)) {
+      log.info('Extraction de FFmpeg...');
       const extractDir = path.join(app.getPath('userData'), 'ffmpeg-temp');
       if (process.platform === 'win32') {
         const unzipper = require('unzipper');
@@ -467,8 +553,12 @@ if (!fs.existsSync(ffmpegExePath)) {
           .pipe(unzipper.Extract({ path: extractDir }))
           .promise();
       } else {
-        // Pour Linux, il faudrait utiliser tar, mais restons simple pour Windows pour l'instant
-        // Si besoin de Linux, ajouter child_process.execSync(`tar -xf ${ffmpegZipPath} -C ${extractDir}`)
+        // Extraction Linux simplifiée
+        try {
+          child.execSync(`tar -xf "${ffmpegZipPath}" -C "${app.getPath('userData')}"`);
+        } catch (e) {
+          log.error('Erreur tar Linux:', e);
+        }
       }
 
       // Recherche récursive du binaire ffmpeg dans le dossier d'extraction
@@ -499,83 +589,14 @@ if (!fs.existsSync(ffmpegExePath)) {
             }
           }
         });
+        // Nettoyage du dossier temporaire
+        try { fs.rmSync(extractDir, { recursive: true, force: true }); } catch (e) {}
       }
-    })
-    .catch(err => log.error('Erreur lors de la mise à jour de FFmpeg:', err));
-}
-const base = config.storagePath;
-
-web.set('view engine', 'ejs');
-web.set('views', path.join(app.getPath('userData'), 'views'));
-
-async function build() {
-  const currentVersion = require('../package.json').version;
-  const versionFilePath = path.join(app.getPath('userData'), 'version.txt');
-  let lastVersion = '';
-  try {
-    if (fs.existsSync(versionFilePath)) {
-      lastVersion = fs.readFileSync(versionFilePath, 'utf8').trim();
-    }
-  } catch (e) {}
-
-  const isNewVersion = currentVersion !== lastVersion;
-  if (isNewVersion) {
-    log.info(`Nouvelle version détectée : ${lastVersion} -> ${currentVersion}. Mise à jour forcée des assets.`);
-  }
-
-  fs.mkdir(path.join(app.getPath('userData'), "src/"), { recursive: true }, (err) => {
-    if (err){} //log.info(err);
-  });
-  fs.mkdir(path.join(app.getPath('userData'), "src/client-dist"), { recursive: true }, (err) => {
-    if (err) {}
-  });
-  fs.mkdir(path.join(app.getPath('userData'), 'views'), { recursive: true }, (err) => {
-    if (err) {}
-  });
-  fs.mkdir(path.join(app.getPath('userData'), 'log'), { recursive: true }, (err) => {
-    if (err) {}
-  });
-  fs.mkdir(base, { recursive: true }, (err) => {
-    if (err) {}
-  });
-  const denoBinary = process.platform === 'win32' ? 'deno.exe' : 'deno';
-  const denoPath = path.join(app.getPath('userData'), denoBinary);
-  const denoUrl = process.platform === 'win32' 
-    ? 'https://github.com/denoland/deno/releases/latest/download/deno-x86_64-pc-windows-msvc.zip' 
-    : 'https://github.com/denoland/deno/releases/latest/download/deno-x86_64-unknown-linux-gnu.zip';
-  const denoZipName = 'deno.zip';
-
-  // Optimisation: skip heavy downloads if binary already exists and it's not a new version
-  const downloads = [];
-  if (isNewVersion || !fs.existsSync(path.join(app.getPath('userData'), 'src/client-dist/socket.io.js'))) {
-    downloads.push(updateFile('https://cdn.socket.io/4.4.1/socket.io.js', path.join(app.getPath('userData'), 'src/client-dist/socket.io.js'), isNewVersion));
-    downloads.push(updateFile('https://cdn.socket.io/4.4.1/socket.io.js.map', path.join(app.getPath('userData'), 'src/client-dist/socket.io.js.map'), isNewVersion));
-  }
-  
-  if (isNewVersion || !fs.existsSync(path.join(app.getPath('userData'), process.platform === 'win32' ? 'ytdlp.exe' : 'ytdlp'))) {
-    downloads.push(updateFile(process.platform === 'win32' ? 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe' : 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp', path.join(app.getPath('userData'), process.platform === 'win32' ? 'ytdlp.exe' : 'ytdlp'), isNewVersion));
-  }
-
-  if (isNewVersion || !fs.existsSync(denoPath)) {
-    downloads.push(updateFile(denoUrl, path.join(app.getPath('userData'), denoZipName), isNewVersion));
-  }
-
-  // Always update small template files to ensure latest UI
-  downloads.push(updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/views/index.ejs', path.join(app.getPath('userData'), 'views','index.ejs'), true));
-  downloads.push(updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/views/view.ejs', path.join(app.getPath('userData'), 'views','view.ejs'), true));
-  downloads.push(updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/renderer.js', path.join(app.getPath('userData'), 'src/renderer.js'), true));
-
-  try {
-    if (downloads.length > 0) {
-      await Promise.allSettled(downloads);
-      log.info('Initial builds/downloads completed');
-      // Sauvegarder la nouvelle version après succès
-      fs.writeFileSync(versionFilePath, currentVersion);
     }
     
     // Unzip Deno only if binary is missing
-    const denoZipPath = path.join(app.getPath('userData'), 'deno.zip');
     if (fs.existsSync(denoZipPath) && !fs.existsSync(denoPath)) {
+      log.info('Extraction de Deno...');
       const unzipper = require('unzipper');
       await fs.createReadStream(denoZipPath)
         .pipe(unzipper.Extract({ path: app.getPath('userData') }))
@@ -584,6 +605,10 @@ async function build() {
       if (fs.existsSync(denoPath) && process.platform !== 'win32') {
         fs.chmodSync(denoPath, '755');
       }
+    }
+
+    if (isNewVersion) {
+      fs.writeFileSync(versionFilePath, currentVersion);
     }
     
     // Validate binaries after potential updates
@@ -604,13 +629,13 @@ try {
   log.info(error);
   log.error(error);
 }
-build().then((d)=>{
+build().then(()=>{
   web.listen(8001, function () {
     log.info('Listening on port 8001!');
     booted=!booted
   });
 })
-const db = new d(base);
+const db = new FileDatabase(base);
 db.readDatabase()
 db.save()
 db.database.forEach((item)=>{
@@ -1142,28 +1167,27 @@ ipcMain.on('execute-command', (e, arg) => {
    delete mainWindow
   });
 }
-build().then((data)=>{
-  app.on('activate', async() => {
-    while (!booted) {
-    const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-    await sleep(10000);
-    }
-    if (BrowserWindow.getAllWindows().length === 0) {
+// Start the application
+build().then(() => {
+  web.listen(8001, function () {
+    log.info('Listening on port 8001!');
+    booted = true;
+  });
+});
+
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createWindow();
+  }
+});
+
+app.on('ready', () => {
+  const checkBooted = setInterval(() => {
+    if (booted) {
+      clearInterval(checkBooted);
       createWindow();
     }
-  });
-})
-app.on('ready', () => {
-  if (booted) {
-    createWindow();
-  } else {
-    const checkBooted = setInterval(() => {
-      if (booted) {
-        clearInterval(checkBooted);
-        createWindow();
-      }
-    }, 1000);
-  }
+  }, 1000);
 });
 
 app.on('window-all-closed', () => {
@@ -1171,3 +1195,4 @@ app.on('window-all-closed', () => {
     app.quit();
   }
 });
+
