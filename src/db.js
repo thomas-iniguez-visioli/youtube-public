@@ -56,6 +56,9 @@ class FileDatabase {
         this.directoryPath = directoryPath;
         this.database = [];
         this.history = [];
+        this.playlists = [];
+        this.queue = [];
+        this.favorites = [];
         this.loadDatabase(); // Charge la base de données JSON au démarrage
         if (this.database.length === 0) {
             this.createDatabase(); // Crée la base de données si elle est vide

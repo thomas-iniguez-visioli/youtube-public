@@ -15,6 +15,10 @@ const os = require('os');
 const { updateFile } = require('./updater');
 const { createDownloadArgs, runDownload, createMetadataArgs } = require('./downloader');
 const FileDatabase = require('./db');
+const base = path.join(app.getPath('userData'), 'file');
+const db = new FileDatabase(base);
+db.readDatabase();
+db.save();
 
 const child = require('child_process');
 const log = require('electron-log');
@@ -624,18 +628,6 @@ try {
   log.info(error);
   log.error(error);
 }
-build().then(()=>{
-  web.listen(8001, function () {
-    log.info('Listening on port 8001!');
-    booted=!booted
-  });
-})
-const db = new FileDatabase(base);
-db.readDatabase()
-db.save()
-db.database.forEach((item)=>{
-  
-})
 
 let  promptResponse;
 ipcMain.on('prompt', function(eventRet, arg) {

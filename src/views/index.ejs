@@ -162,10 +162,10 @@
                 </form>
             </div>
             <div class="d-flex">
-                <a href="/favorites" class="btn btn-outline-danger rounded-pill px-4 me-2">Favoris (<%= favoritesCount %>)</a>
-                <a href="/queue" class="btn btn-outline-success rounded-pill px-4 me-2">File (<%= queueCount %>)</a>
+                <a href="/favorites" class="btn btn-outline-danger rounded-pill px-4 me-2">Favoris (<%= typeof favoritesCount !== 'undefined' ? favoritesCount : 0 %>)</a>
+                <a href="/queue" class="btn btn-outline-success rounded-pill px-4 me-2">File (<%= typeof queueCount !== 'undefined' ? queueCount : 0 %>)</a>
                 <a href="/playlists" class="btn btn-outline-warning rounded-pill px-4 me-2">Playlists</a>
-                <a href="/history" class="btn btn-outline-info rounded-pill px-4">Historique (<%= historyCount %>/<%= historyLimit %>)</a>
+                <a href="/history" class="btn btn-outline-info rounded-pill px-4">Historique (<%= typeof historyCount !== 'undefined' ? historyCount : 0 %>/<%= typeof historyLimit !== 'undefined' ? historyLimit : 0 %>)</a>
             </div>
         </div>
     </nav>
