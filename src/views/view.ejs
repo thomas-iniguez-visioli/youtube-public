@@ -176,7 +176,7 @@
                         <strong><a href="/channel?name=<%= (typeof videodata !== 'undefined' && videodata.uploader) ? encodeURIComponent(videodata.uploader) : '' %>" style="color: #ffffff; text-decoration: none;"><%= (typeof videodata !== 'undefined' && videodata.uploader) ? videodata.uploader : 'Uploader inconnu' %></a></strong> • <%= (typeof videodata !== 'undefined' && videodata.view_count) ? videodata.view_count.toLocaleString() + ' vues' : '' %>
                     </div>
                     <div class="d-flex align-items-center">
-                        <button id="favoriteBtn" class="btn <%= isFavorite ? 'btn-danger' : 'btn-outline-danger' %> btn-sm me-2" onclick='toggleFavorite(<%- JSON.stringify(code) %>)'>
+                        <button id="favoriteBtn" class="btn <%= isFavorite ? 'btn-danger' : 'btn-outline-danger' %> btn-sm me-2" onclick="toggleFavorite(<%- JSON.stringify(code).replace(/\"/g, '&quot;') %>)">
                             <%= isFavorite ? '❤' : '♡' %> Favori
                         </button>
                         <button class="btn btn-outline-success btn-sm me-2" onclick='addToQueue(<%- JSON.stringify(code) %>)'>File d'attente</button>
