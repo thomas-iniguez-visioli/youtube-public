@@ -189,7 +189,7 @@
                                     <li>
                                         <form action="/playlist/add" method="POST">
                                             <input type="hidden" name="playlistName" value="<%= playlist.name %>">
-                                            <input type="hidden" name="videoId" value="<%= encodeURIComponent(code) %>">
+                                            <input type="hidden" name="videoId" value="<%= code %>">
                                             <button type="submit" class="dropdown-item"><%= playlist.name %></button>
                                         </form>
                                     </li>
