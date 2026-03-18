@@ -374,7 +374,7 @@
             
             if (currentInQueue) {
                 try {
-                    await fetch(`/queue/remove?id=<%= code %>`, { headers: { 'Accept': 'application/json' } });
+                    await fetch(`/queue/remove?id=<%= encodeURIComponent(code) %>`, { headers: { 'Accept': 'application/json' } });
                 } catch(e) {
                     console.error("Erreur suppression file :", e);
                 }
