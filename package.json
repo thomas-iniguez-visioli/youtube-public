@@ -1,11 +1,9 @@
 {
   "name": "youtube",
-  "version": "1.2.5",
+  "version": "1.2.6",
   "description": "youtube local",
   "main": "src/index.js",
   "private": true,
-
-  
   "scripts": {
     "build": "bun i helmet cors && bun x electron-rebuild -y  ",
     "prepush": "bun test",
