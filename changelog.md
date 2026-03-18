@@ -1,5 +1,28 @@
 # Gemini CLI - Journal des modifications
 
+## [1.2.4] - 2026-03-13
+### Ajouté
+- **Tri chronologique** : Affichage des vidéos sur la page d'accueil par date de téléchargement (les plus récentes en premier), avec le score en critère secondaire.
+- **Rétrocompatibilité** : Mise à jour automatique des anciennes vidéos dans la base de données pour leur attribuer leur date de téléchargement initiale.
+### Changé
+- **Logs** : Suppression du log du contenu complet de la base de données au démarrage pour éviter de polluer la console.
+
+## [1.2.3] - 2026-03-13
+### Optimisé
+- **Téléchargement des binaires** : Optimisation drastique de `updateFile` pour éviter le re-téléchargement et la lecture en mémoire des gros fichiers (FFmpeg/Deno).
+- **Consommation RAM** : Remplacement de la comparaison en mémoire par une comparaison de taille sur disque.
+- **Feedback** : Ajout de logs de progression pour les téléchargements longs.
+
+## [1.2.2] - 2026-03-13
+### Corrigé
+- **Initialisation DB** : Correction de l'erreur "cannot access db before init" en important correctement FileDatabase et en gérant l'ordre d'initialisation.
+- **Stabilité des binaires** : Refonte de la fonction `build()` pour garantir que FFmpeg et Deno sont téléchargés, extraits et validés avant le démarrage du serveur.
+- **Robustesse DB** : Ajout d'une vérification de l'existence du répertoire dans `readDatabase()` pour éviter les plantages au premier démarrage.
+
+## [1.2.1] - 2026-03-13
+### Changé
+- **Migration technologique** : Migration complète vers Deno pour l'exécution des scripts de téléchargement et amélioration de la gestion de FFmpeg.
+
 ## [1.1.61] - 2026-03-01
 ### Ajouté
 - **File d'attente de lecture (Queue)** : Système permettant d'ajouter des vidéos à une file d'attente prioritaire avec gestion AJAX, retrait automatique après lecture et vue dédiée pour la gestion.

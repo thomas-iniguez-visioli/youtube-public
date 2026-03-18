@@ -1,11 +1,9 @@
 {
   "name": "youtube",
-  "version": "1.1.65",
+  "version": "1.2.6",
   "description": "youtube local",
   "main": "src/index.js",
   "private": true,
-
-  
   "scripts": {
     "build": "bun i helmet cors && bun x electron-rebuild -y  ",
     "prepush": "bun test",
@@ -27,7 +25,7 @@
     "uuid": "^11.0.3"
   },
   "devDependencies": {
-    "electron": "^34.0.0",
+    "electron": "^41.0.3",
     "electron-builder": "^25.1.8",
     "typescript": "^5.0.0"
   },

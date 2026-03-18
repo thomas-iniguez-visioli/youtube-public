@@ -14,6 +14,11 @@ const path = require('path');
 const os = require('os');
 const { updateFile } = require('./updater');
 const { createDownloadArgs, runDownload, createMetadataArgs } = require('./downloader');
+const FileDatabase = require('./db');
+const base = path.join(app.getPath('userData'), 'file');
+const db = new FileDatabase(base);
+db.readDatabase();
+db.save();
 
 const child = require('child_process');
 const log = require('electron-log');
@@ -347,14 +352,14 @@ const downloadbacklog = (parameter) => {
     
     const ytdlpPath = binaryResolver.ytdlp;
     const ffmpegDir = binaryResolver.ffmpegDir;
-    const bunPath = binaryResolver.bun;
+    const denoPath = binaryResolver.deno;
 
     if (!ytdlpPath) {
       log.error('yt-dlp non trouvé');
       return reject(new Error('yt-dlp non trouvé'));
     }
 
-    const args = createDownloadArgs(parameter, ffmpegDir, config.storagePath, config.outputFileFormat, bunPath);
+    const args = createDownloadArgs(parameter, ffmpegDir, config.storagePath, config.outputFileFormat, denoPath);
 
     const logger = {
       info: (msg) => {
@@ -384,8 +389,8 @@ const downloaddata = (parameter) => {
       return reject(new Error('yt-dlp non trouvé'));
     }
 
-    const bunPath = binaryResolver.bun;
-    const args = createMetadataArgs(parameter, binaryResolver.ffmpegDir, config.storagePath, config.outputFileFormat, bunPath);
+    const denoPath = binaryResolver.deno;
+    const args = createMetadataArgs(parameter, binaryResolver.ffmpegDir, config.storagePath, config.outputFileFormat, denoPath);
 
     const env = { ...process.env };
     const ytdlpDir = path.dirname(ytdlpPath);
@@ -419,6 +424,7 @@ web.use((req, res, next) => {
   res.locals.historyLimit = Math.floor(db.database.length * 0.8);
   res.locals.historyCount = db.history.length;
   res.locals.queueCount = db.queue.length;
+  res.locals.favoritesCount = db.favorites.length;
   res.locals.backlogFile = path.join(os.homedir(), 'Desktop', 'backlog.txt');
   next();
 });
@@ -451,32 +457,6 @@ web.use((err, req, res, next) => {
   next(err);
 });
 
-const d = require('./db.js');
-const zipUrl = 'https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip';
-const ffmpegExePath = path.join(app.getPath('userData'), process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg');
-
-if (!fs.existsSync(ffmpegExePath)) {
-  updateFile(zipUrl, path.join(app.getPath('userData'), 'ffmpeg.zip'))
-    .then(() => {
-      const unzipper = require('unzipper');
-      fs.createReadStream(path.join(app.getPath('userData'), 'ffmpeg.zip'))
-        .pipe(unzipper.Extract({ path: path.join(app.getPath('userData'), 'ffmpeg') }))
-        .promise()
-        .then(() => {
-          const binPath = path.join(app.getPath('userData'), 'ffmpeg', 'ffmpeg-master-latest-win64-gpl', 'bin');
-          if (fs.existsSync(binPath)) {
-            const files = fs.readdirSync(binPath);
-            files.forEach(file => {
-              fs.copyFileSync(path.join(binPath, file), path.join(app.getPath('userData'), file));
-              if (process.platform !== 'win32') {
-                fs.chmodSync(path.join(app.getPath('userData'), file), '755');
-              }
-            });
-          }
-        });
-    })
-    .catch(err => log.error('Erreur lors de la mise à jour de FFmpeg:', err));
-}
 const base = config.storagePath;
 
 web.set('view engine', 'ejs');
@@ -497,41 +477,58 @@ async function build() {
     log.info(`Nouvelle version détectée : ${lastVersion} -> ${currentVersion}. Mise à jour forcée des assets.`);
   }
 
-  fs.mkdir(path.join(app.getPath('userData'), "src/"), { recursive: true }, (err) => {
-    if (err){} //log.info(err);
-  });
-  fs.mkdir(path.join(app.getPath('userData'), "src/client-dist"), { recursive: true }, (err) => {
-    if (err) {}
-  });
-  fs.mkdir(path.join(app.getPath('userData'), 'views'), { recursive: true }, (err) => {
-    if (err) {}
-  });
-  fs.mkdir(path.join(app.getPath('userData'), 'log'), { recursive: true }, (err) => {
-    if (err) {}
-  });
-  fs.mkdir(base, { recursive: true }, (err) => {
-    if (err) {}
-  });
-  const bunBinary = process.platform === 'win32' ? 'bun.exe' : 'bun';
-  const bunPath = path.join(app.getPath('userData'), bunBinary);
-  const bunUrl = process.platform === 'win32' 
-    ? 'https://github.com/oven-sh/bun/releases/latest/download/bun-windows-x64.zip' 
-    : 'https://github.com/oven-sh/bun/releases/latest/download/bun-linux-x64.zip';
-  const bunZipName = 'bun.zip';
+  // Create necessary directories
+  const dirs = [
+    path.join(app.getPath('userData'), "src/"),
+    path.join(app.getPath('userData'), "src/client-dist"),
+    path.join(app.getPath('userData'), 'views'),
+    path.join(app.getPath('userData'), 'log'),
+    base
+  ];
+  
+  for (const dir of dirs) {
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+  }
 
-  // Optimisation: skip heavy downloads if binary already exists and it's not a new version
+  const denoBinary = process.platform === 'win32' ? 'deno.exe' : 'deno';
+  const denoPath = path.join(app.getPath('userData'), denoBinary);
+  const denoUrl = process.platform === 'win32' 
+    ? 'https://github.com/denoland/deno/releases/latest/download/deno-x86_64-pc-windows-msvc.zip' 
+    : 'https://github.com/denoland/deno/releases/latest/download/deno-x86_64-unknown-linux-gnu.zip';
+  const denoZipName = 'deno.zip';
+  const denoZipPath = path.join(app.getPath('userData'), denoZipName);
+
+  const ffmpegZipUrl = process.platform === 'win32'
+    ? 'https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip'
+    : 'https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz';
+  const ffmpegExeName = process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg';
+  const ffmpegExePath = path.join(app.getPath('userData'), ffmpegExeName);
+  const ffmpegZipName = process.platform === 'win32' ? 'ffmpeg.zip' : 'ffmpeg.tar.xz';
+  const ffmpegZipPath = path.join(app.getPath('userData'), ffmpegZipName);
+  
+  const ytdlpPath = path.join(app.getPath('userData'), process.platform === 'win32' ? 'ytdlp.exe' : 'ytdlp');
+
   const downloads = [];
+  // For small essential files, always update on new version
   if (isNewVersion || !fs.existsSync(path.join(app.getPath('userData'), 'src/client-dist/socket.io.js'))) {
     downloads.push(updateFile('https://cdn.socket.io/4.4.1/socket.io.js', path.join(app.getPath('userData'), 'src/client-dist/socket.io.js'), isNewVersion));
     downloads.push(updateFile('https://cdn.socket.io/4.4.1/socket.io.js.map', path.join(app.getPath('userData'), 'src/client-dist/socket.io.js.map'), isNewVersion));
   }
   
-  if (isNewVersion || !fs.existsSync(path.join(app.getPath('userData'), process.platform === 'win32' ? 'ytdlp.exe' : 'ytdlp'))) {
-    downloads.push(updateFile(process.platform === 'win32' ? 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe' : 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp', path.join(app.getPath('userData'), process.platform === 'win32' ? 'ytdlp.exe' : 'ytdlp'), isNewVersion));
+  // ytdlp changes frequently, better to keep it updated on app version change
+  if (isNewVersion || !fs.existsSync(ytdlpPath)) {
+    downloads.push(updateFile(process.platform === 'win32' ? 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe' : 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp', ytdlpPath, isNewVersion));
   }
 
-  if (isNewVersion || !fs.existsSync(bunPath)) {
-    downloads.push(updateFile(bunUrl, path.join(app.getPath('userData'), bunZipName), isNewVersion));
+  // Deno and FFmpeg are large, only download if missing
+  if (!fs.existsSync(denoPath)) {
+    downloads.push(updateFile(denoUrl, denoZipPath, false));
+  }
+
+  if (!fs.existsSync(ffmpegExePath)) {
+    downloads.push(updateFile(ffmpegZipUrl, ffmpegZipPath, false));
   }
 
   // Always update small template files to ensure latest UI
@@ -543,27 +540,74 @@ async function build() {
     if (downloads.length > 0) {
       await Promise.allSettled(downloads);
       log.info('Initial builds/downloads completed');
-      // Sauvegarder la nouvelle version après succès
-      fs.writeFileSync(versionFilePath, currentVersion);
     }
-    
-    // Unzip Bun only if binary is missing
-    const bunZipPath = path.join(app.getPath('userData'), 'bun.zip');
-    if (fs.existsSync(bunZipPath) && !fs.existsSync(bunPath)) {
-      const unzipper = require('unzipper');
-      await fs.createReadStream(bunZipPath)
-        .pipe(unzipper.Extract({ path: path.join(app.getPath('userData'), 'bun-temp') }))
-        .promise();
-      
-      const bunFolder = process.platform === 'win32' ? 'bun-windows-x64' : 'bun-linux-x64';
-      const bunTempDir = path.join(app.getPath('userData'), 'bun-temp', bunFolder);
-      
-      if (fs.existsSync(path.join(bunTempDir, bunBinary))) {
-        fs.copyFileSync(path.join(bunTempDir, bunBinary), bunPath);
-        if (process.platform !== 'win32') {
-          fs.chmodSync(bunPath, '755');
+
+    // Extraction de FFmpeg si nécessaire
+    if (fs.existsSync(ffmpegZipPath) && !fs.existsSync(ffmpegExePath)) {
+      log.info('Extraction de FFmpeg...');
+      const extractDir = path.join(app.getPath('userData'), 'ffmpeg-temp');
+      if (process.platform === 'win32') {
+        const unzipper = require('unzipper');
+        await fs.createReadStream(ffmpegZipPath)
+          .pipe(unzipper.Extract({ path: extractDir }))
+          .promise();
+      } else {
+        // Extraction Linux simplifiée
+        try {
+          child.execSync(`tar -xf "${ffmpegZipPath}" -C "${app.getPath('userData')}"`);
+        } catch (e) {
+          log.error('Erreur tar Linux:', e);
         }
       }
+
+      // Recherche récursive du binaire ffmpeg dans le dossier d'extraction
+      const findBinary = (dir, name) => {
+        const files = fs.readdirSync(dir);
+        for (const file of files) {
+          const fullPath = path.join(dir, file);
+          if (fs.statSync(fullPath).isDirectory()) {
+            const found = findBinary(fullPath, name);
+            if (found) return found;
+          } else if (file === name) {
+            return fullPath;
+          }
+        }
+        return null;
+      };
+
+      if (fs.existsSync(extractDir)) {
+        const binaries = ['ffmpeg', 'ffprobe', 'ffplay'];
+        binaries.forEach(name => {
+          const binName = process.platform === 'win32' ? `${name}.exe` : name;
+          const sourcePath = findBinary(extractDir, binName);
+          if (sourcePath) {
+            const destPath = path.join(app.getPath('userData'), binName);
+            fs.copyFileSync(sourcePath, destPath);
+            if (process.platform !== 'win32') {
+              fs.chmodSync(destPath, '755');
+            }
+          }
+        });
+        // Nettoyage du dossier temporaire
+        try { fs.rmSync(extractDir, { recursive: true, force: true }); } catch (e) {}
+      }
+    }
+    
+    // Unzip Deno only if binary is missing
+    if (fs.existsSync(denoZipPath) && !fs.existsSync(denoPath)) {
+      log.info('Extraction de Deno...');
+      const unzipper = require('unzipper');
+      await fs.createReadStream(denoZipPath)
+        .pipe(unzipper.Extract({ path: app.getPath('userData') }))
+        .promise();
+      
+      if (fs.existsSync(denoPath) && process.platform !== 'win32') {
+        fs.chmodSync(denoPath, '755');
+      }
+    }
+
+    if (isNewVersion) {
+      fs.writeFileSync(versionFilePath, currentVersion);
     }
     
     // Validate binaries after potential updates
@@ -584,18 +628,6 @@ try {
   log.info(error);
   log.error(error);
 }
-build().then((d)=>{
-  web.listen(8001, function () {
-    log.info('Listening on port 8001!');
-    booted=!booted
-  });
-})
-const db = new d(base);
-db.readDatabase()
-db.save()
-db.database.forEach((item)=>{
-  
-})
 
 let  promptResponse;
 ipcMain.on('prompt', function(eventRet, arg) {
@@ -667,7 +699,16 @@ web.get("/", function (req, res) {
     return { ...item, score, uploader: infoJson.uploader || 'Uploader inconnu' };
   })
   .filter(Boolean)
-  .sort((a, b) => b.score - a.score);
+  .sort((a, b) => {
+    // Sort by download date (mtime) descending (newest first)
+    const dateA = a.mtime || 0;
+    const dateB = b.mtime || 0;
+    if (dateB !== dateA) {
+      return dateB - dateA;
+    }
+    // Fallback to score
+    return b.score - a.score;
+  });
 
   res.render('index', {
     results: referencement,
@@ -765,6 +806,7 @@ web.get("/watch", function (req, res) {
   const playlistName = req.query.playlist;
   let nextVideo = null;
   const currentInQueue = db.queue.includes(req.query.id);
+  const isFavorite = db.isFavorite(req.query.id);
 
   // Check user queue first
   if (db.queue.length > 0) {
@@ -805,6 +847,7 @@ web.get("/watch", function (req, res) {
     nextVideo: nextVideo,
     playlistName: playlistName,
     currentInQueue: currentInQueue,
+    isFavorite: isFavorite,
     playlists: db.getPlaylists()
   });
 });
@@ -889,6 +932,40 @@ web.get("/channel", function (req, res) {
     channelUrl: channelUrl,
     playlists: db.getPlaylists()
   });
+});
+
+web.get("/favorites", function (req, res) {
+  const favorites = db.getFavorites().map(item => {
+    const infoPath = path.join(config.storagePath, item.fileName.replace(".mp4", ".info.json"));
+    let uploader = "Inconnu";
+    if (fs.existsSync(infoPath)) {
+      try {
+        const info = JSON.parse(fs.readFileSync(infoPath, 'utf8'));
+        uploader = info.uploader;
+      } catch (e) {}
+    }
+    return { ...item, uploader };
+  });
+
+  res.render('index', {
+    results: favorites,
+    channel: "Mes Favoris",
+    channelUrl: null,
+    playlists: db.getPlaylists()
+  });
+});
+
+web.get("/favorite/toggle", function (req, res) {
+  const videoId = req.query.id;
+  let status = false;
+  if (videoId) {
+    status = db.toggleFavorite(videoId);
+  }
+  if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+    res.json({ success: true, isFavorite: status, favoritesCount: db.favorites.length });
+  } else {
+    res.redirect("back");
+  }
 });
 
 web.get("/history", function (req, res) {
@@ -1122,28 +1199,27 @@ ipcMain.on('execute-command', (e, arg) => {
    delete mainWindow
   });
 }
-build().then((data)=>{
-  app.on('activate', async() => {
-    while (!booted) {
-    const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-    await sleep(10000);
-    }
-    if (BrowserWindow.getAllWindows().length === 0) {
+// Start the application
+build().then(() => {
+  web.listen(8001, function () {
+    log.info('Listening on port 8001!');
+    booted = true;
+  });
+});
+
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createWindow();
+  }
+});
+
+app.on('ready', () => {
+  const checkBooted = setInterval(() => {
+    if (booted) {
+      clearInterval(checkBooted);
       createWindow();
     }
-  });
-})
-app.on('ready', () => {
-  if (booted) {
-    createWindow();
-  } else {
-    const checkBooted = setInterval(() => {
-      if (booted) {
-        clearInterval(checkBooted);
-        createWindow();
-      }
-    }, 1000);
-  }
+  }, 1000);
 });
 
 app.on('window-all-closed', () => {
@@ -1151,3 +1227,4 @@ app.on('window-all-closed', () => {
     app.quit();
   }
 });
+

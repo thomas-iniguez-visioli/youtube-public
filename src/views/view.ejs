@@ -151,9 +151,10 @@
                 </form>
             </div>
             <div class="d-flex">
-                <a href="/queue" class="btn btn-outline-success rounded-pill px-4 me-2">File (<%= queueCount %>)</a>
+                <a href="/favorites" class="btn btn-outline-danger rounded-pill px-4 me-2">Favoris (<%= typeof favoritesCount !== 'undefined' ? favoritesCount : 0 %>)</a>
+                <a href="/queue" class="btn btn-outline-success rounded-pill px-4 me-2">File (<%= typeof queueCount !== 'undefined' ? queueCount : 0 %>)</a>
                 <a href="/playlists" class="btn btn-outline-warning rounded-pill px-4 me-2">Playlists</a>
-                <a href="/history" class="btn btn-outline-info rounded-pill px-4">Historique (<%= historyCount %>/<%= historyLimit %>)</a>
+                <a href="/history" class="btn btn-outline-info rounded-pill px-4">Historique (<%= typeof historyCount !== 'undefined' ? historyCount : 0 %>/<%= typeof historyLimit !== 'undefined' ? historyLimit : 0 %>)</a>
             </div>
         </div>
     </nav>
@@ -164,7 +165,7 @@
             <div class="col-lg-8">
                 <div class="plyr__video-embed" id="player">
                     <video id="videoPlayer" controls crossorigin playsinline>
-                        <source src="/video/?id=<%= code %>" type="video/mp4" />
+                        <source src="/video/?id=<%= encodeURIComponent(code) %>" type="video/mp4" />
                     </video>
                 </div>
 
@@ -175,7 +176,10 @@
                         <strong><a href="/channel?name=<%= (typeof videodata !== 'undefined' && videodata.uploader) ? encodeURIComponent(videodata.uploader) : '' %>" style="color: #ffffff; text-decoration: none;"><%= (typeof videodata !== 'undefined' && videodata.uploader) ? videodata.uploader : 'Uploader inconnu' %></a></strong> • <%= (typeof videodata !== 'undefined' && videodata.view_count) ? videodata.view_count.toLocaleString() + ' vues' : '' %>
                     </div>
                     <div class="d-flex align-items-center">
-                        <button class="btn btn-outline-success btn-sm me-2" onclick="addToQueue('<%= code %>')">File d'attente</button>
+                        <button id="favoriteBtn" class="btn <%= isFavorite ? 'btn-danger' : 'btn-outline-danger' %> btn-sm me-2" onclick="toggleFavorite(<%- JSON.stringify(code).replace(/\"/g, '&quot;') %>)">
+                            <%= isFavorite ? '❤' : '♡' %> Favori
+                        </button>
+                        <button class="btn btn-outline-success btn-sm me-2" onclick='addToQueue(<%- JSON.stringify(code) %>)'>File d'attente</button>
                         <div class="dropdown me-2">
                             <button class="btn btn-outline-warning btn-sm dropdown-toggle" type="button" id="playlistDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                                 Ajouter à une playlist
@@ -200,7 +204,7 @@
                         <% if (typeof nextVideo !== 'undefined' && nextVideo) { %>
                             <button onclick="playNext()" class="btn btn-outline-primary btn-sm me-2">Vidéo suivante</button>
                         <% } %>
-                        <a href="/delete?id=<%= code %>" class="btn btn-outline-danger btn-sm">Supprimer</a>
+                        <a href="/delete?id=<%= encodeURIComponent(code) %>" class="btn btn-outline-danger btn-sm">Supprimer</a>
                     </div>
                 </div>
 
@@ -214,7 +218,7 @@
                         <div class="col-auto">
                             <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary" id="tagInput" name="tag" placeholder="Tag..." required>
                         </div>
-                        <input type="hidden" name="videoId" value="<%= code %>">
+                        <input type="hidden" name="videoId" value="<%= encodeURIComponent(code) %>">
                         <div class="col-auto">
                             <button type="submit" class="btn btn-secondary btn-sm">Taguer</button>
                         </div>
@@ -262,7 +266,7 @@
     
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const videoId = '<%= code %>';
+            const videoId = <%- JSON.stringify(code) %>;
             const positionKey = `video_pos_${videoId}`;
             const lastUrlKey = 'last_visited_url';
             const sessionNavKey = 'has_navigated_this_session';
@@ -398,6 +402,35 @@
                 }
             } catch (err) {
                 console.error("Erreur ajout file :", err);
+            }
+        }
+
+        async function toggleFavorite(videoId) {
+            try {
+                const response = await fetch(`/favorite/toggle?id=${videoId}`, {
+                    headers: { 'Accept': 'application/json' }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    const favBtn = document.getElementById('favoriteBtn');
+                    const favNavBtn = document.querySelector('a[href="/favorites"]');
+                    
+                    if (favNavBtn) {
+                        favNavBtn.textContent = `Favoris (${data.favoritesCount})`;
+                    }
+
+                    if (data.isFavorite) {
+                        favBtn.classList.remove('btn-outline-danger');
+                        favBtn.classList.add('btn-danger');
+                        favBtn.textContent = '❤ Favori';
+                    } else {
+                        favBtn.classList.remove('btn-danger');
+                        favBtn.classList.add('btn-outline-danger');
+                        favBtn.textContent = '♡ Favori';
+                    }
+                }
+            } catch (err) {
+                console.error("Erreur toggle favori :", err);
             }
         }
 

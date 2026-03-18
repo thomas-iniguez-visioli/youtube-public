@@ -13,7 +13,7 @@ console.log(isWin)
 const BINARIES = {
   ytdlp: isWin ? 'ytdlp.exe' : 'ytdlp',
   ffmpeg: isWin ? 'ffmpeg.exe' : 'ffmpeg',
-  bun: isWin ? 'bun.exe' : 'bun'
+  deno: isWin ? 'deno.exe' : 'deno'
 };
 
 function resolvePath(name) {
@@ -57,8 +57,8 @@ const binaryResolver = {
   get ffmpeg() {
     return resolvePath('ffmpeg');
   },
-  get bun() {
-    return resolvePath('bun');
+  get deno() {
+    return resolvePath('deno');
   },
   get ffmpegDir() {
     const fPath = this.ffmpeg;
@@ -82,7 +82,7 @@ const binaryResolver = {
     return {
       ytdlp: await validate(this.ytdlp),
       ffmpeg: await validate(this.ffmpeg),
-      bun: await validate(this.bun)
+      deno: await validate(this.deno)
     };
   }
 };

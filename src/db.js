@@ -56,6 +56,9 @@ class FileDatabase {
         this.directoryPath = directoryPath;
         this.database = [];
         this.history = [];
+        this.playlists = [];
+        this.queue = [];
+        this.favorites = [];
         this.loadDatabase(); // Charge la base de données JSON au démarrage
         if (this.database.length === 0) {
             this.createDatabase(); // Crée la base de données si elle est vide
@@ -72,11 +75,13 @@ class FileDatabase {
        return results;
      }
     readDatabase() {
+        if (!fs.existsSync(this.directoryPath)) {
+            console.warn(`Directory ${this.directoryPath} does not exist, skipping read.`);
+            return;
+        }
         fs.readdirSync(this.directoryPath).forEach((item) => {
-           if (!ispresent({
-               fileName: item,
-             
-           }, this.database)) {
+           const existingEntry = this.database.find(e => e.fileName === item);
+           if (!existingEntry) {
                if (item.endsWith(".mp4")) {
                    let id = item.match(regex)
                    console.log(id)
@@ -91,20 +96,26 @@ class FileDatabase {
                                console.error(`Error reading info file ${infoPath}:`, e);
                            }
                        }
+                       const stats = fs.statSync(path.join(this.directoryPath, item));
                        this.database.push({
                            fileName: item,
                            fileUuid: `https://www.youtube.com/watch?v=${id[1]}`.replace(":",'_'), 
                            yid: displayId,
+                           mtime: stats.mtimeMs,
                            tags: [] // Ajout d'un champ tags vide pour chaque nouvelle entrée
                        })
                    }
                }
-               
-                
+           } else if (!existingEntry.mtime && item.endsWith(".mp4")) {
+               // Update existing entry with mtime if missing
+               try {
+                   const stats = fs.statSync(path.join(this.directoryPath, item));
+                   existingEntry.mtime = stats.mtimeMs;
+               } catch (e) {
+                   console.error(`Error updating mtime for ${item}:`, e);
+               }
            }
-           
         })
-        console.log(this.database)
         this.saveDatabase(); // Sauvegarde la base de données JSON après chaque lecture
     }
     save() {
@@ -144,12 +155,14 @@ class FileDatabase {
                 this.history = data.history || [];
                 this.playlists = data.playlists || [];
                 this.queue = data.queue || [];
+                this.favorites = data.favorites || [];
             } catch (error) {
                 console.error("Failed to parse database file:", error);
                 //LogRocket.captureException(error);
                 this.database = [];
                 this.history = [];
                 this.playlists = [];
+                this.favorites = [];
             }
         }
     }
@@ -164,7 +177,8 @@ class FileDatabase {
             database: this.database,
             history: this.history,
             playlists: this.playlists,
-            queue: this.queue
+            queue: this.queue,
+            favorites: this.favorites
         }));
     }
 
@@ -174,7 +188,27 @@ class FileDatabase {
         this.history = [];
         this.playlists = [];
         this.queue = [];
+        this.favorites = [];
         this.saveDatabase();
+    }
+
+    // Gestion des Favoris
+    toggleFavorite(videoId) {
+        if (this.favorites.includes(videoId)) {
+            this.favorites = this.favorites.filter(id => id !== videoId);
+        } else {
+            this.favorites.push(videoId);
+        }
+        this.saveDatabase();
+        return this.favorites.includes(videoId);
+    }
+
+    isFavorite(videoId) {
+        return this.favorites.includes(videoId);
+    }
+
+    getFavorites() {
+        return this.favorites.map(id => this.getFile(id)).filter(file => !!file);
     }
 
     // Gestion des Playlists
