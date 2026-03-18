@@ -266,7 +266,7 @@
     
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const videoId = '<%= code %>';
+            const videoId = <%- JSON.stringify(code) %>;
             const positionKey = `video_pos_${videoId}`;
             const lastUrlKey = 'last_visited_url';
             const sessionNavKey = 'has_navigated_this_session';
