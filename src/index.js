@@ -10,6 +10,7 @@ const {autoUpdater}=require("electron-updater")//require("./autoupdate")
 const express = require('express');
 const RateLimit = require('express-rate-limit');
 const fs = require('fs');const https = require('https');
+const escapeHtml = require('escape-html');
 const path = require('path');
 const os = require('os');
 const { updateFile } = require('./updater');
@@ -872,7 +873,7 @@ web.post("/tag", function (req, res) {
       res.send(`Tag "${tag}" already exists for video ${videoId}`);
     }
   } else {
-    res.status(404).send(`Video ${videoId} not found`);
+    res.status(404).send(`Video ${escapeHtml(String(videoId))} not found`);
   }
 });
 
