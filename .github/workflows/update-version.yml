@@ -56,3 +56,9 @@ jobs:
           git add package.json
           git commit -m "chore: bump version to ${{ steps.update-version.outputs.new_version }}"
           git push
+          - name: Trigger build workflow
+      - uses: peter-evans/repository-dispatch@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          event-type: build-triggered
+          client-payload: '{"version": "${{ steps.update-version.outputs.new_version }}"}'
