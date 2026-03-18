@@ -1,6 +1,8 @@
 name: Build/Release
 
 on:
+  repository_dispatch:
+    types: [build-triggered]
   workflow_dispatch:
   push:
     branches: main
