@@ -2,7 +2,7 @@ const { app, BrowserWindow, ipcMain, dialog, Menu, session } = require('electron
 const binaryResolver = require('./binaryResolver');
 const rollbarConfig = require('../rollbar.config.js');
 const Rollbar = require('rollbar');
-const rollbar = new Rollbar(rollbarConfig);
+const rollbar =new Rollbar(rollbarConfig);
 const e=require("electron")
 const cors =require("cors")
 var booted=false
@@ -457,12 +457,13 @@ web.use((err, req, res, next) => {
   next(err);
 });
 
-const base = config.storagePath;
+
 
 web.set('view engine', 'ejs');
 web.set('views', path.join(app.getPath('userData'), 'views'));
 
 async function build() {
+  const base = config.storagePath;
   const currentVersion = require('../package.json').version;
   const versionFilePath = path.join(app.getPath('userData'), 'version.txt');
   let lastVersion = '';

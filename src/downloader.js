@@ -1,7 +1,11 @@
 const child = require('child_process');
 const path = require('path');
 const fs = require('fs');
-
+const binval=require("./binaryResolver")
+binval.validateBinaries().then((data)=>{
+  console.log(data)
+})
+console.log(binval.ffmpeg)
 function getBrowserForCookies() {
   // Priorité Firefox, sinon Chrome
   // Sur Windows, on peut vérifier les chemins par défaut

@@ -8,7 +8,7 @@
     "build": "bun i helmet cors && bun x electron-rebuild -y  ",
     "prepush": "bun test",
     "start": "electron .",
-    "test": "bun test tests/*.test.js"
+    "test": "bun test ./tests/*.test.js"
   },
   "dependencies": {
     "axios": "^1.7.9",

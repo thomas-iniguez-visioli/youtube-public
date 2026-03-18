@@ -9,7 +9,7 @@ try {
 }
 
 const isWin = process.platform === 'win32';
-
+console.log(isWin);
 const BINARIES = {
   ytdlp: isWin ? 'ytdlp.exe' : 'ytdlp',
   ffmpeg: isWin ? 'ffmpeg.exe' : 'ffmpeg',
