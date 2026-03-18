@@ -1,8 +1,8 @@
 const { app, BrowserWindow, ipcMain, dialog, Menu, session } = require('electron');
 const binaryResolver = require('./binaryResolver');
-//const rollbarConfig = require('../rollbar.config.js');
-//const Rollbar = require('rollbar');
-const rollbar ={}//ew Rollbar(rollbarConfig);
+const rollbarConfig = require('../rollbar.config.js');
+const Rollbar = require('rollbar');
+const rollbar =new Rollbar(rollbarConfig);
 const e=require("electron")
 const cors =require("cors")
 var booted=false
