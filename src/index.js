@@ -371,6 +371,7 @@ const downloadbacklog = (parameter) => {
 
     runDownload(ytdlpPath, args, logger)
       .then((res) => {
+        db.readDatabase(); // Rafraîchir la base de données avec le nouveau fichier
         optimizeMemory();
         resolve(res);
       })
@@ -669,54 +670,22 @@ log.info('boot now');
 
 web.get("/", function (req, res) {
   fs.appendFileSync("./log.txt",app.getPath('exe').split(path.sep)[app.getPath('exe').split(path.sep).length-1])
-  autoUpdater.checkForUpdatesAndNotify();
-  db.readDatabase();
-  db.save();
-
-  // Algorithme de référencement simplifié
-  const database = db.database;
-  const referencement = database
-    .map(item => {
-    const infoJsonPath = path.join(app.getPath('userData'), 'file', item.fileName.replace(".mp4", ".info.json"));
-    const mp4Path = path.join(app.getPath('userData'), 'file', item.fileName);
-    
-    // Don't delete files here, just use defaults if info.json is missing
-    let infoJson = {};
-    if (fs.existsSync(infoJsonPath)) {
-      try {
-        infoJson = require(infoJsonPath);
-      } catch (error) {
-        console.error(`Erreur lors de la lecture de ${infoJsonPath}: ${error}`);
-      }
-    } else {
-      console.warn(`Info JSON manquante pour ${item.fileName}`);
-    }
-    
-    if (infoJson.display_id && infoJson.uploader) {
-      db.addTag(infoJson.display_id, infoJson.uploader);
-      db.ensureChannelPlaylist(infoJson.display_id, infoJson.uploader);
-    }
-    
-    const score = (infoJson.view_count || 0) * 0.5 + (infoJson.like_count || 0) * 0.3 + (infoJson.comment_count || 0) * 0.2;
-    return { ...item, score, uploader: infoJson.uploader || 'Uploader inconnu' };
-  })
-  .filter(Boolean)
-  .sort((a, b) => {
-    // Sort by download date (mtime) descending (newest first)
+  
+  // Utilise les données déjà chargées et scorées dans la DB
+  const results = [...db.database].sort((a, b) => {
+    // Tri par date de téléchargement (mtime) décroissant
     const dateA = a.mtime || 0;
     const dateB = b.mtime || 0;
-    if (dateB !== dateA) {
-      return dateB - dateA;
-    }
-    // Fallback to score
-    return b.score - a.score;
+    if (dateB !== dateA) return dateB - dateA;
+    return (b.score || 0) - (a.score || 0);
   });
 
   res.render('index', {
-    results: referencement,
+    results: results,
     channel: null,
     channelUrl: null,
-    playlists: db.getPlaylists()
+    playlists: db.getPlaylists(),
+    allTags: db.getAllTags()
   });
 })
 web.get("/queue", function (req, res) {
@@ -725,7 +694,8 @@ web.get("/queue", function (req, res) {
     results: queue,
     channel: "Ma File d'attente",
     channelUrl: null,
-    playlists: db.getPlaylists()
+    playlists: db.getPlaylists(),
+    allTags: db.getAllTags()
   });
 });
 
@@ -772,36 +742,29 @@ web.get("/watch", function (req, res) {
 
   const infoPath = path.join(config.storagePath, fileData.fileName.replace(".mp4", ".info.json"));
   
-  let videodata = {};
+  let videodata = {
+    title: fileData.fileName,
+    uploader: fileData.uploader,
+    view_count: fileData.view_count,
+    like_count: fileData.like_count,
+    comment_count: fileData.comment_count
+  };
+
   if (fs.existsSync(infoPath)) {
     try {
-      videodata = JSON.parse(fs.readFileSync(infoPath, 'utf8'));
-      if (videodata.display_id && videodata.uploader) {
-        db.addTag(videodata.display_id, videodata.uploader);
-        db.ensureChannelPlaylist(videodata.display_id, videodata.uploader);
-      }
+      const onDiskData = JSON.parse(fs.readFileSync(infoPath, 'utf8'));
+      videodata = { ...videodata, ...onDiskData };
       // Trigger update metadata in background only if needed
-      if (videodata.webpage_url) {
-        downloaddata(videodata.webpage_url);
+      if (onDiskData.webpage_url) {
+        downloaddata(onDiskData.webpage_url);
       }
     } catch (e) {
       log.error(`Erreur lecture JSON: ${e.message}`);
     }
   }
 
-  const database = db.database;
   const historyWithoutCurrent = db.history.filter(id => id !== req.query.id);
-  const referencement = database.map(item => {
-    const itemInfoPath = path.join(config.storagePath, item.fileName.replace(".mp4", ".info.json"));
-    let score = 0;
-    if (fs.existsSync(itemInfoPath)) {
-      try {
-        const info = JSON.parse(fs.readFileSync(itemInfoPath, 'utf8'));
-        score = (info.view_count || 0) * 0.5 + (info.like_count || 0) * 0.3 + (info.comment_count || 0) * 0.2;
-      } catch (e) {}
-    }
-    return { ...item, score };
-  }).sort((a, b) => b.score - a.score);
+  const referencement = [...db.database].sort((a, b) => (b.score || 0) - (a.score || 0));
 
   const filteredReferencement = referencement.filter(item => !historyWithoutCurrent.includes(item.yid));
 
@@ -812,14 +775,12 @@ web.get("/watch", function (req, res) {
 
   // Check user queue first
   if (db.queue.length > 0) {
-    // Si la vidéo actuelle est dans la file, on propose la suivante dans la file
     const queueIdx = db.queue.indexOf(req.query.id);
     if (queueIdx !== -1) {
       if (queueIdx < db.queue.length - 1) {
         nextVideo = db.getFile(db.queue[queueIdx + 1]);
       }
     } else {
-      // Sinon on propose la première de la file
       nextVideo = db.getFile(db.queue[0]);
     }
   }
@@ -850,7 +811,8 @@ web.get("/watch", function (req, res) {
     playlistName: playlistName,
     currentInQueue: currentInQueue,
     isFavorite: isFavorite,
-    playlists: db.getPlaylists()
+    playlists: db.getPlaylists(),
+    allTags: db.getAllTags()
   });
 });
 web.get("/download", function (req, res) {
@@ -885,75 +847,34 @@ web.get("/delete", function (req, res) {
   res.redirect("/")
 });
 web.get("/api/search", function (req, res) {
-  console.log(req.query)
-  const tags = req.query.tags.split(',');
-  const database = db.database;
-  const results = database.filter(item => {
-    return tags.some(tag => item.tags.includes(tag.trim()));
-  }).map(item => {
-    const infoPath = path.join(config.storagePath, item.fileName.replace(".mp4", ".info.json"));
-    let uploader = null;
-    if (fs.existsSync(infoPath)) {
-      try {
-        const info = JSON.parse(fs.readFileSync(infoPath, 'utf8'));
-        uploader = info.uploader;
-      } catch (e) {}
-    }
-    return { ...item, uploader };
-  });
-  console.log(results)
+  const query = req.query.q || req.query.tags || "";
+  const results = db.search(query);
   res.json(results);
 });
 
 web.get("/channel", function (req, res) {
   const channelName = req.query.name;
-  db.readDatabase();
-  
-  let channelUrl = null;
-  const results = db.database.filter(item => {
-    const infoPath = path.join(config.storagePath, item.fileName.replace(".mp4", ".info.json"));
-    if (fs.existsSync(infoPath)) {
-      try {
-        const info = JSON.parse(fs.readFileSync(infoPath, 'utf8'));
-        if (info.uploader === channelName) {
-          if (!channelUrl) channelUrl = info.channel_url || info.uploader_url;
-          return true;
-        }
-      } catch (e) {
-        return false;
-      }
-    }
-    return false;
-  }).map(item => {
-    return { ...item, uploader: channelName };
-  });
+  const results = db.database.filter(item => item.uploader === channelName);
+  const channelUrl = results.length > 0 ? results[0].channel_url : null;
 
   res.render('index', {
     results: results,
     channel: channelName,
     channelUrl: channelUrl,
-    playlists: db.getPlaylists()
+    playlists: db.getPlaylists(),
+    allTags: db.getAllTags()
   });
 });
 
 web.get("/favorites", function (req, res) {
-  const favorites = db.getFavorites().map(item => {
-    const infoPath = path.join(config.storagePath, item.fileName.replace(".mp4", ".info.json"));
-    let uploader = "Inconnu";
-    if (fs.existsSync(infoPath)) {
-      try {
-        const info = JSON.parse(fs.readFileSync(infoPath, 'utf8'));
-        uploader = info.uploader;
-      } catch (e) {}
-    }
-    return { ...item, uploader };
-  });
+  const favorites = db.getFavorites();
 
   res.render('index', {
     results: favorites,
     channel: "Mes Favoris",
     channelUrl: null,
-    playlists: db.getPlaylists()
+    playlists: db.getPlaylists(),
+    allTags: db.getAllTags()
   });
 });
 
@@ -971,23 +892,14 @@ web.get("/favorite/toggle", function (req, res) {
 });
 
 web.get("/history", function (req, res) {
-  const history = db.getHistory().map(item => {
-    const infoPath = path.join(config.storagePath, item.fileName.replace(".mp4", ".info.json"));
-    let uploader = "Inconnu";
-    if (fs.existsSync(infoPath)) {
-      try {
-        const info = JSON.parse(fs.readFileSync(infoPath, 'utf8'));
-        uploader = info.uploader;
-      } catch (e) {}
-    }
-    return { ...item, uploader };
-  });
+  const history = db.getHistory();
 
   res.render('index', {
     results: history,
     channel: "Historique",
     channelUrl: null,
-    playlists: db.getPlaylists()
+    playlists: db.getPlaylists(),
+    allTags: db.getAllTags()
   });
 });
 
@@ -996,7 +908,8 @@ web.get("/playlists", function (req, res) {
     results: [],
     channel: "Mes Playlists",
     channelUrl: null,
-    playlists: db.getPlaylists()
+    playlists: db.getPlaylists(),
+    allTags: db.getAllTags()
   });
 });
 
@@ -1006,23 +919,12 @@ web.get("/playlist", function (req, res) {
   
   if (!playlist) return res.redirect("/playlists");
 
-  const results = playlist.videos.map(item => {
-    const infoPath = path.join(config.storagePath, item.fileName.replace(".mp4", ".info.json"));
-    let uploader = "Inconnu";
-    if (fs.existsSync(infoPath)) {
-      try {
-        const info = JSON.parse(fs.readFileSync(infoPath, 'utf8'));
-        uploader = info.uploader;
-      } catch (e) {}
-    }
-    return { ...item, uploader };
-  });
-
   res.render('index', {
-    results: results,
+    results: playlist.videos,
     channel: `Playlist : ${name}`,
     channelUrl: null,
-    playlists: db.getPlaylists()
+    playlists: db.getPlaylists(),
+    allTags: db.getAllTags()
   });
 });
 
