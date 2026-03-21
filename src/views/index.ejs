@@ -225,10 +225,11 @@
         <!-- Section Filtres Inline -->
         <div class="tag-filter-section">
             <div class="filter-chip active" onclick="filterByTag('all', this)">Tous</div>
-            <% const uniqueTags = [... new Set(results.reduce((acc, result) => acc.concat(result.tags), []))]; %>
-            <% uniqueTags.forEach(function(tag){ %>
-                <div class="filter-chip" onclick="filterByTag('<%= tag.replace(/'/g, "\\'") %>', this)"><%= tag %></div>
-            <% }); %>
+            <% if (typeof allTags !== 'undefined') { %>
+                <% allTags.forEach(function(tag){ %>
+                    <div class="filter-chip" onclick="filterByTag('<%= tag.replace(/'/g, "\\'") %>', this)"><%= tag %></div>
+                <% }); %>
+            <% } %>
         </div>
 
         <div class="row" id="resultsList">
