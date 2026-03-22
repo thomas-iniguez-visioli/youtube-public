@@ -1107,8 +1107,10 @@ web.listen(8001, function () {
     createWindow();
   }
   
-  // Start background build process after server is up
-  build().catch(err => log.error('Background build error:', err));
+  // Start background build process after a delay to ensure smooth startup
+  setTimeout(() => {
+    build().catch(err => log.error('Background build error:', err));
+  }, 5000);
 });
 
 app.on('activate', () => {

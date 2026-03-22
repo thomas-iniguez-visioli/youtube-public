@@ -43,21 +43,47 @@ function get(url, dest) {
   });
 }
 
+function getInfo(url) {
+  return new Promise((resolve, reject) => {
+    const req = https.request(url, { method: 'HEAD' }, (res) => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        return getInfo(res.headers.location).then(resolve).catch(reject);
+      }
+      resolve({
+        size: parseInt(res.headers['content-length'], 10),
+        statusCode: res.statusCode
+      });
+    });
+    req.on('error', reject);
+    req.end();
+  });
+}
+
 async function updateFile(url, dest, force = false) {
   const fileName = path.basename(dest);
-  
-  // If not forced and file exists, skip download
-  if (!force && fs.existsSync(dest)) {
-    return;
-  }
+  const exists = fs.existsSync(dest);
 
-  const tempDest = `${dest}.tmp`;
   try {
     const dir = path.dirname(dest);
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
-    
+
+    // Optimization: Check size via HEAD request before downloading
+    if (exists && !force) {
+      try {
+        const info = await getInfo(url);
+        const stats = fs.statSync(dest);
+        if (info.size && stats.size === info.size) {
+          log.info(`${fileName} is already up to date (size matches). Skipping download.`);
+          return;
+        }
+      } catch (e) {
+        log.warn(`Could not perform HEAD request for ${fileName}, falling back to download check.`);
+      }
+    }
+
+    const tempDest = `${dest}.tmp`;
     if (fs.existsSync(tempDest)) {
       try { fs.unlinkSync(tempDest); } catch (e) {}
     }
@@ -69,28 +95,29 @@ async function updateFile(url, dest, force = false) {
       throw new Error(`Temp file ${tempDest} not found after download`);
     }
 
-    // Comparison logic: use file size as a quick check instead of reading everything to memory
-    if (fs.existsSync(dest)) {
+    if (exists) {
       const oldStat = fs.statSync(dest);
       const newStat = fs.statSync(tempDest);
       
       if (oldStat.size === newStat.size) {
-        log.info(`${fileName} is already up to date (same size).`);
+        log.info(`${fileName} is already up to date (content size matches).`);
         fs.unlinkSync(tempDest);
         return;
       }
       
-      fs.unlinkSync(dest);
+      try { fs.unlinkSync(dest); } catch (e) {}
     }
 
     fs.renameSync(tempDest, dest);
     log.info(`Successfully updated ${fileName}`);
   } catch (err) {
     log.error(`Failed to update ${fileName}: ${err.message}`);
+    const tempDest = `${dest}.tmp`;
     if (fs.existsSync(tempDest)) {
       try { fs.unlinkSync(tempDest); } catch (e) {}
     }
-    throw err;
+    // Don't throw if we already have a file, just log error
+    if (!exists) throw err;
   }
 }
 
