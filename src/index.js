@@ -38,8 +38,9 @@ const optimizeMemory = async () => {
     log.info('Optimisation de la mémoire en cours...');
     if (session.defaultSession) {
       await session.defaultSession.clearCache();
+      // Only clear cache-related storage to avoid interrupting sessions or video buffering
       await session.defaultSession.clearStorageData({
-        storages: ['appcache', 'cookies', 'filesystem', 'indexdb', 'localstorage', 'shadercache', 'websql', 'serviceworkers', 'cachestorage']
+        storages: ['appcache', 'shadercache', 'cachestorage']
       });
     }
     
@@ -169,10 +170,10 @@ const corsOptions = {
 };
 
 
-// set up rate limiter: maximum of 100 requests per 15 minutes
+// set up rate limiter: high limit for local app to avoid dropping video chunks
 const limiter = RateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10000, // max 100 requests per windowMs
+  max: 100000, // Increased from 10000 to 100000
 });
 
   
@@ -976,7 +977,7 @@ web.get("/video", limiter, function (req, res) {
  // log.info(req.query.id)
   const videoSize = fs.statSync(videoPath).size;
 
-  const CHUNK_SIZE = 10 ** 6; // 1MB
+  const CHUNK_SIZE = 2 * 10 ** 6; // 2MB
   const start = Number(range.replace(/\D/g, ""));
   const end = Math.min(start + CHUNK_SIZE, videoSize - 1);
 
