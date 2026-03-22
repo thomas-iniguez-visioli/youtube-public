@@ -179,6 +179,9 @@
                         <button id="favoriteBtn" class="btn <%= isFavorite ? 'btn-danger' : 'btn-outline-danger' %> btn-sm me-2" onclick="toggleFavorite(<%- JSON.stringify(code).replace(/\"/g, '&quot;') %>)">
                             <%= isFavorite ? '❤' : '♡' %> Favori
                         </button>
+                        <button class="btn btn-outline-info btn-sm me-2" onclick="shareVideo('<%= (typeof videodata !== 'undefined' && videodata.webpage_url) ? videodata.webpage_url : 'https://www.youtube.com/watch?v=' + code %>')">
+                            ↗ Partager
+                        </button>
                         <button class="btn btn-outline-success btn-sm me-2" onclick='addToQueue(<%- JSON.stringify(code) %>)'>File d'attente</button>
                         <div class="dropdown me-2">
                             <button class="btn btn-outline-warning btn-sm dropdown-toggle" type="button" id="playlistDropdown" data-bs-toggle="dropdown" aria-expanded="false">
@@ -431,6 +434,26 @@
                 }
             } catch (err) {
                 console.error("Erreur toggle favori :", err);
+            }
+        }
+
+        async function shareVideo(url) {
+            try {
+                await navigator.clipboard.writeText(url);
+                const shareBtn = document.activeElement;
+                const originalText = shareBtn.textContent;
+                shareBtn.textContent = '✓ Copié !';
+                shareBtn.classList.remove('btn-outline-info');
+                shareBtn.classList.add('btn-info');
+                
+                setTimeout(() => {
+                    shareBtn.textContent = originalText;
+                    shareBtn.classList.remove('btn-info');
+                    shareBtn.classList.add('btn-outline-info');
+                }, 2000);
+            } catch (err) {
+                console.error("Erreur partage :", err);
+                alert("Lien YouTube : " + url);
             }
         }
 
