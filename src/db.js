@@ -16,7 +16,19 @@ class FileDatabase {
         this.playlists = [];
         this.queue = [];
         this.favorites = [];
+        this.yidMap = new Map();
         this.loadDatabase();
+    }
+
+    _buildIndex() {
+        this.yidMap.clear();
+        if (Array.isArray(this.database)) {
+            this.database.forEach(file => {
+                if (file && file.yid) {
+                    this.yidMap.set(file.yid, file);
+                }
+            });
+        }
     }
 
     search(query) {
@@ -126,6 +138,7 @@ class FileDatabase {
         if (this.database.length !== originalLength) modified = true;
 
         if (modified) {
+            this._buildIndex();
             this.saveDatabase();
         }
     }
@@ -175,10 +188,11 @@ class FileDatabase {
                 this.favorites = [];
             }
         }
+        this._buildIndex();
     }
 
     getFile(yid) {
-        return this.database.find(file => file.yid === yid);
+        return this.yidMap.get(yid) || this.database.find(file => file.yid === yid);
     }
 
     toggleFavorite(videoId) {
@@ -275,6 +289,7 @@ class FileDatabase {
 
     removeFile(yid) {
         this.database = this.database.filter(file => file.yid !== yid);
+        if (this.yidMap) this.yidMap.delete(yid);
         this.history = this.history.filter(id => id !== yid);
         this.queue = this.queue.filter(id => id !== yid);
         this.favorites = this.favorites.filter(id => id !== yid);
