@@ -17,9 +17,6 @@ class FileDatabase {
         this.queue = [];
         this.favorites = [];
         this.loadDatabase();
-        
-        // Initial sync
-        this.readDatabase();
     }
 
     search(query) {
@@ -131,6 +128,10 @@ class FileDatabase {
         if (modified) {
             this.saveDatabase();
         }
+    }
+
+    save() {
+        this.saveDatabase();
     }
 
     saveDatabase() {

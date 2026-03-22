@@ -18,8 +18,11 @@ const { createDownloadArgs, runDownload, createMetadataArgs } = require('./downl
 const FileDatabase = require('./db');
 const base = path.join(app.getPath('userData'), 'file');
 const db = new FileDatabase(base);
-db.readDatabase();
-db.save();
+// Deferred sync to avoid blocking startup
+setTimeout(() => {
+  db.readDatabase();
+  db.save();
+}, 1000);
 
 const child = require('child_process');
 const log = require('electron-log');
@@ -194,25 +197,21 @@ function getRedirectedUrl(url) {
     });
   });
 }
-getRedirectedUrl("https://github.com/thomas-iniguez-visioli/youtube-public/releases/latest").then((url)=>{
- log.info(url.replace("tag","download")+"/latest.yml")
-  autoUpdater.setFeedURL(url.replace("tag","download")+"")
-  autoUpdater.checkForUpdatesAndNotify();
-}).catch((err)=>{
-  log.error(err)
- 
-})
-setInterval(() => {
-  // Code à exécuter toutes les 2 minutes
+// Move initial autoUpdater check to background or deferred
+const initAutoUpdater = () => {
   getRedirectedUrl("https://github.com/thomas-iniguez-visioli/youtube-public/releases/latest").then((url)=>{
-  //  log.info(url.replace("tag","download")+"/latest.yml")
+    log.info("AutoUpdater Feed URL: " + url.replace("tag","download")+"")
     autoUpdater.setFeedURL(url.replace("tag","download")+"")
     autoUpdater.checkForUpdatesAndNotify();
   }).catch((err)=>{
-    log.error(err)
-   
+    log.error("AutoUpdater Init Error: " + err.message)
   })
-}, 120000);
+}
+
+// Consolidate periodic check
+setInterval(initAutoUpdater, 120000);
+// Run first check deferred
+setTimeout(initAutoUpdater, 5000);
 
 
 
@@ -535,9 +534,9 @@ async function build() {
   }
 
   // Always update small template files to ensure latest UI
-  downloads.push(updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/views/index.ejs', path.join(app.getPath('userData'), 'views','index.ejs'), true));
-  downloads.push(updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/views/view.ejs', path.join(app.getPath('userData'), 'views','view.ejs'), true));
-  downloads.push(updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/renderer.js', path.join(app.getPath('userData'), 'src/renderer.js'), true));
+  downloads.push(updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/views/index.ejs', path.join(app.getPath('userData'), 'views','index.ejs'), isNewVersion));
+  downloads.push(updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/views/view.ejs', path.join(app.getPath('userData'), 'views','view.ejs'), isNewVersion));
+  downloads.push(updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/renderer.js', path.join(app.getPath('userData'), 'src/renderer.js'), isNewVersion));
 
   try {
     if (downloads.length > 0) {
@@ -729,8 +728,7 @@ web.get("/queue/clear", function (req, res) {
 });
 
 web.get("/watch", function (req, res) {
-  autoUpdater.checkForUpdatesAndNotify();
-  const fileData = db.getFile(req.query.id);
+    const fileData = db.getFile(req.query.id);
   
   if (!fileData || !fileData.fileName) {
     download(config.videoUrlFormat.replace('${id}', req.query.id));
@@ -817,8 +815,7 @@ web.get("/watch", function (req, res) {
 });
 web.get("/download", function (req, res) {
   console.log(req.query)
-  autoUpdater.checkForUpdatesAndNotify();
-  download(req.query.url)
+    download(req.query.url)
   res.redirect("/")
 });
 web.post("/tag", function (req, res) {
@@ -1087,7 +1084,6 @@ function createWindow() {
 
  // mainWindow.setMenu(menu);
 win=mainWindow
-autoUpdater.checkForUpdatesAndNotify();
 ipcMain.on('execute-command', (e, arg) => {
   const  parameter  = arg;
   log.info(arg)
@@ -1104,26 +1100,27 @@ ipcMain.on('execute-command', (e, arg) => {
   });
 }
 // Start the application
-build().then(() => {
-  web.listen(8001, function () {
-    log.info('Listening on port 8001!');
-    booted = true;
-  });
+web.listen(8001, function () {
+  log.info('Listening on port 8001!');
+  booted = true;
+  if (app.isReady()) {
+    createWindow();
+  }
+  
+  // Start background build process after server is up
+  build().catch(err => log.error('Background build error:', err));
 });
 
 app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) {
+  if (BrowserWindow.getAllWindows().length === 0 && booted) {
     createWindow();
   }
 });
 
 app.on('ready', () => {
-  const checkBooted = setInterval(() => {
-    if (booted) {
-      clearInterval(checkBooted);
-      createWindow();
-    }
-  }, 1000);
+  if (booted) {
+    createWindow();
+  }
 });
 
 app.on('window-all-closed', () => {
