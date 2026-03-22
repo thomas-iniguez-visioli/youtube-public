@@ -222,6 +222,11 @@
                             ↗ Partager
                         </button>
                         <button class="btn btn-outline-success btn-sm me-2" onclick='addToQueue(<%- JSON.stringify(code) %>)'>File d'attente</button>
+                        <% if (typeof videodata !== 'undefined' && (videodata.channel_url || videodata.uploader_url)) { %>
+                            <button class="btn btn-outline-primary btn-sm me-2" onclick="downloadChannel('<%= (videodata.channel_url || videodata.uploader_url).replace(/'/g, "\\'") %>')">
+                                📥 Télécharger la chaîne
+                            </button>
+                        <% } %>
                         <div class="dropdown me-2">
                             <button class="btn btn-outline-warning btn-sm dropdown-toggle" type="button" id="playlistDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                                 Ajouter à une playlist
@@ -493,6 +498,15 @@
             } catch (err) {
                 console.error("Erreur partage :", err);
                 alert("Lien YouTube : " + url);
+            }
+        }
+
+        function downloadChannel(url) {
+            if (window.electronAPI && window.electronAPI.setTitle) {
+                window.electronAPI.setTitle(url);
+                alert("Téléchargement de la chaîne lancé !");
+            } else {
+                window.location.href = `/download?url=${encodeURIComponent(url)}`;
             }
         }
 
