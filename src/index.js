@@ -669,8 +669,6 @@ ipcMain.on('prompt-response', function(event, arg) {
 log.info('boot now');
 
 web.get("/", function (req, res) {
-  fs.appendFileSync("./log.txt",app.getPath('exe').split(path.sep)[app.getPath('exe').split(path.sep).length-1])
-  
   // Utilise les données déjà chargées et scorées dans la DB
   const results = [...db.database].sort((a, b) => {
     // Tri par date de téléchargement (mtime) décroissant
@@ -762,10 +760,11 @@ web.get("/watch", function (req, res) {
     }
   }
 
-  const historyWithoutCurrent = db.history.filter(id => id !== req.query.id);
+  const historySet = new Set(db.history);
+  historySet.delete(req.query.id);
   const referencement = [...db.database].sort((a, b) => (b.score || 0) - (a.score || 0));
 
-  const filteredReferencement = referencement.filter(item => !historyWithoutCurrent.includes(item.yid));
+  const filteredReferencement = referencement.filter(item => !historySet.has(item.yid));
 
   const playlistName = req.query.playlist;
   let nextVideo = null;
