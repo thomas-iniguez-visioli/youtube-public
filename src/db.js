@@ -155,15 +155,24 @@ class FileDatabase {
     loadDatabase() {
         if (fs.existsSync(databaseFilePath)) {
             try {
-                const data = JSON.parse(fs.readFileSync(databaseFilePath));
-                this.database = data.database || data;
-                this.history = data.history || [];
-                this.playlists = data.playlists || [];
-                this.queue = data.queue || [];
-                this.favorites = data.favorites || [];
+                const content = fs.readFileSync(databaseFilePath, 'utf8');
+                if (!content) {
+                    this.database = [];
+                    return;
+                }
+                const data = JSON.parse(content);
+                this.database = Array.isArray(data.database) ? data.database : (Array.isArray(data) ? data : []);
+                this.history = Array.isArray(data.history) ? data.history : [];
+                this.playlists = Array.isArray(data.playlists) ? data.playlists : [];
+                this.queue = Array.isArray(data.queue) ? data.queue : [];
+                this.favorites = Array.isArray(data.favorites) ? data.favorites : [];
             } catch (error) {
                 console.error("Failed to parse database file:", error);
                 this.database = [];
+                this.history = [];
+                this.playlists = [];
+                this.queue = [];
+                this.favorites = [];
             }
         }
     }
