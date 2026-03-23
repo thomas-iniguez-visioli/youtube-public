@@ -39,7 +39,10 @@ function createDownloadArgs(parameter, ffmpegDir, storagePath, outputFileFormat,
 function runDownload(ytdlpPath, args, logger) {
   return new Promise((resolve, reject) => {
     // Quote all arguments to handle spaces
-    const quotedArgs = args.map(arg => arg.includes(' ') ? `"${arg}"` : arg);
+    const quotedArgs = args.map((arg) => {
+      const argStr = String(arg);
+      return argStr.includes(' ') ? `"${argStr}"` : argStr;
+    });
     
     if (logger) logger.info(`Executing: "${ytdlpPath}" ${quotedArgs.join(' ')}`);
 

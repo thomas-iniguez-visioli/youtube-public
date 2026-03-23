@@ -815,7 +815,14 @@ web.get("/watch", function (req, res) {
 });
 web.get("/download", function (req, res) {
   console.log(req.query)
-    download(req.query.url)
+  let url = req.query.url;
+  if (Array.isArray(url)) {
+    url = url[0];
+  }
+  if (typeof url !== 'string' || url.length === 0) {
+    return res.status(400).send("Invalid url parameter");
+  }
+  download(url);
   res.redirect("/")
 });
 web.post("/tag", function (req, res) {
