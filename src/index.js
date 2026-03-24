@@ -973,6 +973,14 @@ web.get("/renderer.js",function (req, res) {
   res.statusCode=200
   res.send(fs.readFileSync(path.join(app.getPath('userData'), "./src/renderer.js"))) // Correction pour utiliser path.join pour une construction de chemin valide
 })
+web.get("/socket.io.js",function (req, res) {
+  res.statusCode=200
+  res.send(fs.readFileSync(path.join(app.getPath('userData'), "./src/client-dist/socket.io.js")))
+})
+web.get("/socket.io.js.map",function (req, res) {
+  res.statusCode=200
+  res.send(fs.readFileSync(path.join(app.getPath('userData'), "./src/client-dist/socket.io.js.map")))
+})
 web.get("/video", limiter, function (req, res) {
   log.info(req.query)  
   log.info(req.headers)
