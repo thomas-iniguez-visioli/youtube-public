@@ -173,6 +173,28 @@ const getconfig=()=>{
   return require(path.join(app.getPath('userData'), 'config.json'))
 }
 const config = getconfig();
+
+// Surveillance du dossier vidéo pour mise à jour automatique de la DB
+const videoFolder = config.storagePath;
+let dbWatchTimeout;
+if (fs.existsSync(videoFolder)) {
+  fs.watch(videoFolder, (eventType, filename) => {
+    // On réagit aux changements sur les fichiers .mp4 ou les métadonnées .json
+    if (filename && (filename.endsWith('.mp4') || filename.endsWith('.json'))) {
+      clearTimeout(dbWatchTimeout);
+      dbWatchTimeout = setTimeout(() => {
+        log.info(`Modification détectée dans le dossier vidéo : ${filename}. Mise à jour de la base de données...`);
+        db.readDatabase();
+        db.save();
+        // Optionnel : notifier l'UI si nécessaire
+        if (typeof io !== 'undefined') {
+          io.emit('db-updated');
+        }
+      }, 5000); // Délai de 5s pour laisser le temps au fichier de se stabiliser (écriture finie)
+    }
+  });
+}
+
 const corsOptions = {
   origin: function (origin, callback) {
     // Autoriser les requêtes sans origine (comme les requêtes locales ou les applications mobiles)
