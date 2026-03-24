@@ -683,7 +683,8 @@ web.get("/", function (req, res) {
     channel: null,
     channelUrl: null,
     playlists: db.getPlaylists(),
-    allTags: db.getAllTags()
+    allTags: db.getAllTags(),
+    allChannels: db.getAllChannels()
   });
 })
 web.get("/queue", function (req, res) {
@@ -693,7 +694,8 @@ web.get("/queue", function (req, res) {
     channel: "Ma File d'attente",
     channelUrl: null,
     playlists: db.getPlaylists(),
-    allTags: db.getAllTags()
+    allTags: db.getAllTags(),
+    allChannels: db.getAllChannels()
   });
 });
 
@@ -810,7 +812,8 @@ web.get("/watch", function (req, res) {
     currentInQueue: currentInQueue,
     isFavorite: isFavorite,
     playlists: db.getPlaylists(),
-    allTags: db.getAllTags()
+    allTags: db.getAllTags(),
+    allChannels: db.getAllChannels()
   });
 });
 web.get("/download", function (req, res) {
@@ -866,7 +869,8 @@ web.get("/channel", function (req, res) {
     channel: channelName,
     channelUrl: channelUrl,
     playlists: db.getPlaylists(),
-    allTags: db.getAllTags()
+    allTags: db.getAllTags(),
+    allChannels: db.getAllChannels()
   });
 });
 
@@ -878,7 +882,8 @@ web.get("/favorites", function (req, res) {
     channel: "Mes Favoris",
     channelUrl: null,
     playlists: db.getPlaylists(),
-    allTags: db.getAllTags()
+    allTags: db.getAllTags(),
+    allChannels: db.getAllChannels()
   });
 });
 
@@ -903,7 +908,8 @@ web.get("/history", function (req, res) {
     channel: "Historique",
     channelUrl: null,
     playlists: db.getPlaylists(),
-    allTags: db.getAllTags()
+    allTags: db.getAllTags(),
+    allChannels: db.getAllChannels()
   });
 });
 
@@ -913,7 +919,8 @@ web.get("/playlists", function (req, res) {
     channel: "Mes Playlists",
     channelUrl: null,
     playlists: db.getPlaylists(),
-    allTags: db.getAllTags()
+    allTags: db.getAllTags(),
+    allChannels: db.getAllChannels()
   });
 });
 
@@ -928,7 +935,8 @@ web.get("/playlist", function (req, res) {
     channel: `Playlist : ${name}`,
     channelUrl: null,
     playlists: db.getPlaylists(),
-    allTags: db.getAllTags()
+    allTags: db.getAllTags(),
+    allChannels: db.getAllChannels()
   });
 });
 

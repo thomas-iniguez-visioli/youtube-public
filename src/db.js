@@ -50,6 +50,16 @@ class FileDatabase {
         return Array.from(tags).sort();
     }
 
+    getAllChannels() {
+        const channels = new Set();
+        this.database.forEach(entry => {
+            if (entry.uploader && entry.uploader !== 'Uploader inconnu') {
+                channels.add(entry.uploader);
+            }
+        });
+        return Array.from(channels).sort();
+    }
+
     readDatabase() {
         if (!fs.existsSync(this.directoryPath)) {
             console.warn(`Directory ${this.directoryPath} does not exist, skipping read.`);
