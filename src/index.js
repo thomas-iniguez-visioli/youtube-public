@@ -11,6 +11,7 @@ const express = require('express');
 const RateLimit = require('express-rate-limit');
 const fs = require('fs');const https = require('https');
 const escapeHtml = require('escape-html');
+const escapeHtml = require('escape-html');
 const path = require('path');
 const os = require('os');
 const { updateFile } = require('./updater');
@@ -834,9 +835,9 @@ web.post("/tag", function (req, res) {
     if (!videoData.tags.includes(tag)) {
       db.addTag(videoId,tag)
       db.save();
-      res.send(`Tag "${tag}" added to video ${videoId}`);
+      res.send(`Tag "${escapeHtml(String(tag))}" added to video ${escapeHtml(String(videoId))}`);
     } else {
-      res.send(`Tag "${tag}" already exists for video ${videoId}`);
+      res.send(`Tag "${escapeHtml(String(tag))}" already exists for video ${escapeHtml(String(videoId))}`);
     }
   } else {
     res.status(404).send(`Video ${escapeHtml(String(videoId))} not found`);
