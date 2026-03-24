@@ -230,7 +230,7 @@
             <div class="d-flex align-items-center mb-4 mt-3">
                 <h2 class="text-white"><%= channel %></h2>
                 <% if (typeof channelUrl !== 'undefined' && channelUrl) { %>
-                    <button class="btn btn-primary btn-sm ms-3" onclick="downloadChannel('<%= channelUrl.replace(/'/g, "\\'") %>')">Télécharger la chaîne</button>
+                    <button class="btn btn-primary btn-sm ms-3" onclick='downloadChannel(<%- JSON.stringify(channelUrl || "") %>)'>Télécharger la chaîne</button>
                 <% } %>
                 <% if (channel.startsWith('Playlist : ')) { %>
                     <a href="/playlist/delete?name=<%= encodeURIComponent(channel.replace('Playlist : ', '')) %>" class="btn btn-danger btn-sm ms-3" onclick="return confirm('Supprimer cette playlist ?')">Supprimer la playlist</a>
