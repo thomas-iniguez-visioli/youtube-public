@@ -11,7 +11,6 @@ const express = require('express');
 const RateLimit = require('express-rate-limit');
 const fs = require('fs');const https = require('https');
 const escapeHtml = require('escape-html');
-const escapeHtml = require('escape-html');
 const path = require('path');
 const os = require('os');
 const { updateFile } = require('./updater');
