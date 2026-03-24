@@ -47,8 +47,8 @@ if (fs.existsSync(videoFolder)) {
 
 const child = require('child_process');
 const log = require('electron-log');
-log.transports.file.level = 'info';
-log.transports.console.level = 'info';
+log.transports.file.level = 'debug';
+log.transports.console.level = 'debug';
 log.transports.file.file = path.join(app.getPath('userData'), 'log', 'app.log');
 
 /**
