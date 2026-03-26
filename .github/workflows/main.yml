@@ -30,7 +30,7 @@ jobs:
 
       - name: Create Release
         id: create_release
-        uses: actions/create-release@v1
+        uses: actions/create-release@v2
         if: github.event_name != 'release'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
