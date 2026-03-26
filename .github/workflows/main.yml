@@ -17,9 +17,9 @@ jobs:
   prepare-release:
     name: Prepare Release
     runs-on: ubuntu-latest
+    if: github.event_name != 'release'
     outputs:
-      release_id: ${{ steps.create_release.outputs.id }}
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
+      version: ${{ steps.version.outputs.version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -28,21 +28,19 @@ jobs:
         id: version
         run: echo "version=$(jq -r '.version' package.json)" >> $GITHUB_OUTPUT
 
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v2
-        if: github.event_name != 'release'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create Draft Release
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.version.outputs.version }}
-          release_name: ${{ steps.version.outputs.version }}
+          name: ${{ steps.version.outputs.version }}
           body: |
             ### YouTube Downloader Extension
             - Extension Firefox pour télécharger des vidéos YouTube.
             - Archive de l'extension incluse dans les assets.
           draft: true
           prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build-and-upload:
     name: Build and Upload Assets
@@ -57,7 +55,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
+        uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
 
@@ -82,22 +80,13 @@ jobs:
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
 
-      - name: Create extension ZIP
+      - name: Create and Upload extension ZIP
         if:  matrix.os == 'ubuntu-latest'
-        run: zip -r youtube-downloader-extension.zip extension/
-
-    
-
-      - name: Upload extension ZIP to Release
-        if:  matrix.os == 'ubuntu-latest'
-        uses: actions/upload-release-asset@v1
+        run: |
+          zip -r youtube-downloader-extension.zip extension/
+          gh release upload v${{ needs.prepare-release.outputs.version }} youtube-downloader-extension.zip --clobber
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.prepare-release.outputs.upload_url }}
-          asset_path: youtube-downloader-extension.zip
-          asset_name: youtube-downloader-extension.zip
-          asset_content_type: application/zip
 
   publish-release:
     name: Publish Release
@@ -109,10 +98,6 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Publish Draft Release
-        uses: eregon/publish-release@v1
+        run: gh release edit v${{ needs.prepare-release.outputs.version }} --draft=false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          release_id: ${{ needs.prepare-release.outputs.release_id }}
-
-  
