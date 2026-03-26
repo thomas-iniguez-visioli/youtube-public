@@ -666,13 +666,68 @@ ipcMain.on('prompt', function(eventRet, arg) {
     alwaysOnTop: true,
     frame: false
   })
-  arg.val = arg.val || ''
-  const promptHtml = '<label for="val">' + arg.title + '</label>\
-  <input id="val" value="' + arg.val + '" autofocus />\
-  <button onclick="require(\'electron\').ipcRenderer.send(\'prompt-response\', document.getElementById(\'val\').value);window.close()">Ok</button>\
-  <button onclick="window.close()">Cancel</button>\
-  <style>body {font-family: sans-serif;} button {float:right; margin-left: 10px;} label,input {margin-bottom: 10px; width: 100%; display:block;}</style>'
-  promptWindow.loadURL('data:text/html,' + promptHtml)
+  const promptHtml = `
+    <div class="glass-container">
+      <label for="val">${arg.title}</label>
+      <input id="val" value="${arg.val || ''}" autofocus />
+      <div class="actions">
+        <button onclick="window.close()">Annuler</button>
+        <button class="primary" onclick="require('electron').ipcRenderer.send('prompt-response', document.getElementById('val').value);window.close()">OK</button>
+      </div>
+    </div>
+    <style>
+      body { 
+        margin: 0; 
+        padding: 15px; 
+        background: #080808; 
+        color: white; 
+        font-family: 'Segoe UI', Roboto, sans-serif; 
+        overflow: hidden;
+      }
+      .glass-container {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 15px;
+        height: calc(100vh - 32px);
+        display: flex;
+        flex-direction: column;
+      }
+      label { 
+        margin-bottom: 8px; 
+        font-size: 0.9rem; 
+        font-weight: 500; 
+        display: block; 
+      }
+      input { 
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        color: white;
+        padding: 8px 12px;
+        margin-bottom: 15px; 
+        width: calc(100% - 26px); 
+        outline: none;
+        transition: border-color 0.2s;
+      }
+      input:focus { border-color: #3ea6ff; }
+      .actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: auto; }
+      button { 
+        padding: 6px 16px; 
+        border-radius: 20px; 
+        border: 1px solid rgba(255, 255, 255, 0.1); 
+        background: rgba(255, 255, 255, 0.05); 
+        color: white; 
+        cursor: pointer; 
+        font-size: 0.85rem;
+        transition: all 0.2s;
+      }
+      button:hover { background: rgba(255, 255, 255, 0.1); }
+      button.primary { background: #3ea6ff; border-color: #3ea6ff; font-weight: 600; }
+      button.primary:hover { background: #65b8ff; }
+    </style>`
+  promptWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(promptHtml))
   promptWindow.show()
   promptWindow.on('closed', function() {
     eventRet.returnValue = promptResponse

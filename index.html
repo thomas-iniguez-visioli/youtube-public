@@ -1,57 +1,125 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <title>Socket.IO chat</title>
-    <style>
-      body { margin: 0; padding-bottom: 3rem; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>YouTube Downloader - Debug Console</title>
+  <style>
+    :root {
+      --bg-color: #080808;
+      --glass-bg: rgba(255, 255, 255, 0.03);
+      --glass-border: rgba(255, 255, 255, 0.08);
+      --accent-color: #3ea6ff;
+      --text-color: #f1f1f1;
+    }
+    body { 
+      margin: 0; 
+      padding-bottom: 5rem; 
+      background: radial-gradient(circle at top right, rgba(62, 166, 255, 0.05), transparent 600px), #080808;
+      color: var(--text-color);
+      font-family: 'Roboto', -apple-system, sans-serif; 
+      min-height: 100vh;
+    }
 
-      #form { background: rgba(0, 0, 0, 0.15); padding: 0.25rem; position: fixed; bottom: 0; left: 0; right: 0; display: flex; height: 3rem; box-sizing: border-box; backdrop-filter: blur(10px); }
-      #input { border: none; padding: 0 1rem; flex-grow: 1; border-radius: 2rem; margin: 0.25rem; }
-      #input:focus { outline: none; }
-      #form > button { background: #333; border: none; padding: 0 1rem; margin: 0.25rem; border-radius: 3px; outline: none; color: #fff; }
+    #form { 
+      background: rgba(8, 8, 8, 0.7); 
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
+      border-top: 1px solid var(--glass-border);
+      padding: 0.75rem 1.5rem; 
+      position: fixed; 
+      bottom: 0; 
+      left: 0; 
+      right: 0; 
+      display: flex; 
+      height: 4.5rem; 
+      box-sizing: border-box; 
+      align-items: center;
+      gap: 15px;
+    }
+    #input { 
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--glass-border);
+      color: white;
+      padding: 0 1.5rem; 
+      flex-grow: 1; 
+      border-radius: 2rem; 
+      height: 2.8rem;
+      outline: none;
+      transition: all 0.3s;
+    }
+    #input:focus { 
+      border-color: var(--accent-color);
+      box-shadow: 0 0 15px rgba(62, 166, 255, 0.2);
+    }
+    #form > button { 
+      background: var(--accent-color); 
+      border: none; 
+      padding: 0 1.5rem; 
+      height: 2.8rem;
+      border-radius: 2rem; 
+      outline: none; 
+      color: #fff; 
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      box-shadow: 0 4px 15px rgba(62, 166, 255, 0.2);
+    }
+    #form > button:hover {
+      background: #65b8ff;
+      transform: translateY(-2px);
+    }
 
-      #messages { list-style-type: none; margin: 0; padding: 0; }
-      #messages > li { padding: 0.5rem 1rem; }
-      #messages > li:nth-child(odd) { background: #efefef; }
-    </style>
-  </head>
-  <body>
-    <ul id="messages"></ul>
-    <form id="form" action="">
-      <input id="input" autocomplete="off" /><button>download</button>
-     
-    </form>
-    
-<script src="/socket.io.js"></script>
-    <script>
-      /*!
- * Socket.IO v4.4.1
- * (c) 2014-2022 Guillermo Rauch
- * Released under the MIT License.
- */
+    #messages { 
+      list-style-type: none; 
+      margin: 0; 
+      padding: 20px; 
+    }
+    #messages > li { 
+      padding: 12px 20px; 
+      margin-bottom: 8px;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      backdrop-filter: blur(5px);
+      animation: fadeIn 0.3s ease-out;
+    }
+    #messages > li:nth-child(odd) { 
+      background: rgba(255, 255, 255, 0.05); 
+    }
 
- 
-      var socket = io();
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <ul id="messages"></ul>
+  <form id="form" action="">
+    <input id="input" autocomplete="off" placeholder="Message ou URL..." /><button>Télécharger</button>
+  </form>
+  
+  <script src="/socket.io.js"></script>
+  <script>
+    var socket = io();
+    var messages = document.getElementById('messages');
+    var form = document.getElementById('form');
+    var input = document.getElementById('input');
 
-      var messages = document.getElementById('messages');
-      var form = document.getElementById('form');
-      var input = document.getElementById('input');
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      if (input.value) {
+        socket.emit('chat message', input.value);
+        input.value = '';
+      }
+    });
 
-      form.addEventListener('submit', function(e) {
-        e.preventDefault();
-        if (input.value) {
-          socket.emit('chat message', input.value);
-          input.value = '';
-        }
-      });
-
-      socket.on('chat message', function(msg) {
-        var item = document.createElement('li');
-        item.textContent = msg;
-        messages.appendChild(item);
-        window.scrollTo(0, document.body.scrollHeight);
-      });
-    </script>
-   
-  </body>
+    socket.on('chat message', function(msg) {
+      var item = document.createElement('li');
+      item.textContent = msg;
+      messages.appendChild(item);
+      window.scrollTo(0, document.body.scrollHeight);
+    });
+  </script>
+</body>
 </html>
