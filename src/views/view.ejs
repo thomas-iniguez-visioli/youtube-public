@@ -218,7 +218,7 @@
                         <button id="favoriteBtn" class="btn <%= isFavorite ? 'btn-danger' : 'btn-outline-danger' %> btn-sm me-2" onclick="toggleFavorite(<%- JSON.stringify(code).replace(/\"/g, '&quot;') %>)">
                             <%= isFavorite ? '❤' : '♡' %> Favori
                         </button>
-                        <button class="btn btn-outline-info btn-sm me-2" onclick="shareVideo(<%- JSON.stringify((typeof videodata !== 'undefined' && videodata.webpage_url) ? videodata.webpage_url : ('https://www.youtube.com/watch?v=' + code)) %>)">
+                        <button class="btn btn-outline-info btn-sm me-2" onclick='shareVideo(<%- JSON.stringify((typeof videodata !== 'undefined' && videodata.webpage_url) ? videodata.webpage_url : ('https://www.youtube.com/watch?v=' + code)) %>)'>
                             ↗ Partager
                         </button>
                         <button class="btn btn-outline-success btn-sm me-2" onclick='addToQueue(<%- JSON.stringify(code) %>)'>File d'attente</button>
