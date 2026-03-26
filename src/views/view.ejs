@@ -174,11 +174,22 @@
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             backdrop-filter: blur(5px);
             font-weight: 500;
+            border-width: 1.5px;
         }
         .btn-outline-light {
-            border-color: var(--glass-border);
-            background: rgba(255, 255, 255, 0.03);
+            border-color: rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.05);
         }
+        .btn-outline-primary { border-color: #3ea6ff; color: #3ea6ff; }
+        .btn-outline-primary:hover { background: #3ea6ff; color: white; }
+        .btn-outline-success { border-color: #2ba640; color: #2ba640; }
+        .btn-outline-success:hover { background: #2ba640; color: white; }
+        .btn-outline-danger { border-color: #ff4d4d; color: #ff4d4d; }
+        .btn-outline-danger:hover { background: #ff4d4d; color: white; }
+        .btn-outline-warning { border-color: #f1c40f; color: #f1c40f; }
+        .btn-outline-warning:hover { background: #f1c40f; color: black; }
+        .btn-outline-info { border-color: #00cfe8; color: #00cfe8; }
+        .btn-outline-info:hover { background: #00cfe8; color: white; }
         .btn-outline-light:hover {
             background-color: rgba(255, 255, 255, 0.1);
             border-color: rgba(255, 255, 255, 0.3);
