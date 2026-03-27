@@ -438,6 +438,23 @@ const downloadbacklog = (parameter) => {
   }));
 };
 
+const downloaddata = (parameter) => {
+  const ytdlpPath = binaryResolver.ytdlp;
+  const ffmpegDir = binaryResolver.ffmpegDir;
+  const denoPath = binaryResolver.deno;
+
+  if (!ytdlpPath) return;
+
+  const args = createMetadataArgs(parameter, ffmpegDir, config.storagePath, config.outputFileFormat, denoPath);
+  
+  runDownload(ytdlpPath, args, { info: (msg) => log.info(`Metadata Update: ${msg}`) })
+    .then(() => {
+      db.readDatabase();
+      db.save();
+    })
+    .catch(err => log.error(`Erreur mise à jour métadonnées : ${err.message}`));
+};
+
 const morgan = require('morgan');
 const accessLogStream=fs.createWriteStream(path.join(app.getPath('userData'), "./log/access-"+`${new Date().toDateString()}`+".log"))
 const errorLogStream=fs.createWriteStream(path.join(app.getPath('userData'), "./log/error-"+`${new Date().toDateString()}`+".log"))
