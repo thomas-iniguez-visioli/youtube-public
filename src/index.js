@@ -23,7 +23,7 @@ setTimeout(() => {
   db.readDatabase();
   db.save();
 }, 1000);
-
+const web = express();
 const child = require('child_process');
 const log = require('electron-log');
 log.transports.file.level = 'debug';
