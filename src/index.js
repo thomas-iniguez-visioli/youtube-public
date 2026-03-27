@@ -368,6 +368,21 @@ const processBacklog = async () => {
 
 setInterval(processBacklog, 1000);
 
+const http = require('http').Server(web);
+const io = require('socket.io')(http);
+
+// Forward errors to the UI via Socket.io
+log.hooks.push((message) => {
+  if (message.level === 'error' && io) {
+    const text = Array.isArray(message.data) ? message.data.map(String).join(' ') : String(message.data);
+    io.emit('error-notification', {
+      message: text,
+      type: 'error'
+    });
+  }
+  return message;
+});
+
 const downloadbacklog = (parameter) => {
   return downloadQueue.add(() => new Promise((resolve, reject) => {
     fs.appendFileSync(path.join(app.getPath('userData'), 'historic.txt'), `${parameter}\n`);
@@ -397,7 +412,15 @@ const downloadbacklog = (parameter) => {
         
         // Notification Socket.io
         if (io) {
-          const videoId = parameter.includes('v=') ? parameter.split('v=')[1].split('&')[0] : parameter;
+          let videoId = parameter;
+          if (parameter.includes('v=')) {
+            videoId = parameter.split('v=')[1].split('&')[0];
+          } else if (parameter.includes('youtu.be/')) {
+            videoId = parameter.split('youtu.be/')[1].split('?')[0];
+          } else if (parameter.includes('embed/')) {
+            videoId = parameter.split('embed/')[1].split('?')[0];
+          }
+          
           const video = db.getFile(videoId);
           io.emit('download-finished', {
             title: video ? video.fileName.replace(` [${video.yid}].mp4`, '').split('-').pop() : 'Vidéo',
@@ -415,71 +438,6 @@ const downloadbacklog = (parameter) => {
   }));
 };
 
-const downloaddata = (parameter) => {
-  return downloadQueue.add(() => new Promise((resolve, reject) => {
-    const ytdlpPath = binaryResolver.ytdlp;
-    
-    if (!ytdlpPath) {
-      log.error(`yt-dlp non trouvé`);
-      return reject(new Error('yt-dlp non trouvé'));
-    }
-
-    const denoPath = binaryResolver.deno;
-    const args = createMetadataArgs(parameter, binaryResolver.ffmpegDir, config.storagePath, config.outputFileFormat, denoPath);
-
-    const env = { ...process.env };
-    const ytdlpDir = path.dirname(ytdlpPath);
-    if (process.platform === 'win32') {
-      env.Path = `${ytdlpDir};${env.Path || ''}`;
-    } else {
-      env.PATH = `${ytdlpDir}:${env.PATH || ''}`;
-    }
-
-    const childProcess = child.spawn(ytdlpPath, args, { env });
-    childProcess.on('error', (err) => {
-      log.error(`Erreur lors du lancement de yt-dlp : ${err.message}`);
-      reject(err);
-    });
-    childProcess.stdout.on('data', (data) => log.info(`stdout: ${data}`));
-    childProcess.stderr.on('data', (data) => log.error(`stderr: ${data}`));
-    childProcess.on('close', (code) => {
-      optimizeMemory();
-      if (code === 0) resolve();
-      else reject(new Error(`yt-dlp (metadata) exited with code ${code}`));
-    });
-  }));
-};
-const { version } = require('../package.json');
-const web = express();
-web.use(express.json());
-web.use(express.urlencoded({ extended: true }));
-web.locals.appVersion = version;
-web.locals.backlogFile = backlogFile;
-web.use((req, res, next) => {
-  res.locals.historyLimit = Math.floor(db.database.length * 0.8);
-  res.locals.historyCount = db.history.length;
-  res.locals.queueCount = db.queue.length;
-  res.locals.favoritesCount = db.favorites.length;
-  res.locals.backlogFile = path.join(os.homedir(), 'Desktop', 'backlog.txt');
-  next();
-});
-const helmet = require('helmet');
-//web.use(helmet());
-//web.use(cors(corsOptions));
-const http = require('http').Server(web);
-const io = require('socket.io')(http);
-
-// Forward errors to the UI via Socket.io
-log.hooks.push((message) => {
-  if (message.level === 'error' && io) {
-    const text = Array.isArray(message.data) ? message.data.map(String).join(' ') : String(message.data);
-    io.emit('error-notification', {
-      message: text,
-      type: 'error'
-    });
-  }
-  return message;
-});
 const morgan = require('morgan');
 const accessLogStream=fs.createWriteStream(path.join(app.getPath('userData'), "./log/access-"+`${new Date().toDateString()}`+".log"))
 const errorLogStream=fs.createWriteStream(path.join(app.getPath('userData'), "./log/error-"+`${new Date().toDateString()}`+".log"))
