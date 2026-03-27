@@ -394,6 +394,17 @@ const downloadbacklog = (parameter) => {
     runDownload(ytdlpPath, args, logger)
       .then((res) => {
         db.readDatabase(); // Rafraîchir la base de données avec le nouveau fichier
+        
+        // Notification Socket.io
+        if (io) {
+          const videoId = parameter.includes('v=') ? parameter.split('v=')[1].split('&')[0] : parameter;
+          const video = db.getFile(videoId);
+          io.emit('download-finished', {
+            title: video ? video.fileName.replace(` [${video.yid}].mp4`, '').split('-').pop() : 'Vidéo',
+            videoId: videoId
+          });
+        }
+
         optimizeMemory();
         resolve(res);
       })

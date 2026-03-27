@@ -26,10 +26,46 @@
             const socket = io();
             socket.on('error-notification', (data) => {
                 alert("Erreur : " + data.message);
-                // On pourrait utiliser un toast Bootstrap ici pour plus de style
+            });
+
+            socket.on('download-finished', (data) => {
+                const toastVideoTitle = document.getElementById('toastVideoTitle');
+                const toastWatchBtn = document.getElementById('toastWatchBtn');
+                const downloadToast = document.getElementById('downloadToast');
+                
+                if (toastVideoTitle && toastWatchBtn && downloadToast) {
+                    toastVideoTitle.textContent = data.title;
+                    toastWatchBtn.href = `/watch?id=${data.videoId}`;
+                    
+                    const toast = new bootstrap.Toast(downloadToast);
+                    toast.show();
+                }
+            });
+
+            socket.on('db-updated', () => {
+                console.log('Database updated, consider refreshing or updating UI');
             });
         }
     </script>
+
+    <!-- Toast Container -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="downloadToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header bg-primary text-white">
+                <strong class="me-auto">Téléchargement terminé</strong>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body">
+                <span id="toastVideoTitle" class="fw-bold"></span> est maintenant disponible.
+                <div class="mt-2 pt-2 border-top">
+                    <a id="toastWatchBtn" href="#" class="btn btn-primary btn-sm">Regarder</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <style>
         :root {
