@@ -350,24 +350,6 @@ const download = (url) => {
   }
 };
 
-const processBacklog = async () => {
-  if (backlog.length > 0 && !isDownloading) {
-    isDownloading = true;
-    const url = backlog[0];
-    try {
-      await downloadbacklog(url);
-    } catch (err) {
-      log.error(`Erreur de téléchargement pour ${url}: ${err.message}`);
-    } finally {
-      backlog.shift();
-      saveBacklog();
-      isDownloading = false;
-    }
-  }
-};
-
-setInterval(processBacklog, 1000);
-
 const http = require('http').Server(web);
 const io = require('socket.io')(http);
 
@@ -454,6 +436,24 @@ const downloaddata = (parameter) => {
     })
     .catch(err => log.error(`Erreur mise à jour métadonnées : ${err.message}`));
 };
+
+const processBacklog = async () => {
+  if (backlog.length > 0 && !isDownloading) {
+    isDownloading = true;
+    const url = backlog[0];
+    try {
+      await downloadbacklog(url);
+    } catch (err) {
+      log.error(`Erreur de téléchargement pour ${url}: ${err.message}`);
+    } finally {
+      backlog.shift();
+      saveBacklog();
+      isDownloading = false;
+    }
+  }
+};
+
+setInterval(processBacklog, 1000);
 
 const morgan = require('morgan');
 const accessLogStream=fs.createWriteStream(path.join(app.getPath('userData'), "./log/access-"+`${new Date().toDateString()}`+".log"))
