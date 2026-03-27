@@ -174,25 +174,52 @@
 
 
     <script>
+        // Notification Helper
+        function showToast(title, message, type = 'primary', link = null) {
+            const toastContainer = document.querySelector('.toast-container');
+            if (!toastContainer) return;
+
+            const toastId = 'toast-' + Date.now() + Math.floor(Math.random() * 1000);
+            const bgClass = type === 'error' ? 'bg-danger' : 'bg-primary';
+            const btnClass = type === 'error' ? 'btn-danger' : 'btn-primary';
+
+            const toastHtml = `
+                <div id="${toastId}" class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="15000">
+                    <div class="toast-header ${bgClass} text-white">
+                        <strong class="me-auto">${title}</strong>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                    <div class="toast-body">
+                        ${message}
+                        ${link ? `<div class="mt-2 pt-2 border-top">
+                            <a href="${link.url}" class="btn ${btnClass} btn-sm">${link.text}</a>
+                        </div>` : ''}
+                    </div>
+                </div>
+            `;
+            
+            toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+            const toastElement = document.getElementById(toastId);
+            const toast = new bootstrap.Toast(toastElement);
+            toast.show();
+
+            toastElement.addEventListener('hidden.bs.toast', () => {
+                toastElement.remove();
+            });
+        }
+
         // Socket.io initialization
         if (typeof io !== 'undefined') {
             const socket = io();
             socket.on('error-notification', (data) => {
-                alert("Erreur : " + data.message);
+                showToast("Erreur", data.message, 'error');
             });
 
             socket.on('download-finished', (data) => {
-                const toastVideoTitle = document.getElementById('toastVideoTitle');
-                const toastWatchBtn = document.getElementById('toastWatchBtn');
-                const downloadToast = document.getElementById('downloadToast');
-                
-                if (toastVideoTitle && toastWatchBtn && downloadToast) {
-                    toastVideoTitle.textContent = data.title;
-                    toastWatchBtn.href = `/watch?id=${data.videoId}`;
-                    
-                    const toast = new bootstrap.Toast(downloadToast);
-                    toast.show();
-                }
+                showToast("Téléchargement terminé", `<span class="fw-bold">${data.title}</span> est maintenant disponible.`, 'primary', {
+                    url: `/watch?id=${data.videoId}`,
+                    text: 'Regarder'
+                });
             });
 
             socket.on('db-updated', () => {
@@ -205,18 +232,6 @@
 <body>
     <!-- Toast Container -->
     <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1060;">
-        <div id="downloadToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="toast-header bg-primary text-white">
-                <strong class="me-auto">Téléchargement terminé</strong>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
-            </div>
-            <div class="toast-body">
-                <span id="toastVideoTitle" class="fw-bold"></span> est maintenant disponible.
-                <div class="mt-2 pt-2 border-top">
-                    <a id="toastWatchBtn" href="#" class="btn btn-primary btn-sm">Regarder</a>
-                </div>
-            </div>
-        </div>
     </div>
     <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
         <div class="container-fluid">
@@ -532,7 +547,7 @@
         function downloadChannel(url) {
             if (window.electronAPI && window.electronAPI.setTitle) {
                 window.electronAPI.setTitle(url);
-                alert("Téléchargement de la chaîne lancé !");
+                showToast("Téléchargement", "Téléchargement de la chaîne lancé !", 'primary');
             } else {
                 window.location.href = `/download?url=${encodeURIComponent(url)}`;
             }
