@@ -36,7 +36,7 @@ function createDownloadArgs(parameter, ffmpegDir, storagePath, outputFileFormat,
   return args;
 }
 
-function runDownload(ytdlpPath, args, logger) {
+function runDownload(ytdlpPath, args, logger, onVideoFinished) {
   return new Promise((resolve, reject) => {
     // Quote all arguments to handle spaces
     const quotedArgs = args.map((arg) => {
@@ -63,7 +63,22 @@ function runDownload(ytdlpPath, args, logger) {
     });
 
     childProcess.stdout.on('data', (data) => {
-      if (logger) logger.info(`stdout: ${data}`);
+      const output = data.toString();
+      if (logger) logger.info(`stdout: ${output}`);
+
+      // Detect video completion (merging format or finished downloading)
+      // Example: [ffmpeg] Merging formats into "C:\Users\alpha\Downloads\Video [ID].mp4"
+      if (onVideoFinished) {
+        const mergeMatch = output.match(/Merging formats into "(.+)"/);
+        const alreadyMatch = output.match(/\[download\] (.+) has already been downloaded/);
+        const finishedMatch = output.match(/\[download\] 100% of .+/); // This might be too broad
+        
+        if (mergeMatch) {
+          onVideoFinished(mergeMatch[1]);
+        } else if (alreadyMatch) {
+          onVideoFinished(alreadyMatch[1]);
+        }
+      }
     });
 
     childProcess.stderr.on('data', (data) => {

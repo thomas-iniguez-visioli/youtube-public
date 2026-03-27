@@ -388,28 +388,32 @@ const downloadbacklog = (parameter) => {
       }
     };
 
-    runDownload(ytdlpPath, args, logger)
-      .then((res) => {
-        db.readDatabase(); // Rafraîchir la base de données avec le nouveau fichier
-        
-        // Notification Socket.io
-        if (io) {
-          let videoId = parameter;
-          if (parameter.includes('v=')) {
-            videoId = parameter.split('v=')[1].split('&')[0];
-          } else if (parameter.includes('youtu.be/')) {
-            videoId = parameter.split('youtu.be/')[1].split('?')[0];
-          } else if (parameter.includes('embed/')) {
-            videoId = parameter.split('embed/')[1].split('?')[0];
-          }
-          
-          const video = db.getFile(videoId);
-          io.emit('download-finished', {
-            title: video ? video.fileName.replace(` [${video.yid}].mp4`, '').split('-').pop() : 'Vidéo',
-            videoId: videoId
-          });
-        }
+    const notifiedVideos = new Set();
 
+    runDownload(ytdlpPath, args, logger, (filePath) => {
+      // Extract video ID from filename like "Title [ID].mp4"
+      const match = filePath.match(/\[([^\]]+)\]\.(mp4|mkv|webm|avi)$/);
+      if (match) {
+        const videoId = match[1];
+        if (!notifiedVideos.has(videoId)) {
+          notifiedVideos.add(videoId);
+          
+          // Small delay to let the filesystem/DB catch up
+          setTimeout(() => {
+            db.readDatabase();
+            const video = db.getFile(videoId);
+            if (io) {
+              io.emit('download-finished', {
+                title: video ? video.fileName.replace(` [${video.yid}].mp4`, '').split('-').pop() : 'Vidéo',
+                videoId: videoId
+              });
+            }
+          }, 1000);
+        }
+      }
+    })
+      .then((res) => {
+        db.readDatabase(); // Final refresh
         optimizeMemory();
         resolve(res);
       })
