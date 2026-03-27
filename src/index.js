@@ -1211,7 +1211,7 @@ ipcMain.on('execute-command', (e, arg) => {
   });
 }
 // Start the application
-web.listen(8001, function () {
+http.listen(8001, function () {
   log.info('Listening on port 8001!');
   booted = true;
   if (app.isReady()) {
