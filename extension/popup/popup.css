@@ -1,17 +1,17 @@
-/* Modern Glass Popup Style */
+/* Modern Glass Popup Style - YouTube Dark Theme */
 :root {
   --bg-color: #080808;
-  --glass-bg: rgba(255, 255, 255, 0.05);
-  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-bg: rgba(255, 255, 255, 0.03);
+  --glass-border: rgba(255, 255, 255, 0.08);
   --accent-color: #3ea6ff;
   --text-color: #f1f1f1;
   --error-color: #ff4d4d;
-  --success-color: #4cd964;
+  --success-color: #2ba640;
 }
 
 body {
   width: 320px;
-  background: #080808;
+  background-color: var(--bg-color);
   color: var(--text-color);
   font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   margin: 0;
@@ -23,14 +23,14 @@ body {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  background: radial-gradient(circle at top right, rgba(62, 166, 255, 0.08), transparent 200px),
+  background: radial-gradient(circle at top right, rgba(62, 166, 255, 0.05), transparent 150px),
               var(--glass-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
   border: 1px solid var(--glass-border);
   border-radius: 16px;
   padding: 20px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
 h1 {
@@ -52,14 +52,14 @@ button {
   font-weight: 600;
   font-size: 0.95rem;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 15px rgba(62, 166, 255, 0.3);
+  box-shadow: 0 4px 15px rgba(62, 166, 255, 0.2);
   margin-top: 5px;
 }
 
 button:hover {
   background: #65b8ff;
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(62, 166, 255, 0.4);
+  box-shadow: 0 8px 25px rgba(62, 166, 255, 0.3);
 }
 
 button:active {
@@ -67,8 +67,8 @@ button:active {
 }
 
 button:disabled {
-  background: #333;
-  color: #666;
+  background: rgba(255, 255, 255, 0.05);
+  color: #555;
   cursor: not-allowed;
   box-shadow: none;
   transform: none;
