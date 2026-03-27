@@ -17,8 +17,143 @@
 
     <script src="https://cdn.lr-ingest.com/LogRocket.min.js" crossorigin="anonymous"></script>
     <script>window.LogRocket && window.LogRocket.init('kw8sds/youtube-zozss');</script>
-    <script src="renderer.js"></script>
     <script src="socket.io.js"></script>
+    <script src="renderer.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #080808;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-hover: rgba(255, 255, 255, 0.08);
+            --text-color: #f1f1f1;
+            --accent-color: #3ea6ff;
+            --card-radius: 16px;
+            --blur-amount: 15px;
+            --nav-bg: rgba(8, 8, 8, 0.7);
+        }
+        body {
+            background: radial-gradient(circle at top right, rgba(62, 166, 255, 0.05), transparent 600px),
+                        radial-gradient(circle at bottom left, rgba(255, 0, 0, 0.03), transparent 600px),
+                        #080808;
+            color: var(--text-color);
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        .navbar {
+            background-color: var(--nav-bg) !important;
+            backdrop-filter: blur(var(--blur-amount));
+            -webkit-backdrop-filter: blur(var(--blur-amount));
+            border-bottom: 1px solid var(--glass-border);
+            padding: 0.8rem 1rem;
+        }
+        .form-control {
+            background-color: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(5px);
+            border: 1px solid var(--glass-border);
+            color: var(--text-color);
+            border-radius: 20px !important;
+            padding: 0.6rem 1.2rem;
+            transition: all 0.3s ease;
+        }
+        .form-control:focus {
+            background-color: rgba(255, 255, 255, 0.08);
+            border-color: var(--accent-color);
+            color: white;
+            box-shadow: 0 0 15px rgba(62, 166, 255, 0.2);
+        }
+        .btn {
+            border-radius: 20px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(5px);
+            font-weight: 500;
+            border-width: 1.5px;
+        }
+        .video-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(5px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--card-radius);
+            overflow: hidden;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            height: 100%;
+            margin-bottom: 20px;
+        }
+        .video-card:hover {
+            transform: translateY(-5px);
+            background: var(--glass-hover);
+            border-color: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+        }
+        .video-thumbnail {
+            width: 100%;
+            aspect-ratio: 16/9;
+            object-fit: cover;
+        }
+        .video-info {
+            padding: 15px;
+        }
+        .video-title {
+            font-size: 0.95rem;
+            font-weight: 500;
+            line-height: 1.3rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            color: #fff;
+            margin-bottom: 8px;
+        }
+        .video-meta {
+            font-size: 0.85rem;
+            color: #aaaaaa;
+        }
+        .tag-badge {
+            font-size: 0.7rem;
+            background: rgba(255, 255, 255, 0.07);
+            color: #aaaaaa;
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-right: 4px;
+            margin-bottom: 4px;
+            display: inline-block;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .tag-filter-section {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding: 15px 0;
+            margin: 10px 0 20px 0;
+            scrollbar-width: none; /* Firefox */
+        }
+        .tag-filter-section::-webkit-scrollbar {
+            display: none; /* Chrome/Safari */
+        }
+        .filter-chip {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            color: #fff;
+            padding: 6px 16px;
+            border-radius: 20px;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.9rem;
+        }
+        .filter-chip:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+        .filter-chip.active {
+            background: #fff;
+            color: #000;
+            border-color: #fff;
+        }
+    </style>
+
 
     <script>
         // Socket.io initialization
