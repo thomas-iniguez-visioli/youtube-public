@@ -318,12 +318,12 @@
             <div class="filter-chip active" onclick="filterByTag('all', this)">Tous</div>
             <% if (typeof allTags !== 'undefined') { %>
                 <% allTags.forEach(function(tag){ %>
-                    <div class="filter-chip" onclick="filterByTag('<%= tag.replace(/'/g, "\\'") %>', this)"><%= tag %></div>
+                    <div class="filter-chip" onclick="filterByTag('<%= tag.replace(/\\/g, "\\\\").replace(/'/g, "\\'") %>', this)"><%= tag %></div>
                 <% }); %>
             <% } %>
             <% if (typeof allChannels !== 'undefined') { %>
                 <% allChannels.forEach(function(uploader){ %>
-                    <div class="filter-chip" onclick="filterByChannel('<%= uploader.replace(/'/g, "\\'") %>', this)"><%= uploader %></div>
+                    <div class="filter-chip" onclick="filterByChannel('<%= uploader.replace(/\\/g, "\\\\").replace(/'/g, "\\'") %>', this)"><%= uploader %></div>
                 <% }); %>
             <% } %>
         </div>
