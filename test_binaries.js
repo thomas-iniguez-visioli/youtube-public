@@ -1,6 +1,4 @@
 import binaryResolver from './src/binaryResolver.js';
-import path from 'path';
-import fs from 'fs';
 
 async function test() {
   console.log('Resolving binaries...');

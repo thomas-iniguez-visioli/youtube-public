@@ -1,13 +1,6 @@
 import fs from 'fs';
 import child_process from 'child_process';
 
-const utf8 = function (str) {
-  const enc = new TextEncoder('utf-8');
-  const u8s = enc.encode(str);
-
-  return Array.from(u8s).map(v => String.fromCharCode(v)).join('');
-}
-
 const path = () => {
   if (fs.existsSync("D:/OS.js-master/vfs/demo")) {
     return "D:/OS.js-master/vfs/demo";
@@ -21,8 +14,12 @@ async function start(answers, folder, logger) {
     return;
   }
 
-  var workerProcess = child_process.exec(
-    `cd ${folder} && ${process.cwd()}\\ytdlp.exe --yes-playlist ${answers}`,
+  const exePath = `${process.cwd()}\\ytdlp.exe`;
+  const args = ["--yes-playlist", answers];
+  var workerProcess = child_process.execFile(
+    exePath,
+    args,
+    { cwd: folder },
     function (error, stdout, stderr) {
       if (error) {
         logger(error.stack);
@@ -42,8 +39,12 @@ async function ide(answers, folder, logger) {
   if (!answers) {
     return;
   }
-  var workerProcess = child_process.exec(
-    ` cd ${folder} && ${process.cwd()}\\ytdlp.exe --yes-playlist ${answers}`,
+  const exePath = `${process.cwd()}\\ytdlp.exe`;
+  const args = ["--yes-playlist", answers];
+  var workerProcess = child_process.execFile(
+    exePath,
+    args,
+    { cwd: folder },
     function (error, stdout, stderr) {
       if (error) {
         logger(error.stack);

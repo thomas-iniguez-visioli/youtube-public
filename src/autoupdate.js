@@ -1,9 +1,6 @@
 import { app, autoUpdater, dialog } from 'electron';
-import os from 'os';
 import path from 'path';
-import url from 'url';
 import fs from 'fs';
-import https from 'https';
 import { createRequire } from 'module';
 
 const require = createRequire(import.meta.url);
