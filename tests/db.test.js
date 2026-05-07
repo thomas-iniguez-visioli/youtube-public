@@ -1,35 +1,15 @@
-const assert = require('node:assert');
-const { test, mock } = require('node:test');
-const path = require('path');
-const fs = require('fs');
-
-// Mock electron app before requiring db.js
-const mockApp = {
-    getPath: (name) => {
-        if (name === 'userData') return './test-userdata';
-        return './test-dir';
-    }
-};
-
-// Use a proxy or mock for electron
-require.cache[require.resolve('electron')] = {
-    cache: {},
-    exports: {
-        app: mockApp
-    }
-};
-
-const FileDatabase = require('../src/db.js');
+import assert from 'node:assert';
+import { test } from 'node:test';
+import path from 'path';
+import fs from 'fs';
+import FileDatabase from '../src/db.js';
 
 test('FileDatabase should parse filenames correctly', (t) => {
-    // Note: the getid function in db.js seems to have some issues based on its code
-    // Let's see how it behaves.
-    
     // We need to create the test-userdata directory
     const userDataPath = path.resolve('./test-userdata');
     const filesPath = path.resolve('./test-files');
-    if (!fs.existsSync(userDataPath)) fs.mkdirSync(userDataPath);
-    if (!fs.existsSync(filesPath)) fs.mkdirSync(filesPath);
+    if (!fs.existsSync(userDataPath)) fs.mkdirSync(userDataPath, { recursive: true });
+    if (!fs.existsSync(filesPath)) fs.mkdirSync(filesPath, { recursive: true });
     
     const db = new FileDatabase(filesPath);
     

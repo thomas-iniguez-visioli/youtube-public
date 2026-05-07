@@ -1,10 +1,10 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const controller = require('../controllers/index');
+import * as controller from '../controllers/index.js';
 
 // Define routes and map them to controller functions
 router.get('/', controller.home);
 router.get('/video/:id', controller.getVideo);
 router.post('/video', controller.uploadVideo);
 
-module.exports = router;
+export default router;

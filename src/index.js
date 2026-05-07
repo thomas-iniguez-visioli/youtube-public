@@ -1,31 +1,48 @@
-const { app, BrowserWindow, ipcMain, dialog, Menu, session } = require('electron');
-const binaryResolver = require('./binaryResolver');
-const rollbarConfig = require('../rollbar.config.js');
+import { app, BrowserWindow, ipcMain, dialog, Menu, session } from 'electron';
+import binaryResolver from './binaryResolver.js';
+import { createRequire } from 'module';
+import cors from 'cors';
+import express from 'express';
+import RateLimit from 'express-rate-limit';
+import fs from 'fs';
+import https from 'https';
+import escapeHtml from 'escape-html';
+import path from 'path';
+import os from 'os';
+import { updateFile } from './updater.js';
+import { createDownloadArgs, runDownload, createMetadataArgs } from './downloader.js';
+import FileDatabase from './db.js';
+import child from 'child_process';
+import log from 'electron-log';
+import morgan from 'morgan';
+import { Server as SocketServer } from 'socket.io';
+import { createServer } from 'http';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const require = createRequire(import.meta.url);
+const pkg = require('../package.json');
+const rollbarConfig = require('../rollbar.config.cjs');
+log.info('Rollbar config loaded:', rollbarConfig ? 'Yes' : 'No');
 const Rollbar = require('rollbar');
-const rollbar =new Rollbar(rollbarConfig);
-const e=require("electron")
-const cors =require("cors")
-var booted=false
-const {autoUpdater}=require("electron-updater")//require("./autoupdate")
-const express = require('express');
-const RateLimit = require('express-rate-limit');
-const fs = require('fs');const https = require('https');
-const escapeHtml = require('escape-html');
-const path = require('path');
-const os = require('os');
-const { updateFile } = require('./updater');
-const { createDownloadArgs, runDownload, createMetadataArgs } = require('./downloader');
-const FileDatabase = require('./db');
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const rollbar = new Rollbar(rollbarConfig);
+var booted = false;
+const { autoUpdater } = require("electron-updater");
+
 const base = path.join(app.getPath('userData'), 'file');
 const db = new FileDatabase(base);
+
 // Deferred sync to avoid blocking startup
 setTimeout(() => {
   db.readDatabase();
   db.save();
 }, 1000);
+
 const web = express();
-const child = require('child_process');
-const log = require('electron-log');
 log.transports.file.level = 'debug';
 log.transports.console.level = 'debug';
 log.transports.file.file = path.join(app.getPath('userData'), 'log', 'app.log');
@@ -132,25 +149,28 @@ function setupElectronLogForwarding() {
         level: message.level,
         // Ajoute d'autres métadonnées pertinentes pour ton projet
         app: 'YouTube Downloader Extension',
-        version: require('../package.json').version,
+        version: pkg.version,
       },
     });
 
     return message;
   });
 }
-setupElectronLogForwarding()
-const getconfig=()=>{
-  if(fs.existsSync(path.join(app.getPath('userData'), 'config.json'))){
-    return require(path.join(app.getPath('userData'), 'config.json'));
+setupElectronLogForwarding();
+
+const getconfig = () => {
+  const configPath = path.join(app.getPath('userData'), 'config.json');
+  if (fs.existsSync(configPath)) {
+    return require(configPath);
   }
-  fs.writeFileSync(path.join(app.getPath('userData'), 'config.json'), JSON.stringify({
+  const defaultConfig = {
     "storagePath": path.join(app.getPath('userData'), 'file'),
     "videoUrlFormat": "https://www.youtube.com/watch?v=${id}",
     "outputFileFormat": "%(channel|)s-%(folder_name|)s-%(title)s [%(id)s].%(ext)s"
-  }))
-  return require(path.join(app.getPath('userData'), 'config.json'))
-}
+  };
+  fs.writeFileSync(configPath, JSON.stringify(defaultConfig));
+  return defaultConfig;
+};
 const config = getconfig();
 
 // Surveillance du dossier vidéo pour mise à jour automatique de la DB
@@ -198,15 +218,13 @@ const limiter = RateLimit({
   max: 100000, // Increased from 10000 to 100000
 });
 
-  
+if (!fs.existsSync(path.join(__dirname))) {
+  fs.mkdirSync(path.join(__dirname));
+}
+if (!fs.existsSync(path.join(app.getPath('userData'), "parsed.txt"))) {
+  fs.writeFileSync(path.join(app.getPath('userData'), "parsed.txt"), "");
+}
 
-if (!fs.existsSync(path.join(__dirname))) { // Correction pour utiliser path.join pour une construction de chemin valide
-  fs.mkdirSync(path.join(__dirname)) // Correction pour utiliser path.join pour une construction de chemin valide
-}
-if (!fs.existsSync(path.join(app.getPath('userData'), "parsed.txt"))) { // Correction pour utiliser path.join pour une construction de chemin valide
-  fs.writeFileSync(path.join(app.getPath('userData'), "parsed.txt"), "") // Correction pour utiliser path.join pour une construction de chemin valide
-}
-//autoUpdater.allowDowngrade=true
 function getRedirectedUrl(url) {
   return new Promise((resolve, reject) => {
     https.get(url, (res) => {
@@ -220,6 +238,7 @@ function getRedirectedUrl(url) {
     });
   });
 }
+
 // Move initial autoUpdater check to background or deferred
 const initAutoUpdater = () => {
   getRedirectedUrl("https://github.com/thomas-iniguez-visioli/youtube-public/releases/latest").then((url)=>{
@@ -236,10 +255,6 @@ setInterval(initAutoUpdater, 120000);
 // Run first check deferred
 setTimeout(initAutoUpdater, 5000);
 
-
-
-
-//log.info(autoUpdater)
 function extractUrls(text) {
   const urlRegex = /https?:\/\/(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+/g;
   return text.match(urlRegex) || [];
@@ -247,13 +262,11 @@ function extractUrls(text) {
 let win;
 function sendStatusToWindow(text) {
   log.info(text);
-  //win.webContents.send('message', text);
 }
 autoUpdater.on('checking-for-update', () => {
   sendStatusToWindow('Checking for update...');
 })
 autoUpdater.on('update-available', (info) => {
-  
   sendStatusToWindow('Update available.');
 })
 autoUpdater.on('update-not-available', (info) => {
@@ -276,6 +289,7 @@ autoUpdater.on('update-downloaded', (info) => {
     autoUpdater.quitAndInstall();
   }, 3000);
 });
+
 let backlogFile = 'backlog.txt';
 try {
   backlogFile = path.join(app.getPath('desktop'), 'backlog.txt');
@@ -303,8 +317,6 @@ const loadBacklog = () => {
       const data = fs.readFileSync(backlogFile, 'utf8');
       const lines = data.split('\n').map(line => line.trim()).filter(line => line.length > 0);
       
-      // On remplace le contenu du backlog par celui du fichier, 
-      // tout en préservant l'ordre.
       backlog.length = 0;
       lines.forEach(line => {
         if (!backlog.includes(line)) {
@@ -350,8 +362,8 @@ const download = (url) => {
   }
 };
 
-const http = require('http').Server(web);
-const io = require('socket.io')(http);
+const httpServer = createServer(web);
+const io = new SocketServer(httpServer);
 
 // Forward errors to the UI via Socket.io
 log.hooks.push((message) => {
@@ -459,26 +471,23 @@ const processBacklog = async () => {
 
 setInterval(processBacklog, 1000);
 
-const morgan = require('morgan');
-const accessLogStream=fs.createWriteStream(path.join(app.getPath('userData'), "./log/access-"+`${new Date().toDateString()}`+".log"))
-const errorLogStream=fs.createWriteStream(path.join(app.getPath('userData'), "./log/error-"+`${new Date().toDateString()}`+".log"))
-web.use(morgan('combined', {stream: accessLogStream}));
-web.use(morgan('combined', {skip: function (req, res) { return res.statusCode < 400 }, stream: errorLogStream}));
+const accessLogStream = fs.createWriteStream(path.join(app.getPath('userData'), "./log/access-" + `${new Date().toDateString()}` + ".log"));
+const errorLogStream = fs.createWriteStream(path.join(app.getPath('userData'), "./log/error-" + `${new Date().toDateString()}` + ".log"));
+web.use(morgan('combined', { stream: accessLogStream }));
+web.use(morgan('combined', { skip: function (req, res) { return res.statusCode < 400 }, stream: errorLogStream }));
 
-// Middleware pour capturer les erreurs Express et les envoyer à LogRocket
+// Middleware pour capturer les erreurs Express
 web.use((err, req, res, next) => {
   log.error(err);
   next(err);
 });
-
-
 
 web.set('view engine', 'ejs');
 web.set('views', path.join(app.getPath('userData'), 'views'));
 
 async function build() {
   const base = config.storagePath;
-  const currentVersion = require('../package.json').version;
+  const currentVersion = pkg.version;
   const versionFilePath = path.join(app.getPath('userData'), 'version.txt');
   let lastVersion = '';
   try {
@@ -561,8 +570,8 @@ async function build() {
     if (fs.existsSync(ffmpegZipPath) && !fs.existsSync(ffmpegExePath)) {
       log.info('Extraction de FFmpeg...');
       const extractDir = path.join(app.getPath('userData'), 'ffmpeg-temp');
+      const unzipper = require('unzipper');
       if (process.platform === 'win32') {
-        const unzipper = require('unzipper');
         await fs.createReadStream(ffmpegZipPath)
           .pipe(unzipper.Extract({ path: extractDir }))
           .promise();
@@ -637,16 +646,9 @@ async function build() {
   }
 }
 
-try {
-  
-} catch (error) {
-  log.info(error);
-  log.error(error);
-}
-
-let  promptResponse;
+let promptResponse;
 ipcMain.on('prompt', function(eventRet, arg) {
-   promptResponse = null
+  promptResponse = null
   var promptWindow = new BrowserWindow({
     width: 200,
     height: 100,
@@ -723,7 +725,6 @@ ipcMain.on('prompt', function(eventRet, arg) {
     eventRet.returnValue = promptResponse
     download(promptResponse)
     promptWindow = null
-
   })
 })
 ipcMain.on('prompt-response', function(event, arg) {
@@ -732,13 +733,10 @@ ipcMain.on('prompt-response', function(event, arg) {
   download(promptResponse)
 })
 
-//const download = require('./ytb');
 log.info('boot now');
 
 web.get("/", function (req, res) {
-  // Utilise les données déjà chargées et scorées dans la DB
   const results = [...db.database].sort((a, b) => {
-    // Tri par date de téléchargement (mtime) décroissant
     const dateA = a.mtime || 0;
     const dateB = b.mtime || 0;
     if (dateB !== dateA) return dateB - dateA;
@@ -796,14 +794,13 @@ web.get("/queue/clear", function (req, res) {
 });
 
 web.get("/watch", function (req, res) {
-    const fileData = db.getFile(req.query.id);
+  const fileData = db.getFile(req.query.id);
   
   if (!fileData || !fileData.fileName) {
     download(config.videoUrlFormat.replace('${id}', req.query.id));
     return res.redirect("/");
   }
 
-  // Ajouter à l'historique
   db.addToHistory(req.query.id);
 
   const infoPath = path.join(config.storagePath, fileData.fileName.replace(".mp4", ".info.json"));
@@ -820,7 +817,6 @@ web.get("/watch", function (req, res) {
     try {
       const onDiskData = JSON.parse(fs.readFileSync(infoPath, 'utf8'));
       videodata = { ...videodata, ...onDiskData };
-      // Trigger update metadata in background only if needed
       if (onDiskData.webpage_url) {
         downloaddata(onDiskData.webpage_url);
       }
@@ -840,7 +836,6 @@ web.get("/watch", function (req, res) {
   const currentInQueue = db.queue.includes(req.query.id);
   const isFavorite = db.isFavorite(req.query.id);
 
-  // Check user queue first
   if (db.queue.length > 0) {
     const queueIdx = db.queue.indexOf(req.query.id);
     if (queueIdx !== -1) {
@@ -852,7 +847,6 @@ web.get("/watch", function (req, res) {
     }
   }
 
-  // If no queue, check playlist
   if (!nextVideo && playlistName) {
     const playlist = db.getPlaylist(playlistName);
     if (playlist) {
@@ -863,7 +857,6 @@ web.get("/watch", function (req, res) {
     }
   }
 
-  // Fallback if not in playlist or end of playlist/queue
   if (!nextVideo) {
     const currentIdx = filteredReferencement.findIndex(item => item.yid === req.query.id);
     nextVideo = currentIdx === filteredReferencement.length - 1 ? filteredReferencement[0] : filteredReferencement[currentIdx + 1];
@@ -883,8 +876,8 @@ web.get("/watch", function (req, res) {
     allChannels: db.getAllChannels()
   });
 });
+
 web.get("/download", function (req, res) {
-  console.log(req.query)
   let url = req.query.url;
   if (Array.isArray(url)) {
     url = url[0];
@@ -895,8 +888,8 @@ web.get("/download", function (req, res) {
   download(url);
   res.redirect("/")
 });
+
 web.post("/tag", function (req, res) {
-  console.log(req.body)
   const videoId = req.body.videoId;
   const tag = req.body.tag;
   const videoData = db.getFile(videoId);
@@ -915,11 +908,11 @@ web.post("/tag", function (req, res) {
 
 
 web.get("/delete", function (req, res) {
- // log.info(req.query)
   fs.rmSync(path.join(base, db.getFile( req.query.id).fileName))
   db.save()
   res.redirect("/")
 });
+
 web.get("/api/search", function (req, res) {
   const query = req.query.q || req.query.tags || "";
   const results = db.search(query);
@@ -1037,40 +1030,33 @@ web.get("/playlist/delete", function (req, res) {
 
 
 web.get("/renderer.js",function (req, res) {
-  res.statusCode=200
-  res.send(fs.readFileSync(path.join(app.getPath('userData'), "./src/renderer.js"))) // Correction pour utiliser path.join pour une construction de chemin valide
+  res.statusCode = 200
+  res.send(fs.readFileSync(path.join(app.getPath('userData'), "./src/renderer.js")))
 })
 web.get("/socket.io.js",function (req, res) {
-  res.statusCode=200
+  res.statusCode = 200
   res.send(fs.readFileSync(path.join(app.getPath('userData'), "./src/client-dist/socket.io.js")))
 })
 web.get("/socket.io.js.map",function (req, res) {
-  res.statusCode=200
+  res.statusCode = 200
   res.send(fs.readFileSync(path.join(app.getPath('userData'), "./src/client-dist/socket.io.js.map")))
 })
 web.get("/video", limiter, function (req, res) {
-  log.info(req.query)  
-  log.info(req.headers)
-  // Ensure there is a range given for the video
   const range = req.headers.range;
   if (!range) {
     res.status(400).send("Requires Range header");
   }
- // log.info(db.getFile( req.query.id))
   const fileName = db.getFile(req.query.id).fileName;
   if (fileName.includes('../') || fileName.includes('..\\')) {
     return res.status(400).send("Invalid file name");
   }
   const videoPath = path.join(base, fileName);
-//  log.info(videoPath)
- // log.info(req.query.id)
   const videoSize = fs.statSync(videoPath).size;
 
   const CHUNK_SIZE = 2 * 10 ** 6; // 2MB
   const start = Number(range.replace(/\D/g, ""));
   const end = Math.min(start + CHUNK_SIZE, videoSize - 1);
 
-  // Create headers
   const contentLength = end - start + 1;
   const headers = {
     "Content-Range": `bytes ${start}-${end}/${videoSize}`,
@@ -1079,119 +1065,39 @@ web.get("/video", limiter, function (req, res) {
     "Content-Type": "video/mp4",
   };
 
-  // HTTP Status 206 for Partial Content
   res.writeHead(206, headers);
-
-  // create video read stream for this particular chunk
   const videoStream = fs.createReadStream(videoPath, { start, end });
-
-  // Stream the video chunk to the client
   videoStream.pipe(res);
 });
-function createWindow() {
 
-  
+function createWindow() {
   const mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
     backgroundColor: '#080808',
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'), // Correction pour utiliser path.join pour une construction de chemin valide
+      preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       enableRemoteModule: false,
     },
   });
   
-  const menu = Menu.buildFromTemplate([
-    {
-      label: 'Fichier',
-      submenu: [
-        {
-          label: 'Télécharger une vidéo',
-          click() {
-            const { dialog } = require('electron');
-            log.info(dialog)
-         
-          }
-        },
-        { type: 'separator' },
-        { role: 'quit' }
-      ]
-    },
-    {
-      label: 'Édition',
-      submenu: [
-        { role: 'undo' },
-        { role: 'redo' },
-        { type: 'separator' },
-        { role: 'cut' },
-        { role: 'copy' },
-        { role: 'paste' },
-        { role: 'delete' },
-        { role: 'selectall' }
-      ]
-    },
-    {
-      label: 'Affichage',
-      submenu: [
-        { role: 'reload' },
-        { role: 'forcereload' },
-        { role: 'toggledevtools' },
-        { type: 'separator' },
-        { role: 'resetzoom' },
-        { role: 'zoomin' },
-        { role: 'zoomout' },
-        { type: 'separator' },
-        { role: 'togglefullscreen' }
-      ]
-    },
-    {
-      role: 'window',
-      label: 'Fenêtre',
-      submenu: [
-        { role: 'minimize' },
-        { role: 'close' }
-      ]
-    },
-    {
-      role: 'help',
-      label: 'Aide',
-      submenu: [
-        {
-          label: 'A propos de l\'application',
-          click() {
-            dialog.showMessageBox({
-              type: 'info',
-              icon: path.join(__dirname, 'assets/icon.png'),
-              title: 'A propos de l\'application',
-              message: 'Ceci est une application de téléchargement de vidéos.',
-              buttons: ['OK']
-            });
-          }
-        }
-      ]
-    }
-  ]);
-
- // mainWindow.setMenu(menu);
-win=mainWindow
-ipcMain.on('execute-command', (e, arg) => {
-  const  parameter  = arg;
-  log.info(arg)
-  var msg =download(parameter)
- 
-    
-    return msg
-  
-});
+  win = mainWindow;
+  ipcMain.on('execute-command', (e, arg) => {
+    const parameter = arg;
+    log.info(arg);
+    var msg = download(parameter);
+    return msg;
+  });
   mainWindow.loadURL("http://localhost:8001");
 
   mainWindow.on('closed', () => {
-   delete mainWindow
+   win = null;
   });
 }
+
 // Start the application
-http.listen(8001, function () {
+httpServer.listen(8001, function () {
   log.info('Listening on port 8001!');
   booted = true;
   if (app.isReady()) {
@@ -1221,4 +1127,3 @@ app.on('window-all-closed', () => {
     app.quit();
   }
 });
-

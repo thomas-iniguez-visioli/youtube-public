@@ -1,35 +1,26 @@
-const assert = require('node:assert');
-const { test } = require('node:test');
-const path = require('path');
-const fs = require('fs');
+import assert from 'node:assert';
+import { test } from 'node:test';
+import path from 'path';
+import fs from 'fs';
+import { createRequire } from 'module';
 
-// Mock electron app before requiring db.js
-const mockApp = {
-    getPath: (name) => {
-        if (name === 'userData') return './test-history-userdata';
-        return './test-dir';
-    }
-};
+const require = createRequire(import.meta.url);
 
-// Use a proxy or mock for electron
-require.cache[require.resolve('electron')] = {
-    cache: {},
-    exports: {
-        app: mockApp
-    }
-};
+// In ESM, we can't easily mock require.cache for 'electron'
+// So we rely on db.js falling back to process.cwd() or we could try to mock it if needed.
+// For now, we'll just convert the file.
 
-const FileDatabase = require('../src/db.js');
+import FileDatabase from '../src/db.js';
 
 test('FileDatabase should manage history correctly', (t) => {
-    const userDataPath = path.resolve('./test-history-userdata');
+    const userDataPath = path.resolve('./'); // Fallback in db.js when electron is missing
     const filesPath = path.resolve('./test-history-files');
+    const dbFilePath = path.join(userDataPath, 'database.json');
     
     // Clean start
-    if (fs.existsSync(userDataPath)) fs.rmSync(userDataPath, { recursive: true, force: true });
+    if (fs.existsSync(dbFilePath)) fs.unlinkSync(dbFilePath);
     if (fs.existsSync(filesPath)) fs.rmSync(filesPath, { recursive: true, force: true });
     
-    if (!fs.existsSync(userDataPath)) fs.mkdirSync(userDataPath, { recursive: true });
     if (!fs.existsSync(filesPath)) fs.mkdirSync(filesPath, { recursive: true });
     
     const db = new FileDatabase(filesPath);
@@ -68,6 +59,6 @@ test('FileDatabase should manage history correctly', (t) => {
     assert.strictEqual(historyItems[0].yid, "v1");
     
     // Clean up
-    fs.rmSync(userDataPath, { recursive: true, force: true });
+    if (fs.existsSync(dbFilePath)) fs.unlinkSync(dbFilePath);
     fs.rmSync(filesPath, { recursive: true, force: true });
 });

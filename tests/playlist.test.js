@@ -1,31 +1,18 @@
-const { test, describe, before, after } = require('node:test');
-const assert = require('node:assert');
-const fs = require("fs");
-const path = require("path");
-const os = require("os");
-
-// Mock electron app before requiring db.js
-const mockApp = {
-    getPath: (name) => {
-        if (name === 'userData') return os.tmpdir();
-        return os.tmpdir();
-    }
-};
-
-require.cache[require.resolve('electron')] = {
-    cache: {},
-    exports: {
-        app: mockApp
-    }
-};
-
-const FileDatabase = require("../src/db");
+import { test, describe, before, after } from 'node:test';
+import assert from 'node:assert';
+import fs from "fs";
+import path from "path";
+import os from "os";
+import FileDatabase from "../src/db.js";
 
 describe("Playlist System", () => {
     let db;
     const tempDir = path.join(os.tmpdir(), "youtube-test-playlists");
+    // Since we can't mock electron easily, db.js will use process.cwd() for database.json
+    const dbPath = path.join(process.cwd(), 'database.json');
 
     before(() => {
+        if (fs.existsSync(dbPath)) fs.unlinkSync(dbPath);
         if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir);
         db = new FileDatabase(tempDir);
         // Mock some videos
@@ -33,10 +20,12 @@ describe("Playlist System", () => {
             { fileName: "vid1 [id1].mp4", yid: "id1", tags: [] },
             { fileName: "vid2 [id2].mp4", yid: "id2", tags: [] }
         ];
+        db._buildIndex();
     });
 
     after(() => {
         if (fs.existsSync(tempDir)) fs.rmSync(tempDir, { recursive: true });
+        if (fs.existsSync(dbPath)) fs.unlinkSync(dbPath);
     });
 
     test("should create a playlist", () => {
