@@ -1,6 +1,10 @@
-const path = require('path');
-const fs = require('fs');
-const child_process = require('child_process');
+import path from 'path';
+import fs from 'fs';
+import child_process from 'child_process';
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
+
 let app;
 try {
   app = require('electron').app;
@@ -9,7 +13,6 @@ try {
 }
 
 const isWin = process.platform === 'win32';
-console.log(isWin);
 const BINARIES = {
   ytdlp: isWin ? 'ytdlp.exe' : 'ytdlp',
   ffmpeg: isWin ? 'ffmpeg.exe' : 'ffmpeg',
@@ -87,4 +90,4 @@ const binaryResolver = {
   }
 };
 
-module.exports = binaryResolver;
+export default binaryResolver;

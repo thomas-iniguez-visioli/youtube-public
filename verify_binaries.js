@@ -1,5 +1,6 @@
-const path = require('path');
-const fs = require('fs');
+import path from 'path';
+import fs from 'fs';
+import binaryResolver from './src/binaryResolver.js';
 
 // Mock global app for the resolver
 global.app = {
@@ -9,13 +10,11 @@ global.app = {
     }
 };
 
-const binaryResolver = require('./src/binaryResolver');
-
 async function test() {
     console.log('Resolved Paths:');
     console.log('ytdlp:', binaryResolver.ytdlp);
     console.log('ffmpeg:', binaryResolver.ffmpeg);
-    console.log('bun:', binaryResolver.bun);
+    console.log('deno:', binaryResolver.deno);
     console.log('ffmpegDir:', binaryResolver.ffmpegDir);
 
     console.log('\nValidating Binaries...');

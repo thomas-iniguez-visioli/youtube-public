@@ -1,15 +1,17 @@
-const child = require('child_process');
-const path = require('path');
-const fs = require('fs');
-const binval=require("./binaryResolver")
+import child from 'child_process';
+import path from 'path';
+import fs from 'fs';
+import binval from "./binaryResolver.js";
+
 binval.validateBinaries().then((data)=>{
   console.log(data)
 })
 console.log(binval.ffmpeg)
+
 function getBrowserForCookies() {
   // Priorité Firefox, sinon Chrome
   // Sur Windows, on peut vérifier les chemins par défaut
-  const firefoxPath = path.join(process.env.APPDATA, 'Mozilla', 'Firefox', 'Profiles');
+  const firefoxPath = path.join(process.env.APPDATA || '', 'Mozilla', 'Firefox', 'Profiles');
   if (fs.existsSync(firefoxPath)) {
     return 'firefox';
   }
@@ -117,7 +119,7 @@ function createMetadataArgs(parameter, ffmpegDir, storagePath, outputFileFormat,
   return args;
 }
 
-module.exports = {
+export {
   createDownloadArgs,
   createMetadataArgs,
   runDownload

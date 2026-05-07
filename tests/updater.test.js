@@ -1,8 +1,8 @@
-const assert = require('node:assert');
-const { test } = require('node:test');
-const fs = require('fs');
-const path = require('path');
-const { updateFile } = require('../src/updater');
+import assert from 'node:assert';
+import { test } from 'node:test';
+import fs from 'fs';
+import path from 'path';
+import { updateFile } from '../src/updater.js';
 
 test('updateFile should handle non-existent URLs', async (t) => {
   const url = 'https://this-url-does-not-exist.commmmm/file.exe';

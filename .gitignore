@@ -1,4 +1,3 @@
-
 node_modules/*
 client-dist/*
 nextgen/my-electron-app/*.mp4*
@@ -10,4 +9,4 @@ nextgen/my-electron-app/dist/youtube Setup 1.0.0.exe.blockmap
 dist/*
 test-logrocket.js
 rollbar.config.js
-
+rollbar.config.cjs

@@ -1,14 +1,21 @@
-let uuid = require("uuid")
-const fs = require("fs");
-const path = require("path");
+import fs from "fs";
+import path from "path";
+import { createRequire } from 'module';
 
-const app = require('electron').app;
-const userDataPath = app.getPath('userData');
+const require = createRequire(import.meta.url);
+
+let app;
+try {
+    app = require('electron').app;
+} catch (e) {
+    // Not in Electron
+}
+
+const userDataPath = app ? app.getPath('userData') : process.cwd();
 const databaseFilePath = path.join(userDataPath, 'database.json');
 const regex = /\[(.*?)\]/;
 
-module.exports =
-class FileDatabase {
+export default class FileDatabase {
     constructor(directoryPath) {
         this.directoryPath = directoryPath;
         this.database = [];
@@ -346,4 +353,3 @@ class FileDatabase {
         this.saveDatabase();
     }
 }
-

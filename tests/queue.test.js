@@ -1,5 +1,5 @@
-const assert = require('node:assert');
-const { test } = require('node:test');
+import assert from 'node:assert';
+import { test } from 'node:test';
 
 // Mock of the queue logic from src/index.js
 class DownloadQueue {

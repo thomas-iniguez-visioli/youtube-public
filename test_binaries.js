@@ -1,6 +1,4 @@
-const binaryResolver = require('./src/binaryResolver');
-const path = require('path');
-const fs = require('fs');
+import binaryResolver from './src/binaryResolver.js';
 
 async function test() {
   console.log('Resolving binaries...');

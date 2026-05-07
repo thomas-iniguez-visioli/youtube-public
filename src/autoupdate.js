@@ -1,10 +1,17 @@
-const { app, autoUpdater, dialog } = require('electron');
-const os = require('os');
-const path = require('path');
-const url = require('url');
-const fs = require('fs');
-const https = require('https');
-const AdmZip = require('adm-zip');
+import { app, autoUpdater, dialog } from 'electron';
+import path from 'path';
+import fs from 'fs';
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
+// AdmZip is likely a dependency that needs to be imported, but if it's not in package.json
+// it might fail. I'll use require for it for now if it's actually there.
+let AdmZip;
+try {
+  AdmZip = require('adm-zip');
+} catch (e) {
+  console.warn('adm-zip not found, portable updates might fail');
+}
 
 let updateFeed = 'https://your-update-server.com/update';
 let isPortable = false;
@@ -16,7 +23,7 @@ if (fs.existsSync(path.join(app.getPath('exe'), '..', 'portable.txt'))) {
 autoUpdater.setFeedURL(updateFeed);
 
 autoUpdater.on('update-downloaded', (event, releaseNotes, releaseName) => {
-  if (isPortable) {
+  if (isPortable && AdmZip) {
     const zip = new AdmZip(event.path);
     zip.extractAllTo(path.join(app.getPath('exe'), '..'), true);
   } else {
@@ -42,12 +49,5 @@ app.on('ready', () => {
   autoUpdater.checkForUpdates();
 });
 
-
-
 console.log(autoUpdater);
-module.exports=autoUpdater
-/*! Bundled license information:
-
-sax/lib/sax.js:
-  (*! http://mths.be/fromcodepoint v0.1.0 by @mathias *)
-*/
+export default autoUpdater;

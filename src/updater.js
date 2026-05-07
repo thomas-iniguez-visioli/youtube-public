@@ -1,7 +1,7 @@
-const fs = require('fs');
-const https = require('https');
-const path = require('path');
-const log = require('electron-log');
+import fs from 'fs';
+import https from 'https';
+import path from 'path';
+import log from 'electron-log';
 
 function get(url, dest) {
   return new Promise((resolve, reject) => {
@@ -121,7 +121,7 @@ async function updateFile(url, dest, force = false) {
   }
 }
 
-module.exports = {
+export {
   get,
   updateFile
 };

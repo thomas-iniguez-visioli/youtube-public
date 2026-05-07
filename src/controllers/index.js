@@ -1,17 +1,23 @@
-const FileDatabase = require('../db');
-const path = require('path');
-const { app } = require('electron'); // Assuming electron app object is available
+import FileDatabase from '../db.js';
+import path from 'path';
+import { createRequire } from 'module';
 
-const userDataPath = app.getPath('userData');
+const require = createRequire(import.meta.url);
+
+let app;
+try {
+    app = require('electron').app;
+} catch (e) {}
+
+const userDataPath = app ? app.getPath('userData') : process.cwd();
 const fileDb = new FileDatabase(path.join(userDataPath, 'file'));
 
-
-exports.home = (req, res) => {
+export const home = (req, res) => {
     // This is a placeholder. In a real app, you'd render a view with video data.
     res.send('Welcome to the home page! Videos will be displayed here.');
 };
 
-exports.getVideo = (req, res) => {
+export const getVideo = (req, res) => {
     const videoId = req.params.id;
     const video = fileDb.getFile(videoId);
     if (video) {
@@ -21,12 +27,12 @@ exports.getVideo = (req, res) => {
     }
 };
 
-exports.uploadVideo = (req, res) => {
+export const uploadVideo = (req, res) => {
     // Placeholder for video upload logic
     res.status(200).send('Video upload initiated (placeholder).');
 };
 
-exports.addToQueue = (req, res) => {
+export const addToQueue = (req, res) => {
     const { videoId } = req.body;
     if (videoId && fileDb.getFile(videoId)) {
         fileDb.addToQueue(videoId);
@@ -36,7 +42,7 @@ exports.addToQueue = (req, res) => {
     }
 };
 
-exports.removeFromQueue = (req, res) => {
+export const removeFromQueue = (req, res) => {
     const { videoId } = req.body;
     if (videoId) {
         fileDb.removeFromQueue(videoId);
@@ -46,12 +52,12 @@ exports.removeFromQueue = (req, res) => {
     }
 };
 
-exports.getQueue = (req, res) => {
+export const getQueue = (req, res) => {
     const queue = fileDb.getQueue();
     res.status(200).json(queue);
 };
 
-exports.clearQueue = (req, res) => {
+export const clearQueue = (req, res) => {
     fileDb.clearQueue();
     res.status(200).send('Queue cleared.');
 };

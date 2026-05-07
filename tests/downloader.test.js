@@ -1,7 +1,7 @@
-const assert = require('node:assert');
-const { test } = require('node:test');
-const path = require('path');
-const { createDownloadArgs, createMetadataArgs } = require('../src/downloader');
+import assert from 'node:assert';
+import { test } from 'node:test';
+import path from 'path';
+import { createDownloadArgs, createMetadataArgs } from '../src/downloader.js';
 
 test('createDownloadArgs should generate correct arguments', (t) => {
   const parameter = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
@@ -23,7 +23,7 @@ test('createMetadataArgs should generate correct arguments', (t) => {
   const outputFileFormat = '%(title)s [%(id)s].%(ext)s';
   const denoPath = 'C:/bin/deno.exe';
 
-  const args = createMetadataArgs(parameter, storagePath, outputFileFormat, denoPath);
+  const args = createMetadataArgs(parameter, null, storagePath, outputFileFormat, denoPath);
 
   assert.ok(args.includes(parameter));
   assert.ok(args.includes('--simulate'));

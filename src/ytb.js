@@ -1,21 +1,25 @@
-﻿const fs = require('fs'),utf8 =function (str) {
-  const enc = new TextEncoder('utf-8');
-  const u8s = enc.encode(str);
+import fs from 'fs';
+import child_process from 'child_process';
 
-  return Array.from(u8s).map(v => String.fromCharCode(v)).join('');
+const path = () => {
+  if (fs.existsSync("D:/OS.js-master/vfs/demo")) {
+    return "D:/OS.js-master/vfs/demo";
+  } else {
+    return "C:\\Users\\MPA\\Videos\\file\\";
+  }
 }
-const path =()=>{
-  if(fs.existsSync("D:/OS.js-master/vfs/demo")){
-    return "D:/OS.js-master/vfs/demo"
-  }else{"C:\\Users\\MPA\\Videos\\file\\"}
-}
+
 async function start(answers, folder, logger) {
   if (!answers) {
     return;
   }
 
-  var workerProcess = require("child_process").exec(
-    `cd ${folder} && ${process.cwd}\\ytdlp.exe --yes-playlist ${answers}`,
+  const exePath = `${process.cwd()}\\ytdlp.exe`;
+  const args = ["--yes-playlist", answers];
+  var workerProcess = child_process.execFile(
+    exePath,
+    args,
+    { cwd: folder },
     function (error, stdout, stderr) {
       if (error) {
         logger(error.stack);
@@ -35,8 +39,12 @@ async function ide(answers, folder, logger) {
   if (!answers) {
     return;
   }
-  var workerProcess = require("child_process").exec(
-    ` cd ${folder} && ${process.cwd}\\ytdlp.exe --yes-playlist ${answers}`,
+  const exePath = `${process.cwd()}\\ytdlp.exe`;
+  const args = ["--yes-playlist", answers];
+  var workerProcess = child_process.execFile(
+    exePath,
+    args,
+    { cwd: folder },
     function (error, stdout, stderr) {
       if (error) {
         logger(error.stack);
@@ -54,13 +62,13 @@ async function ide(answers, folder, logger) {
 
 async function main(n) {}
 
-module.exports = {
-  main: function main(string,  logger) {
-    start(string, path, logger);
+export default {
+  main: function main(string, logger) {
+    start(string, path(), logger);
   },
   cli: main,
   id: function id(string, logger) {
-    ide(string,path, logger);
+    ide(string, path(), logger);
   },
   path: path,
 };
