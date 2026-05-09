@@ -600,6 +600,17 @@
             }
         }
 
+        async function changeFolder() {
+            if (window.electronAPI && window.electronAPI.selectFolder) {
+                const newPath = await window.electronAPI.selectFolder();
+                if (newPath) {
+                    showToast("Succès", `Le dossier de téléchargement est maintenant : ${newPath}`, 'primary');
+                }
+            } else {
+                alert("La sélection de dossier n'est disponible que dans la version application.");
+            }
+        }
+
         // Le téléchargement est géré par renderer.js via IPC.
         // On peut ajouter un fallback au cas où renderer.js ne se charge pas correctement.
         const commandForm = document.getElementById('commandForm');

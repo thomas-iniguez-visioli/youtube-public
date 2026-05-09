@@ -33,7 +33,7 @@ function createDownloadArgs(parameter, ffmpegDir, storagePath, outputFileFormat,
     args.push('--ffmpeg-location', ffmpegDir);
   }
   if (denoPath && fs.existsSync(denoPath)) {
-    args.push('--js-runtimes', 'deno');
+    args.push('--js-runtimes', `deno:${denoPath}`);
   }
   return args;
 }
@@ -114,7 +114,7 @@ function createMetadataArgs(parameter, ffmpegDir, storagePath, outputFileFormat,
     args.push('--ffmpeg-location', ffmpegDir);
   }
   if (denoPath && fs.existsSync(denoPath)) {
-    args.push('--js-runtimes', 'deno');
+    args.push('--js-runtimes', `deno:${denoPath}`);
   }
   return args;
 }

@@ -1,5 +1,13 @@
 # Gemini CLI - Journal des modifications
 
+## [1.6.2] - 2026-05-09
+### Corrigé
+- **Liaison Console** : Restauration du feedback en temps réel via Socket.io et ajout d'une console de log escamotable dans l'interface utilisateur.
+- **Choix du Dossier** : Implémentation d'une boîte de dialogue système pour changer le dossier de téléchargement avec persistance dans la configuration.
+- **Extraction d'ID** : Correction de la regex d'extraction des ID YouTube pour éviter les conflits avec les titres contenant des crochets.
+- **Compatibilité yt-dlp** : Spécification explicite du runtime Deno pour assurer le fonctionnement des dernières signatures YouTube.
+- **Réparation DB** : Ajout d'une détection et correction automatique des entrées corrompues dans la base de données.
+
 ## [1.2.5] - 2026-03-13
 ### Ajouté
 - **Système de favoris** : Possibilité de marquer des vidéos comme favorites avec une vue dédiée `/favorites`, un bouton dédié sur le lecteur et des icônes d'action sur la bibliothèque.

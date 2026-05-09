@@ -13,7 +13,7 @@ try {
 
 const userDataPath = app ? app.getPath('userData') : process.cwd();
 const databaseFilePath = path.join(userDataPath, 'database.json');
-const regex = /\[(.*?)\]/;
+const regex = /\[([^\]]+)\]\.mp4$/;
 
 export default class FileDatabase {
     constructor(directoryPath) {
@@ -89,7 +89,7 @@ export default class FileDatabase {
                 return;
             }
 
-            if (!existingEntry || existingEntry.mtime !== stats.mtimeMs) {
+            if (!existingEntry || existingEntry.mtime !== stats.mtimeMs || existingEntry.fileUuid.includes(' ') || (existingEntry.yid && !existingEntry.fileUuid.includes(existingEntry.yid))) {
                 const idMatch = item.match(regex);
                 if (idMatch) {
                     const videoId = idMatch[1];
