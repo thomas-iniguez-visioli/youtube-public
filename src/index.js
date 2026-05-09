@@ -397,9 +397,6 @@ const downloadbacklog = (parameter) => {
       info: (msg) => {
         log.info(msg);
         fs.appendFileSync(logFilePath, `${msg}\n`);
-        if (io) {
-          io.emit('chat message', msg);
-        }
       }
     };
 
