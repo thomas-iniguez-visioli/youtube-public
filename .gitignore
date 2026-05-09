@@ -10,3 +10,20 @@ dist/*
 test-logrocket.js
 rollbar.config.js
 rollbar.config.cjs
+
+# User data and config
+database.json
+config.json
+backlog.txt
+version.txt
+
+# Logs and temp files
+*.log
+log2.txt
+error.txt
+parsed.txt
+file/
+video/
+sessions/
+bin/
+
