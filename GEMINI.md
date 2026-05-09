@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.6.7] - 2026-05-09
+### Changé
+- **Nettoyage Front-end** : Suppression de LogRocket et des balises de scripts obsolètes pour alléger le chargement des pages.
+
 ## [1.6.6] - 2026-05-09
 ### Changé
 - **Logs Front-end** : Suppression complète de la console de téléchargement visuelle et des logs de progression Socket.io pour une interface plus épurée.
