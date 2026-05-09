@@ -397,6 +397,9 @@ const downloadbacklog = (parameter) => {
       info: (msg) => {
         log.info(msg);
         fs.appendFileSync(logFilePath, `${msg}\n`);
+        if (io) {
+          io.emit('chat message', msg);
+        }
       }
     };
 
@@ -1089,6 +1092,24 @@ function createWindow() {
     var msg = download(parameter);
     return msg;
   });
+
+  ipcMain.handle('select-folder', async () => {
+    const { canceled, filePaths } = await dialog.showOpenDialog(win, {
+      properties: ['openDirectory'],
+      defaultPath: config.storagePath
+    });
+    if (!canceled && filePaths.length > 0) {
+      const newPath = filePaths[0];
+      config.storagePath = newPath;
+      const configPath = path.join(app.getPath('userData'), 'config.json');
+      fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+      db.scan(newPath);
+      log.info(`Dossier de téléchargement mis à jour et scan relancé : ${newPath}`);
+      return newPath;
+    }
+    return null;
+  });
+
   mainWindow.loadURL("http://localhost:8001");
 
   mainWindow.on('closed', () => {
