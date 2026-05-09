@@ -225,6 +225,23 @@
             socket.on('db-updated', () => {
                 console.log('Database updated, consider refreshing or updating UI');
             });
+
+            socket.on('chat message', (msg) => {
+                const consoleLogs = document.getElementById('consoleLogs');
+                const downloadConsole = document.getElementById('downloadConsole');
+                if (downloadConsole && consoleLogs) {
+                    downloadConsole.style.display = 'block';
+                    const lines = msg.split(/\r?\n/).filter(line => line.trim().length > 0);
+                    lines.forEach(line => {
+                        const logLine = document.createElement('div');
+                        logLine.className = 'mb-1 border-bottom border-secondary pb-1';
+                        logLine.textContent = line;
+                        consoleLogs.appendChild(logLine);
+                    });
+                    while (consoleLogs.children.length > 100) consoleLogs.removeChild(consoleLogs.firstChild);
+                    downloadConsole.scrollTop = downloadConsole.scrollHeight;
+                }
+            });
         }
     </script>
 
@@ -232,6 +249,17 @@
 <body>
     <!-- Toast Container -->
     <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1060;">
+    </div>
+    <!-- Download Console -->
+    <div id="downloadConsole" class="position-fixed bottom-0 start-0 m-3 p-3 bg-dark border border-secondary rounded shadow" style="width: 450px; height: 250px; overflow-y: auto; z-index: 1050; font-family: 'Consolas', monospace; font-size: 0.7rem; display: none; background: rgba(8,8,8,0.95) !important; backdrop-filter: blur(10px);">
+        <div class="d-flex justify-content-between align-items-center mb-2 border-bottom border-secondary pb-2">
+            <span class="text-info fw-bold">Console de téléchargement</span>
+            <div>
+                <button class="btn btn-sm btn-outline-secondary me-2" onclick="document.getElementById('consoleLogs').innerHTML=''">Effacer</button>
+                <button class="btn-close btn-close-white btn-sm" onclick="document.getElementById('downloadConsole').style.display='none'"></button>
+            </div>
+        </div>
+        <div id="consoleLogs" class="text-light" style="word-break: break-all;"></div>
     </div>
     <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
         <div class="container-fluid">
@@ -245,9 +273,10 @@
             
             <div class="d-flex flex-grow-1 justify-content-center mx-4">
                 <form id="commandForm" class="d-flex w-100 search-container m-0 flex-column">
-                    <div class="d-flex w-100">
+                    <div class="d-flex w-100 align-items-center">
                         <input class="form-control me-2 rounded-pill ps-4" type="text" id="commandInput" placeholder="Coller une URL YouTube..." required>
                         <button class="btn btn-outline-light rounded-pill px-4" type="submit">Télécharger</button>
+                        <button type="button" class="btn btn-outline-secondary rounded-pill ms-2" title="Changer le dossier de téléchargement" onclick="changeFolder()">📂</button>
                     </div>
                     <small class="text-muted text-center mt-1" style="font-size: 0.65rem; color: #777 !important;">Fichier backlog : <%= typeof backlogFile !== 'undefined' ? backlogFile : '' %></small>
                 </form>

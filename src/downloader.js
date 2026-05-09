@@ -21,6 +21,7 @@ function getBrowserForCookies() {
 function createDownloadArgs(parameter, ffmpegDir, storagePath, outputFileFormat, denoPath) {
   const args = [
     '--merge-output-format', 'mp4',
+    '--newline',
     '--write-info-json',
     '--cookies-from-browser', getBrowserForCookies(),
     '-f', 'bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4] / bv*+ba/b',
@@ -100,6 +101,7 @@ function runDownload(ytdlpPath, args, logger, onVideoFinished) {
 function createMetadataArgs(parameter, ffmpegDir, storagePath, outputFileFormat, denoPath) {
   const args = [
     '--write-info-json',
+    '--newline',
     '--simulate',
     '--no-clean-info-json',
     '--cookies-from-browser', getBrowserForCookies(),

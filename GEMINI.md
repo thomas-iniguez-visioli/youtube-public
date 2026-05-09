@@ -1,5 +1,14 @@
 # Gemini CLI - Journal des modifications
 
+## [1.6.5] - 2026-05-09
+### Corrigé
+- **Temps Réel Console** : Activation du mode `--newline` pour yt-dlp et optimisation du traitement Socket.io pour un feedback instantané.
+- **Interface Utilisateur** : Restauration du bouton de sélection de dossier et de la console de téléchargement sur toutes les vues (accueil et lecture).
+
+## [1.6.4] - 2026-05-09
+### Changé
+- **Maintenance** : Mise à jour des dépendances et synchronisation du dépôt.
+
 ## [1.6.2] - 2026-05-09
 ### Corrigé
 - **Liaison Console** : Restauration du feedback en temps réel via Socket.io et ajout d'une console de log escamotable dans l'interface utilisateur.
