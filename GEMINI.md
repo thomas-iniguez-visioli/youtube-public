@@ -1,5 +1,10 @@
 # Gemini CLI - Journal des modifications
 
+## [1.6.6] - 2026-05-09
+### Changé
+- **Logs Front-end** : Suppression complète de la console de téléchargement visuelle et des logs de progression Socket.io pour une interface plus épurée.
+- **Nettoyage** : Retrait des instructions `console.log` résiduelles dans le processus de rendu.
+
 ## [1.6.5] - 2026-05-09
 ### Corrigé
 - **Temps Réel Console** : Activation du mode `--newline` pour yt-dlp et optimisation du traitement Socket.io pour un feedback instantané.
