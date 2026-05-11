@@ -256,7 +256,7 @@ setInterval(initAutoUpdater, 120000);
 setTimeout(initAutoUpdater, 5000);
 
 function extractUrls(text) {
-  const urlRegex = /https?:\/\/(?:[a-zA-Z]|[0-9]|[$_@.&+\-]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+/g;
+  const urlRegex = /https?:\/\/(?:[a-zA-Z]|[0-9]|[$_@.&+\-]|[!*\\(),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+/g;
   return text.match(urlRegex) || [];
 }
 let win;
