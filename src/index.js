@@ -1029,6 +1029,11 @@ web.get("/playlist/delete", function (req, res) {
 });
 
 
+web.get("/style.css", function (req, res) {
+  res.statusCode = 200;
+  res.setHeader("Content-Type", "text/css");
+  res.send(fs.readFileSync(path.join(app.getPath('userData'), "./src/client-dist/style.css")));
+});
 web.get("/renderer.js",function (req, res) {
   res.statusCode = 200
   res.send(fs.readFileSync(path.join(app.getPath('userData'), "./src/renderer.js")))

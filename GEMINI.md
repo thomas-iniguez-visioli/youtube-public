@@ -1,5 +1,11 @@
 # Gemini CLI - Journal des modifications
 
+## [1.6.8] - 2026-05-23
+### Changé
+- **Design System** : Refonte visuelle complète (typographie Inter, Glassmorphism affiné, thèmes sombres vibrants et gradients animés).
+- **Architecture CSS** : Centralisation des styles dans `src/client-dist/style.css` servi via une nouvelle route pour éliminer la duplication de code dans les vues EJS.
+- **UX** : Ajout de micro-animations fluides au survol des cartes vidéo et des boutons.
+
 ## [1.6.7] - 2026-05-09
 ### Changé
 - **Nettoyage Front-end** : Suppression de LogRocket et des balises de scripts obsolètes pour alléger le chargement des pages.
