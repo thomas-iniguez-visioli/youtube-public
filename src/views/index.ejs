@@ -229,7 +229,7 @@
                 let actionBtns = '';
                 
                 if (channel && channel.startsWith('Playlist : ')) {
-                    actionBtns += `<button class="btn btn-sm btn-outline-warning" onclick="event.stopPropagation(); if(confirm('Retirer de la playlist ?')) window.location.href='/playlist/remove?name=${encodeURIComponent(channel.replace('Playlist : ', '')).replace(/'/g, "\\'")}&videoId=${result.yid}'">Retirer</button>`;
+                    actionBtns += `<button class="btn btn-sm btn-outline-warning" onclick="event.stopPropagation(); if(confirm('Retirer de la playlist ?')) window.location.href='/playlist/remove?name=${encodeURIComponent(channel.replace('Playlist : ', ''))}&videoId=${result.yid}'">Retirer</button>`;
                 }
                 if (channel === "Ma File d'attente") {
                     actionBtns += `<button class="btn btn-sm btn-outline-warning" onclick="event.stopPropagation(); window.location.href='/queue/remove?id=${result.yid}'">Retirer</button>`;
