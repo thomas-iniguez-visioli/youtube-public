@@ -559,6 +559,7 @@ async function build() {
   downloads.push(updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/views/index.ejs', path.join(app.getPath('userData'), 'views','index.ejs'), isNewVersion));
   downloads.push(updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/views/view.ejs', path.join(app.getPath('userData'), 'views','view.ejs'), isNewVersion));
   downloads.push(updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/renderer.js', path.join(app.getPath('userData'), 'src/renderer.js'), isNewVersion));
+  downloads.push(updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/client-dist/style.css', path.join(app.getPath('userData'), 'src/client-dist/style.css'), isNewVersion));
 
   try {
     if (downloads.length > 0) {
@@ -1029,23 +1030,32 @@ web.get("/playlist/delete", function (req, res) {
 });
 
 
+function serveStaticFile(req, res, relPath, localRelPath, contentType) {
+  if (contentType) res.setHeader("Content-Type", contentType);
+  let filePath = path.join(app.getPath('userData'), relPath);
+  if (!fs.existsSync(filePath)) {
+    filePath = path.join(__dirname, localRelPath);
+  }
+  try {
+    res.statusCode = 200;
+    res.send(fs.readFileSync(filePath));
+  } catch (e) {
+    res.status(404).send("File not found");
+  }
+}
+
 web.get("/style.css", function (req, res) {
-  res.statusCode = 200;
-  res.setHeader("Content-Type", "text/css");
-  res.send(fs.readFileSync(path.join(app.getPath('userData'), "./src/client-dist/style.css")));
+  serveStaticFile(req, res, "./src/client-dist/style.css", "./client-dist/style.css", "text/css");
 });
-web.get("/renderer.js",function (req, res) {
-  res.statusCode = 200
-  res.send(fs.readFileSync(path.join(app.getPath('userData'), "./src/renderer.js")))
-})
-web.get("/socket.io.js",function (req, res) {
-  res.statusCode = 200
-  res.send(fs.readFileSync(path.join(app.getPath('userData'), "./src/client-dist/socket.io.js")))
-})
-web.get("/socket.io.js.map",function (req, res) {
-  res.statusCode = 200
-  res.send(fs.readFileSync(path.join(app.getPath('userData'), "./src/client-dist/socket.io.js.map")))
-})
+web.get("/renderer.js", function (req, res) {
+  serveStaticFile(req, res, "./src/renderer.js", "./renderer.js", "application/javascript");
+});
+web.get("/socket.io.js", function (req, res) {
+  serveStaticFile(req, res, "./src/client-dist/socket.io.js", "./client-dist/socket.io.js", "application/javascript");
+});
+web.get("/socket.io.js.map", function (req, res) {
+  serveStaticFile(req, res, "./src/client-dist/socket.io.js.map", "./client-dist/socket.io.js.map", "application/json");
+});
 web.get("/video", limiter, function (req, res) {
   const range = req.headers.range;
   if (!range) {
