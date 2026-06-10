@@ -21,6 +21,8 @@ jobs:
     name: Prepare Release
     runs-on: ubuntu-latest
     if: github.event_name != 'release'
+    permissions:
+      contents: write
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
@@ -49,6 +51,8 @@ jobs:
     name: Build and Upload Assets
     needs: prepare-release
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
@@ -84,7 +88,7 @@ jobs:
           NODE_OPTIONS: "--max-old-space-size=4096"
 
       - name: Create and Upload extension ZIP
-        if:  matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-latest'
         run: |
           zip -r youtube-downloader-extension.zip extension/
           gh release upload v${{ needs.prepare-release.outputs.version }} youtube-downloader-extension.zip --clobber
@@ -96,6 +100,8 @@ jobs:
     needs: [prepare-release, build-and-upload]
     runs-on: ubuntu-latest
     if: github.event_name != 'release'
+    permissions:
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
