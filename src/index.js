@@ -469,7 +469,7 @@ const processBacklog = async () => {
   }
 };
 
-setInterval(processBacklog, 1000);
+setInterval(processBacklog, 5000);
 
 const accessLogStream = fs.createWriteStream(path.join(app.getPath('userData'), "./log/access-" + `${new Date().toDateString()}` + ".log"));
 const errorLogStream = fs.createWriteStream(path.join(app.getPath('userData'), "./log/error-" + `${new Date().toDateString()}` + ".log"));
@@ -482,8 +482,23 @@ web.use((err, req, res, next) => {
   next(err);
 });
 
+web.use(express.json());
+web.use(express.urlencoded({ extended: false }));
+
 web.set('view engine', 'ejs');
 web.set('views', path.join(app.getPath('userData'), 'views'));
+
+// Helper: rend index.ejs avec les données communes de la DB en une seule passe
+function renderIndex(res, results, channel, channelUrl = null) {
+  res.render('index', {
+    results,
+    channel,
+    channelUrl,
+    playlists: db.getPlaylists(),
+    allTags: db.getAllTags(),
+    allChannels: db.getAllChannels()
+  });
+}
 
 async function build() {
   const base = config.storagePath;
@@ -743,26 +758,10 @@ web.get("/", function (req, res) {
     if (dateB !== dateA) return dateB - dateA;
     return (b.score || 0) - (a.score || 0);
   });
-
-  res.render('index', {
-    results: results,
-    channel: null,
-    channelUrl: null,
-    playlists: db.getPlaylists(),
-    allTags: db.getAllTags(),
-    allChannels: db.getAllChannels()
-  });
+  renderIndex(res, results, null);
 })
 web.get("/queue", function (req, res) {
-  const queue = db.getQueue();
-  res.render('index', {
-    results: queue,
-    channel: "Ma File d'attente",
-    channelUrl: null,
-    playlists: db.getPlaylists(),
-    allTags: db.getAllTags(),
-    allChannels: db.getAllChannels()
-  });
+  renderIndex(res, db.getQueue(), "Ma File d'attente");
 });
 
 web.get("/queue/add", function (req, res) {
@@ -909,9 +908,13 @@ web.post("/tag", function (req, res) {
 
 
 web.get("/delete", function (req, res) {
-  fs.rmSync(path.join(base, db.getFile( req.query.id).fileName))
-  db.save()
-  res.redirect("/")
+  const fileData = db.getFile(req.query.id);
+  if (!fileData) return res.status(404).send("Video not found");
+  const filePath = path.join(base, fileData.fileName);
+  if (fs.existsSync(filePath)) fs.rmSync(filePath);
+  db.removeFile(req.query.id);
+  db.save();
+  res.redirect("/");
 });
 
 web.get("/api/search", function (req, res) {
@@ -924,28 +927,11 @@ web.get("/channel", function (req, res) {
   const channelName = req.query.name;
   const results = db.database.filter(item => item.uploader === channelName);
   const channelUrl = results.length > 0 ? results[0].channel_url : null;
-
-  res.render('index', {
-    results: results,
-    channel: channelName,
-    channelUrl: channelUrl,
-    playlists: db.getPlaylists(),
-    allTags: db.getAllTags(),
-    allChannels: db.getAllChannels()
-  });
+  renderIndex(res, results, channelName, channelUrl);
 });
 
 web.get("/favorites", function (req, res) {
-  const favorites = db.getFavorites();
-
-  res.render('index', {
-    results: favorites,
-    channel: "Mes Favoris",
-    channelUrl: null,
-    playlists: db.getPlaylists(),
-    allTags: db.getAllTags(),
-    allChannels: db.getAllChannels()
-  });
+  renderIndex(res, db.getFavorites(), "Mes Favoris");
 });
 
 web.get("/favorite/toggle", function (req, res) {
@@ -962,43 +948,18 @@ web.get("/favorite/toggle", function (req, res) {
 });
 
 web.get("/history", function (req, res) {
-  const history = db.getHistory();
-
-  res.render('index', {
-    results: history,
-    channel: "Historique",
-    channelUrl: null,
-    playlists: db.getPlaylists(),
-    allTags: db.getAllTags(),
-    allChannels: db.getAllChannels()
-  });
+  renderIndex(res, db.getHistory(), "Historique");
 });
 
 web.get("/playlists", function (req, res) {
-  res.render('index', {
-    results: [],
-    channel: "Mes Playlists",
-    channelUrl: null,
-    playlists: db.getPlaylists(),
-    allTags: db.getAllTags(),
-    allChannels: db.getAllChannels()
-  });
+  renderIndex(res, [], "Mes Playlists");
 });
 
 web.get("/playlist", function (req, res) {
   const name = req.query.name;
   const playlist = db.getPlaylist(name);
-  
   if (!playlist) return res.redirect("/playlists");
-
-  res.render('index', {
-    results: playlist.videos,
-    channel: `Playlist : ${name}`,
-    channelUrl: null,
-    playlists: db.getPlaylists(),
-    allTags: db.getAllTags(),
-    allChannels: db.getAllChannels()
-  });
+  renderIndex(res, playlist.videos, `Playlist : ${name}`);
 });
 
 web.post("/playlist/create", function (req, res) {
@@ -1058,31 +1019,28 @@ web.get("/socket.io.js.map", function (req, res) {
 });
 web.get("/video", limiter, function (req, res) {
   const range = req.headers.range;
-  if (!range) {
-    res.status(400).send("Requires Range header");
-  }
-  const fileName = db.getFile(req.query.id).fileName;
-  if (fileName.includes('../') || fileName.includes('..\\')) {
-    return res.status(400).send("Invalid file name");
-  }
-  const videoPath = path.join(base, fileName);
-  const videoSize = fs.statSync(videoPath).size;
+  if (!range) return res.status(400).send("Requires Range header");
 
+  const fileData = db.getFile(req.query.id);
+  if (!fileData || !fileData.fileName) return res.status(404).send("Video not found");
+
+  const fileName = path.basename(fileData.fileName); // strip any path components
+  const videoPath = path.join(base, fileName);
+  if (!videoPath.startsWith(base)) return res.status(400).send("Invalid file path");
+  if (!fs.existsSync(videoPath)) return res.status(404).send("File not found on disk");
+
+  const videoSize = fs.statSync(videoPath).size;
   const CHUNK_SIZE = 2 * 10 ** 6; // 2MB
   const start = Number(range.replace(/\D/g, ""));
   const end = Math.min(start + CHUNK_SIZE, videoSize - 1);
 
-  const contentLength = end - start + 1;
-  const headers = {
+  res.writeHead(206, {
     "Content-Range": `bytes ${start}-${end}/${videoSize}`,
     "Accept-Ranges": "bytes",
-    "Content-Length": contentLength,
+    "Content-Length": end - start + 1,
     "Content-Type": "video/mp4",
-  };
-
-  res.writeHead(206, headers);
-  const videoStream = fs.createReadStream(videoPath, { start, end });
-  videoStream.pipe(res);
+  });
+  fs.createReadStream(videoPath, { start, end }).pipe(res);
 });
 
 function createWindow() {

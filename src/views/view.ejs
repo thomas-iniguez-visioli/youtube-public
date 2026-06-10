@@ -17,71 +17,7 @@
     <script src="renderer.js"></script>
 
     <script>
-        // Notification Helper
-        function showToast(title, message, type = 'primary', link = null) {
-            const toastContainer = document.querySelector('.toast-container');
-            if (!toastContainer) return;
-
-            const toastId = 'toast-' + Date.now() + Math.floor(Math.random() * 1000);
-            const bgClass = type === 'error' ? 'bg-danger' : 'bg-primary';
-            const btnClass = type === 'error' ? 'btn-danger' : 'btn-primary';
-
-            const toastHtml = `
-                <div id="${toastId}" class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="15000">
-                    <div class="toast-header ${bgClass} text-white">
-                        <strong class="me-auto">${title}</strong>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
-                    </div>
-                    <div class="toast-body">
-                        ${message}
-                        ${link ? `<div class="mt-2 pt-2 border-top">
-                            <a href="${link.url}" class="btn ${btnClass} btn-sm">${link.text}</a>
-                        </div>` : ''}
-                    </div>
-                </div>
-            `;
-            
-            toastContainer.insertAdjacentHTML('beforeend', toastHtml);
-            const toastElement = document.getElementById(toastId);
-            const toast = new bootstrap.Toast(toastElement);
-            toast.show();
-
-            toastElement.addEventListener('hidden.bs.toast', () => {
-                toastElement.remove();
-            });
-        }
-
-        // Socket.io initialization
-        if (typeof io !== 'undefined') {
-            const socket = io();
-            socket.on('error-notification', (data) => {
-                showToast("Erreur", data.message, 'error');
-            });
-
-            socket.on('download-finished', (data) => {
-                showToast("Téléchargement terminé", `<span class="fw-bold">${data.title}</span> est maintenant disponible.`, 'primary', {
-                    url: `/watch?id=${data.videoId}`,
-                    text: 'Regarder'
-                });
-            });
-
-            socket.on('chat message', (msg) => {
-                const consoleLogs = document.getElementById('consoleLogs');
-                const downloadConsole = document.getElementById('downloadConsole');
-                if (downloadConsole && consoleLogs) {
-                    downloadConsole.style.display = 'block';
-                    const lines = msg.split(/\r?\n/).filter(line => line.trim().length > 0);
-                    lines.forEach(line => {
-                        const logLine = document.createElement('div');
-                        logLine.className = 'mb-1 border-bottom border-secondary pb-1';
-                        logLine.textContent = line;
-                        consoleLogs.appendChild(logLine);
-                    });
-                    while (consoleLogs.children.length > 100) consoleLogs.removeChild(consoleLogs.firstChild);
-                    downloadConsole.scrollTop = downloadConsole.scrollHeight;
-                }
-            });
-        }
+        // Socket.io and shared utilities are initialized in renderer.js
     </script>
 
 
@@ -214,7 +150,7 @@
                 %>
                     <a href="/watch?id=<%= v.yid %>" class="suggestion-card d-flex align-items-center justify-content-between w-100">
                         <div class="d-flex">
-                            <img src="https://img.youtube.com/vi/<%= v.yid %>/hqdefault.jpg" class="suggestion-thumb" alt="<%= v.fileName %>">
+                            <img src="https://img.youtube.com/vi/<%= v.yid %>/hqdefault.jpg" loading="lazy" class="suggestion-thumb" alt="<%= v.fileName %>">
                             <div class="suggestion-info">
                                 <span class="suggestion-title"><%= v.fileName %></span>
                                 <span class="suggestion-channel">Voir la vidéo</span>
@@ -357,89 +293,19 @@
             }
         }
 
-        async function addToQueue(videoId) {
-            try {
-                const response = await fetch(`/queue/add?id=${videoId}`, {
-                    headers: { 'Accept': 'application/json' }
-                });
-                const data = await response.json();
-                if (data.success) {
-                    const queueBtn = document.querySelector('a[href="/queue"]');
-                    if (queueBtn) {
-                        queueBtn.textContent = `File (${data.queueCount})`;
-                    }
-                }
-            } catch (err) {
-                console.error("Erreur ajout file :", err);
-            }
-        }
-
-        async function toggleFavorite(videoId) {
-            try {
-                const response = await fetch(`/favorite/toggle?id=${videoId}`, {
-                    headers: { 'Accept': 'application/json' }
-                });
-                const data = await response.json();
-                if (data.success) {
-                    const favBtn = document.getElementById('favoriteBtn');
-                    const favNavBtn = document.querySelector('a[href="/favorites"]');
-                    
-                    if (favNavBtn) {
-                        favNavBtn.textContent = `Favoris (${data.favoritesCount})`;
-                    }
-
-                    if (data.isFavorite) {
-                        favBtn.classList.remove('btn-outline-danger');
-                        favBtn.classList.add('btn-danger');
-                        favBtn.textContent = '❤ Favori';
-                    } else {
-                        favBtn.classList.remove('btn-danger');
-                        favBtn.classList.add('btn-outline-danger');
-                        favBtn.textContent = '♡ Favori';
-                    }
-                }
-            } catch (err) {
-                console.error("Erreur toggle favori :", err);
-            }
-        }
-
         async function shareVideo(url) {
             try {
                 await navigator.clipboard.writeText(url);
                 const shareBtn = document.activeElement;
                 const originalText = shareBtn.textContent;
                 shareBtn.textContent = '✓ Copié !';
-                shareBtn.classList.remove('btn-outline-info');
-                shareBtn.classList.add('btn-info');
-                
+                shareBtn.classList.replace('btn-outline-info', 'btn-info');
                 setTimeout(() => {
                     shareBtn.textContent = originalText;
-                    shareBtn.classList.remove('btn-info');
-                    shareBtn.classList.add('btn-outline-info');
+                    shareBtn.classList.replace('btn-info', 'btn-outline-info');
                 }, 2000);
             } catch (err) {
-                console.error("Erreur partage :", err);
                 alert("Lien YouTube : " + url);
-            }
-        }
-
-        function downloadChannel(url) {
-            if (window.electronAPI && window.electronAPI.setTitle) {
-                window.electronAPI.setTitle(url);
-                showToast("Téléchargement", "Téléchargement de la chaîne lancé !", 'primary');
-            } else {
-                window.location.href = `/download?url=${encodeURIComponent(url)}`;
-            }
-        }
-
-        async function changeFolder() {
-            if (window.electronAPI && window.electronAPI.selectFolder) {
-                const newPath = await window.electronAPI.selectFolder();
-                if (newPath) {
-                    showToast("Succès", `Le dossier de téléchargement est maintenant : ${newPath}`, 'primary');
-                }
-            } else {
-                alert("La sélection de dossier n'est disponible que dans la version application.");
             }
         }
 
