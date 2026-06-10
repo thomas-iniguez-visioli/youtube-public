@@ -35,11 +35,9 @@ jobs:
 
       - name: Create Draft Release
         run: |
-          gh release create v${{ steps.version.outputs.version }} \
+          gh release create "v${{ steps.version.outputs.version }}" \
             --title "${{ steps.version.outputs.version }}" \
-            --notes "### YouTube Downloader Extension
-- Extension Firefox pour télécharger des vidéos YouTube.
-- Archive de l'extension incluse dans les assets." \
+            --notes '### YouTube Downloader Extension' \
             --draft
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
