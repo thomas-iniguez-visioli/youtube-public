@@ -1017,6 +1017,32 @@ web.get("/socket.io.js", function (req, res) {
 web.get("/socket.io.js.map", function (req, res) {
   serveStaticFile(req, res, "./src/client-dist/socket.io.js.map", "./client-dist/socket.io.js.map", "application/json");
 });
+const thumbCacheDir = path.join(app.getPath('userData'), 'thumbnails');
+if (!fs.existsSync(thumbCacheDir)) fs.mkdirSync(thumbCacheDir, { recursive: true });
+
+web.get("/thumbnail/:id", function (req, res) {
+  const id = req.params.id.replace(/[^a-zA-Z0-9_\-]/g, '');
+  if (!id) return res.status(400).send("Invalid id");
+  const cachePath = path.join(thumbCacheDir, `${id}.jpg`);
+  if (fs.existsSync(cachePath)) {
+    res.setHeader("Content-Type", "image/jpeg");
+    return res.send(fs.readFileSync(cachePath));
+  }
+  const url = `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
+  https.get(url, (stream) => {
+    if (stream.statusCode !== 200) return res.status(404).send("Not found");
+    const chunks = [];
+    stream.on('data', chunk => chunks.push(chunk));
+    stream.on('end', () => {
+      const buf = Buffer.concat(chunks);
+      fs.writeFileSync(cachePath, buf);
+      res.setHeader("Content-Type", "image/jpeg");
+      res.send(buf);
+    });
+    stream.on('error', () => res.status(500).send("Error"));
+  }).on('error', () => res.status(500).send("Error"));
+});
+
 web.get("/video", limiter, function (req, res) {
   const range = req.headers.range;
   if (!range) return res.status(400).send("Requires Range header");
