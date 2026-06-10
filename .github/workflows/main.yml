@@ -79,11 +79,7 @@ jobs:
            };" > rollbar.config.cjs
 
       - name: Build Electron app
-        uses: samuelmeuli/action-electron-builder@v1
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          release: true
-          args: "--publish always"
+        run: bunx electron-builder --publish always
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
