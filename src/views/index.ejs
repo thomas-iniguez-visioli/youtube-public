@@ -22,58 +22,7 @@
 
 
     <script>
-        // Notification Helper
-        function showToast(title, message, type = 'primary', link = null) {
-            const toastContainer = document.querySelector('.toast-container');
-            if (!toastContainer) return;
-
-            const toastId = 'toast-' + Date.now() + Math.floor(Math.random() * 1000);
-            const bgClass = type === 'error' ? 'bg-danger' : 'bg-primary';
-            const btnClass = type === 'error' ? 'btn-danger' : 'btn-primary';
-
-            const toastHtml = `
-                <div id="${toastId}" class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="15000">
-                    <div class="toast-header ${bgClass} text-white">
-                        <strong class="me-auto">${title}</strong>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
-                    </div>
-                    <div class="toast-body">
-                        ${message}
-                        ${link ? `<div class="mt-2 pt-2 border-top">
-                            <a href="${link.url}" class="btn ${btnClass} btn-sm">${link.text}</a>
-                        </div>` : ''}
-                    </div>
-                </div>
-            `;
-            
-            toastContainer.insertAdjacentHTML('beforeend', toastHtml);
-            const toastElement = document.getElementById(toastId);
-            const toast = new bootstrap.Toast(toastElement);
-            toast.show();
-
-            toastElement.addEventListener('hidden.bs.toast', () => {
-                toastElement.remove();
-            });
-        }
-
-        // Socket.io initialization
-        if (typeof io !== 'undefined') {
-            const socket = io();
-            socket.on('error-notification', (data) => {
-                showToast("Erreur", data.message, 'error');
-            });
-
-            socket.on('download-finished', (data) => {
-                showToast("Téléchargement terminé", `<span class="fw-bold">${data.title}</span> est maintenant disponible.`, 'primary', {
-                    url: `/watch?id=${data.videoId}`,
-                    text: 'Regarder'
-                });
-            });
-
-            socket.on('db-updated', () => {
-                // Database updated
-            });
-        }
+        // Socket.io and shared utilities are initialized in renderer.js
     </script>
 
 </head>
@@ -242,7 +191,7 @@
                 col.innerHTML = `
                     <div class="video-card" onclick="location.href='/watch?id=${result.yid}${playlistParam}'">
                         <div class="video-thumb-container">
-                            <img src="https://img.youtube.com/vi/${result.yid}/hqdefault.jpg" class="video-thumbnail" alt="Thumbnail">
+                            <img data-src="https://img.youtube.com/vi/${result.yid}/hqdefault.jpg" src="" class="video-thumbnail lazy" alt="Thumbnail" loading="lazy">
                         </div>
                         <div class="video-info">
                             <div class="video-details w-100">
@@ -274,11 +223,6 @@
             }
         }
 
-        loadMoreBtn.addEventListener('click', () => {
-            currentPage++;
-            renderVideos(true);
-        });
-
         // Initialize Fuse.js for search
         const fuse = new Fuse(allVideos, {
             keys: ['fileName', 'uploader'],
@@ -287,89 +231,55 @@
             ignoreLocation: true
         });
 
-        searchInput.addEventListener('input', function() {
-            const query = this.value.trim();
-            
-            if (query.length === 0) {
-                filteredVideos = [...allVideos];
-            } else {
-                const results = fuse.search(query);
-                filteredVideos = results.map(r => r.item);
-            }
-            renderVideos();
+        // Lazy-load thumbnails with IntersectionObserver
+        const thumbObserver = new IntersectionObserver((entries, obs) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const img = entry.target;
+                    img.src = img.dataset.src;
+                    img.classList.remove('lazy');
+                    obs.unobserve(img);
+                }
+            });
+        }, { rootMargin: '200px' });
+
+        function observeLazyImages() {
+            document.querySelectorAll('img.lazy').forEach(img => thumbObserver.observe(img));
+        }
+
+        // Initial render
+        renderVideos();
+        observeLazyImages();
+
+        loadMoreBtn.addEventListener('click', () => {
+            currentPage++;
+            renderVideos(true);
+            observeLazyImages();
         });
+
+        // Debounced fuzzy search
+        searchInput.addEventListener('input', debounce(function() {
+            const query = this.value.trim();
+            filteredVideos = query.length === 0 ? [...allVideos] : fuse.search(query).map(r => r.item);
+            renderVideos();
+            observeLazyImages();
+        }, 250));
 
         function filterByTag(tag, element) {
             document.querySelectorAll('.filter-chip').forEach(chip => chip.classList.remove('active'));
             element.classList.add('active');
-
-            if (tag === 'all') {
-                filteredVideos = [...allVideos];
-            } else {
-                filteredVideos = allVideos.filter(v => v.tags.includes(tag));
-            }
+            filteredVideos = tag === 'all' ? [...allVideos] : allVideos.filter(v => v.tags.includes(tag));
             renderVideos();
+            observeLazyImages();
         }
 
         function filterByChannel(uploader, element) {
             document.querySelectorAll('.filter-chip').forEach(chip => chip.classList.remove('active'));
             element.classList.add('active');
-
-            if (uploader === 'all') {
-                filteredVideos = [...allVideos];
-            } else {
-                filteredVideos = allVideos.filter(v => v.uploader === uploader);
-            }
+            filteredVideos = uploader === 'all' ? [...allVideos] : allVideos.filter(v => v.uploader === uploader);
             renderVideos();
+            observeLazyImages();
         }
-
-        async function addToQueue(videoId) {
-            try {
-                const response = await fetch(`/queue/add?id=${videoId}`, {
-                    headers: { 'Accept': 'application/json' }
-                });
-                const data = await response.json();
-                if (data.success) {
-                    const queueBtn = document.querySelector('a[href="/queue"]');
-                    if (queueBtn) {
-                        queueBtn.textContent = `File (${data.queueCount})`;
-                    }
-                }
-            } catch (err) {
-                console.error("Erreur ajout file :", err);
-            }
-        }
-
-        async function toggleFavorite(videoId, btn) {
-            try {
-                const response = await fetch(`/favorite/toggle?id=${videoId}`, {
-                    headers: { 'Accept': 'application/json' }
-                });
-                const data = await response.json();
-                if (data.success) {
-                    const favBtn = document.querySelector('a[href="/favorites"]');
-                    if (favBtn) {
-                        favBtn.textContent = `Favoris (${data.favoritesCount})`;
-                    }
-                    if (data.isFavorite) {
-                        btn.classList.remove('btn-outline-danger');
-                        btn.classList.add('btn-danger');
-                    } else {
-                        btn.classList.remove('btn-danger');
-                        btn.classList.add('btn-outline-danger');
-                        // Si on est sur la page des favoris, on retire l'élément de la liste
-                        if (channel === "Mes Favoris") {
-                            btn.closest('.video-item').remove();
-                        }
-                    }
-                }
-            } catch (err) {
-                console.error("Erreur toggle favori :", err);
-            }
-        }
-
-        // Initial render
-        renderVideos();
 
         // Gestion du retour à la dernière page visitée
         (function() {
@@ -394,26 +304,6 @@
             sessionStorage.setItem(sessionNavKey, 'true');
             localStorage.setItem(lastUrlKey, currentUrl);
         })();
-
-        function downloadChannel(url) {
-            if (window.electronAPI && window.electronAPI.setTitle) {
-                window.electronAPI.setTitle(url);
-                showToast("Téléchargement", "Téléchargement de la chaîne lancé !", 'primary');
-            } else {
-                window.location.href = `/download?url=${encodeURIComponent(url)}`;
-            }
-        }
-
-        async function changeFolder() {
-            if (window.electronAPI && window.electronAPI.selectFolder) {
-                const newPath = await window.electronAPI.selectFolder();
-                if (newPath) {
-                    showToast("Succès", `Le dossier de téléchargement est maintenant : ${newPath}`, 'primary');
-                }
-            } else {
-                alert("La sélection de dossier n'est disponible que dans la version application.");
-            }
-        }
 
         // Le téléchargement est géré par renderer.js via IPC.
         // On peut ajouter un fallback au cas où renderer.js ne se charge pas correctement.

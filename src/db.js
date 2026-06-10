@@ -29,6 +29,8 @@ export default class FileDatabase {
 
     _buildIndex() {
         this.yidMap.clear();
+        this._tagsCache = null;
+        this._channelsCache = null;
         if (Array.isArray(this.database)) {
             this.database.forEach(file => {
                 if (file && file.yid) {
@@ -48,23 +50,25 @@ export default class FileDatabase {
      }
 
     getAllTags() {
+        if (this._tagsCache) return this._tagsCache;
         const tags = new Set();
         this.database.forEach(entry => {
-            if (entry.tags) {
-                entry.tags.forEach(tag => tags.add(tag));
-            }
+            if (entry.tags) entry.tags.forEach(tag => tags.add(tag));
         });
-        return Array.from(tags).sort();
+        this._tagsCache = Array.from(tags).sort();
+        return this._tagsCache;
     }
 
     getAllChannels() {
+        if (this._channelsCache) return this._channelsCache;
         const channels = new Set();
         this.database.forEach(entry => {
             if (entry.uploader && entry.uploader !== 'Uploader inconnu') {
                 channels.add(entry.uploader);
             }
         });
-        return Array.from(channels).sort();
+        this._channelsCache = Array.from(channels).sort();
+        return this._channelsCache;
     }
 
     readDatabase() {
@@ -209,7 +213,7 @@ export default class FileDatabase {
     }
 
     getFile(yid) {
-        return this.yidMap.get(yid) || this.database.find(file => file.yid === yid);
+        return this.yidMap.get(yid) ?? null;
     }
 
     toggleFavorite(videoId) {
@@ -291,6 +295,7 @@ export default class FileDatabase {
             if (!file.tags) file.tags = [];
             if (!file.tags.includes(tag)) {
                 file.tags.push(tag);
+                this._tagsCache = null;
                 this.saveDatabase();
             }
         }
@@ -300,6 +305,7 @@ export default class FileDatabase {
         const file = this.database.find(file => file.yid === yid);
         if (file && file.tags) {
             file.tags = file.tags.filter(t => t !== tag);
+            this._tagsCache = null;
             this.saveDatabase();
         }
     }
@@ -307,6 +313,8 @@ export default class FileDatabase {
     removeFile(yid) {
         this.database = this.database.filter(file => file.yid !== yid);
         if (this.yidMap) this.yidMap.delete(yid);
+        this._tagsCache = null;
+        this._channelsCache = null;
         this.history = this.history.filter(id => id !== yid);
         this.queue = this.queue.filter(id => id !== yid);
         this.favorites = this.favorites.filter(id => id !== yid);
