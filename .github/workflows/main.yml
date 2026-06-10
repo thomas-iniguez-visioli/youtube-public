@@ -40,7 +40,7 @@ jobs:
             --notes '### YouTube Downloader Extension' \
             --draft
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
 
   build-and-upload:
     name: Build and Upload Assets
@@ -77,8 +77,8 @@ jobs:
         run: bunx electron-builder --publish always
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
 
       - name: Create and Upload extension ZIP
         if: matrix.os == 'ubuntu-latest'
@@ -86,7 +86,7 @@ jobs:
           zip -r youtube-downloader-extension.zip extension/
           gh release upload v${{ needs.prepare-release.outputs.version }} youtube-downloader-extension.zip --clobber
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
 
   publish-release:
     name: Publish Release
@@ -102,4 +102,4 @@ jobs:
       - name: Publish Draft Release
         run: gh release edit v${{ needs.prepare-release.outputs.version }} --draft=false
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
