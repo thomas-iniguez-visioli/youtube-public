@@ -500,6 +500,26 @@ function renderIndex(res, results, channel, channelUrl = null) {
   });
 }
 
+// Copie un fichier bundle -> userData seulement s'il est absent ou si nouvelle version
+function ensureLocalAsset(bundleRelPath, destPath, force = false) {
+  if (!force && fs.existsSync(destPath)) return;
+  const src = path.join(__dirname, bundleRelPath);
+  if (fs.existsSync(src)) {
+    fs.copyFileSync(src, destPath);
+    log.info(`Asset local copié : ${path.basename(destPath)}`);
+  }
+}
+
+// Vérifie rapidement si internet est accessible (HEAD sur github)
+function isOnline() {
+  return new Promise((resolve) => {
+    const req = https.request({ hostname: 'github.com', method: 'HEAD', path: '/', timeout: 3000 }, () => resolve(true));
+    req.on('error', () => resolve(false));
+    req.on('timeout', () => { req.destroy(); resolve(false); });
+    req.end();
+  });
+}
+
 async function build() {
   const base = config.storagePath;
   const currentVersion = pkg.version;
@@ -524,138 +544,130 @@ async function build() {
     path.join(app.getPath('userData'), 'log'),
     base
   ];
-  
   for (const dir of dirs) {
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  }
+
+  // --- Assets statiques : toujours depuis le bundle en priorité ---
+  const assetMap = [
+    ['../client-dist/socket.io.js',         'src/client-dist/socket.io.js'],
+    ['../client-dist/socket.io.js.map',     'src/client-dist/socket.io.js.map'],
+    ['./client-dist/style.css',             'src/client-dist/style.css'],
+    ['./client-dist/bootstrap.min.css',     'src/client-dist/bootstrap.min.css'],
+    ['./client-dist/bootstrap.bundle.min.js','src/client-dist/bootstrap.bundle.min.js'],
+    ['./client-dist/plyr.css',              'src/client-dist/plyr.css'],
+    ['./client-dist/plyr.polyfilled.js',    'src/client-dist/plyr.polyfilled.js'],
+    ['./client-dist/fuse.js',               'src/client-dist/fuse.js'],
+    ['./client-dist/roboto.css',            'src/client-dist/roboto.css'],
+    ['./client-dist/favicon.ico',           'src/client-dist/favicon.ico'],
+    ['./client-dist/roboto-0.woff2',        'src/client-dist/roboto-0.woff2'],
+    ['./client-dist/roboto-1.woff2',        'src/client-dist/roboto-1.woff2'],
+    ['./client-dist/roboto-2.woff2',        'src/client-dist/roboto-2.woff2'],
+    ['./renderer.js',                       'src/renderer.js'],
+    ['./views/index.ejs',                   'views/index.ejs'],
+    ['./views/view.ejs',                    'views/view.ejs'],
+  ];
+  for (const [rel, dest] of assetMap) {
+    ensureLocalAsset(rel, path.join(app.getPath('userData'), dest), isNewVersion);
+  }
+
+  // --- Binaires : uniquement si connecté ---
+  const online = await isOnline();
+  if (!online) {
+    log.warn('Hors-ligne : téléchargement des binaires ignoré.');
+    const validation = await binaryResolver.validateBinaries();
+    log.info('Binary validation results (offline):', validation);
+    if (isNewVersion) fs.writeFileSync(versionFilePath, currentVersion);
+    return;
   }
 
   const denoBinary = process.platform === 'win32' ? 'deno.exe' : 'deno';
   const denoPath = path.join(app.getPath('userData'), denoBinary);
-  const denoUrl = process.platform === 'win32' 
-    ? 'https://github.com/denoland/deno/releases/latest/download/deno-x86_64-pc-windows-msvc.zip' 
+  const denoUrl = process.platform === 'win32'
+    ? 'https://github.com/denoland/deno/releases/latest/download/deno-x86_64-pc-windows-msvc.zip'
     : 'https://github.com/denoland/deno/releases/latest/download/deno-x86_64-unknown-linux-gnu.zip';
-  const denoZipName = 'deno.zip';
-  const denoZipPath = path.join(app.getPath('userData'), denoZipName);
+  const denoZipPath = path.join(app.getPath('userData'), 'deno.zip');
 
   const ffmpegZipUrl = process.platform === 'win32'
     ? 'https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip'
     : 'https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz';
   const ffmpegExeName = process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg';
   const ffmpegExePath = path.join(app.getPath('userData'), ffmpegExeName);
-  const ffmpegZipName = process.platform === 'win32' ? 'ffmpeg.zip' : 'ffmpeg.tar.xz';
-  const ffmpegZipPath = path.join(app.getPath('userData'), ffmpegZipName);
-  
+  const ffmpegZipPath = path.join(app.getPath('userData'), process.platform === 'win32' ? 'ffmpeg.zip' : 'ffmpeg.tar.xz');
   const ytdlpPath = path.join(app.getPath('userData'), process.platform === 'win32' ? 'ytdlp.exe' : 'ytdlp');
 
-  const downloads = [];
-  // For small essential files, always update on new version
-  if (isNewVersion || !fs.existsSync(path.join(app.getPath('userData'), 'src/client-dist/socket.io.js'))) {
-    downloads.push(updateFile('https://cdn.socket.io/4.4.1/socket.io.js', path.join(app.getPath('userData'), 'src/client-dist/socket.io.js'), isNewVersion));
-    downloads.push(updateFile('https://cdn.socket.io/4.4.1/socket.io.js.map', path.join(app.getPath('userData'), 'src/client-dist/socket.io.js.map'), isNewVersion));
-  }
-  
-  // ytdlp changes frequently, better to keep it updated on app version change
+  // Assets distants : seulement si connecté et si nécessaire
+  const remoteAssets = [
+    { url: 'https://cdn.socket.io/4.4.1/socket.io.js',     dest: path.join(app.getPath('userData'), 'src/client-dist/socket.io.js'),     force: isNewVersion },
+    { url: 'https://cdn.socket.io/4.4.1/socket.io.js.map', dest: path.join(app.getPath('userData'), 'src/client-dist/socket.io.js.map'), force: isNewVersion },
+  ];
+
+  const downloads = remoteAssets
+    .filter(({ dest, force }) => force || !fs.existsSync(dest))
+    .map(({ url, dest, force }) => updateFile(url, dest, force));
+
   if (isNewVersion || !fs.existsSync(ytdlpPath)) {
-    downloads.push(updateFile(process.platform === 'win32' ? 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe' : 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp', ytdlpPath, isNewVersion));
+    downloads.push(updateFile(
+      process.platform === 'win32'
+        ? 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe'
+        : 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp',
+      ytdlpPath, isNewVersion
+    ));
   }
-
-  // Deno and FFmpeg are large, only download if missing
-  if (!fs.existsSync(denoPath)) {
-    downloads.push(updateFile(denoUrl, denoZipPath, false));
-  }
-
-  if (!fs.existsSync(ffmpegExePath)) {
-    downloads.push(updateFile(ffmpegZipUrl, ffmpegZipPath, false));
-  }
-
-  // Always update small template files to ensure latest UI
-  downloads.push(updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/views/index.ejs', path.join(app.getPath('userData'), 'views','index.ejs'), isNewVersion));
-  downloads.push(updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/views/view.ejs', path.join(app.getPath('userData'), 'views','view.ejs'), isNewVersion));
-  downloads.push(updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/renderer.js', path.join(app.getPath('userData'), 'src/renderer.js'), isNewVersion));
-  downloads.push(updateFile('https://raw.githubusercontent.com/thomas-iniguez-visioli/youtube-public/refs/heads/main/src/client-dist/style.css', path.join(app.getPath('userData'), 'src/client-dist/style.css'), isNewVersion));
+  if (!fs.existsSync(denoPath))    downloads.push(updateFile(denoUrl,      denoZipPath,   false));
+  if (!fs.existsSync(ffmpegExePath)) downloads.push(updateFile(ffmpegZipUrl, ffmpegZipPath, false));
 
   try {
     if (downloads.length > 0) {
       await Promise.allSettled(downloads);
-      log.info('Initial builds/downloads completed');
+      log.info('Downloads completed');
     }
 
-    // Extraction de FFmpeg si nécessaire
+    // Extraction FFmpeg si nécessaire
     if (fs.existsSync(ffmpegZipPath) && !fs.existsSync(ffmpegExePath)) {
       log.info('Extraction de FFmpeg...');
       const extractDir = path.join(app.getPath('userData'), 'ffmpeg-temp');
       const unzipper = require('unzipper');
       if (process.platform === 'win32') {
-        await fs.createReadStream(ffmpegZipPath)
-          .pipe(unzipper.Extract({ path: extractDir }))
-          .promise();
+        await fs.createReadStream(ffmpegZipPath).pipe(unzipper.Extract({ path: extractDir })).promise();
       } else {
-        // Extraction Linux simplifiée
-        try {
-          child.execSync(`tar -xf "${ffmpegZipPath}" -C "${app.getPath('userData')}"`);
-        } catch (e) {
-          log.error('Erreur tar Linux:', e);
-        }
+        try { child.execSync(`tar -xf "${ffmpegZipPath}" -C "${app.getPath('userData')}"`); } catch (e) { log.error('Erreur tar Linux:', e); }
       }
-
-      // Recherche récursive du binaire ffmpeg dans le dossier d'extraction
       const findBinary = (dir, name) => {
-        const files = fs.readdirSync(dir);
-        for (const file of files) {
-          const fullPath = path.join(dir, file);
-          if (fs.statSync(fullPath).isDirectory()) {
-            const found = findBinary(fullPath, name);
-            if (found) return found;
-          } else if (file === name) {
-            return fullPath;
-          }
+        for (const file of fs.readdirSync(dir)) {
+          const full = path.join(dir, file);
+          if (fs.statSync(full).isDirectory()) { const f = findBinary(full, name); if (f) return f; }
+          else if (file === name) return full;
         }
         return null;
       };
-
       if (fs.existsSync(extractDir)) {
-        const binaries = ['ffmpeg', 'ffprobe', 'ffplay'];
-        binaries.forEach(name => {
+        for (const name of ['ffmpeg', 'ffprobe', 'ffplay']) {
           const binName = process.platform === 'win32' ? `${name}.exe` : name;
-          const sourcePath = findBinary(extractDir, binName);
-          if (sourcePath) {
-            const destPath = path.join(app.getPath('userData'), binName);
-            fs.copyFileSync(sourcePath, destPath);
-            if (process.platform !== 'win32') {
-              fs.chmodSync(destPath, '755');
-            }
+          const src = findBinary(extractDir, binName);
+          if (src) {
+            const dest = path.join(app.getPath('userData'), binName);
+            fs.copyFileSync(src, dest);
+            if (process.platform !== 'win32') fs.chmodSync(dest, '755');
           }
-        });
-        // Nettoyage du dossier temporaire
+        }
         try { fs.rmSync(extractDir, { recursive: true, force: true }); } catch (e) {}
       }
     }
-    
-    // Unzip Deno only if binary is missing
+
+    // Extraction Deno si nécessaire
     if (fs.existsSync(denoZipPath) && !fs.existsSync(denoPath)) {
       log.info('Extraction de Deno...');
       const unzipper = require('unzipper');
-      await fs.createReadStream(denoZipPath)
-        .pipe(unzipper.Extract({ path: app.getPath('userData') }))
-        .promise();
-      
-      if (fs.existsSync(denoPath) && process.platform !== 'win32') {
-        fs.chmodSync(denoPath, '755');
-      }
+      await fs.createReadStream(denoZipPath).pipe(unzipper.Extract({ path: app.getPath('userData') })).promise();
+      if (fs.existsSync(denoPath) && process.platform !== 'win32') fs.chmodSync(denoPath, '755');
     }
 
-    if (isNewVersion) {
-      fs.writeFileSync(versionFilePath, currentVersion);
-    }
-    
-    // Validate binaries after potential updates
+    if (isNewVersion) fs.writeFileSync(versionFilePath, currentVersion);
+
     const validation = await binaryResolver.validateBinaries();
     log.info('Binary validation results:', validation);
-    if (!validation.ytdlp || !validation.ffmpeg) {
-      log.warn('Some essential binaries (yt-dlp or ffmpeg) are missing or non-functional.');
-    }
+    if (!validation.ytdlp || !validation.ffmpeg) log.warn('Binaires essentiels manquants (yt-dlp ou ffmpeg).');
     optimizeMemory();
   } catch (error) {
     log.error('Error during build downloads:', error);
@@ -1016,6 +1028,31 @@ web.get("/socket.io.js", function (req, res) {
 });
 web.get("/socket.io.js.map", function (req, res) {
   serveStaticFile(req, res, "./src/client-dist/socket.io.js.map", "./client-dist/socket.io.js.map", "application/json");
+});
+web.get("/bootstrap.min.css", function (req, res) {
+  serveStaticFile(req, res, "./src/client-dist/bootstrap.min.css", "./client-dist/bootstrap.min.css", "text/css");
+});
+web.get("/bootstrap.bundle.min.js", function (req, res) {
+  serveStaticFile(req, res, "./src/client-dist/bootstrap.bundle.min.js", "./client-dist/bootstrap.bundle.min.js", "application/javascript");
+});
+web.get("/plyr.css", function (req, res) {
+  serveStaticFile(req, res, "./src/client-dist/plyr.css", "./client-dist/plyr.css", "text/css");
+});
+web.get("/plyr.polyfilled.js", function (req, res) {
+  serveStaticFile(req, res, "./src/client-dist/plyr.polyfilled.js", "./client-dist/plyr.polyfilled.js", "application/javascript");
+});
+web.get("/fuse.js", function (req, res) {
+  serveStaticFile(req, res, "./src/client-dist/fuse.js", "./client-dist/fuse.js", "application/javascript");
+});
+web.get("/roboto.css", function (req, res) {
+  serveStaticFile(req, res, "./src/client-dist/roboto.css", "./client-dist/roboto.css", "text/css");
+});
+web.get("/favicon.ico", function (req, res) {
+  serveStaticFile(req, res, "./src/client-dist/favicon.ico", "./client-dist/favicon.ico", "image/x-icon");
+});
+web.get("/fonts/:file", function (req, res) {
+  const file = req.params.file.replace(/[^a-zA-Z0-9._\-]/g, '');
+  serveStaticFile(req, res, `./src/client-dist/${file}`, `./client-dist/${file}`, "font/woff2");
 });
 const thumbCacheDir = path.join(app.getPath('userData'), 'thumbnails');
 if (!fs.existsSync(thumbCacheDir)) fs.mkdirSync(thumbCacheDir, { recursive: true });

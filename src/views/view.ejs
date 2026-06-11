@@ -7,11 +7,11 @@
     <title><%= title %></title>
     
     <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/bootstrap.min.css" rel="stylesheet">
     <!-- Plyr CSS -->
-    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/plyr.css" />
+    <!-- Roboto Font -->
+    <link href="/roboto.css" rel="stylesheet">
 
     <script src="socket.io.js"></script>
     <script src="renderer.js"></script>
@@ -30,7 +30,7 @@
     <nav class="navbar navbar-expand-lg navbar-dark sticky-top mb-4">
         <div class="container-fluid">
             <a class="navbar-brand d-flex align-items-center" href="/">
-                <img src="https://www.youtube.com/favicon.ico" width="30" height="30" class="me-2" alt="">
+                <img src="/favicon.ico" width="30" height="30" class="me-2" alt="">
                 <div class="d-flex flex-column">
                     <strong>YouTube Downloader</strong>
                     <span style="font-size: 0.65rem; color: #aaaaaa; margin-top: -5px;">v<%= typeof appVersion !== 'undefined' ? appVersion : '' %></span>
@@ -166,8 +166,8 @@
     </div>
 
     <!-- Bootstrap & Plyr JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
+    <script src="/bootstrap.bundle.min.js"></script>
+    <script src="/plyr.polyfilled.js"></script>
     
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -322,17 +322,6 @@
         });
     </script>
 
-    <!-- Tawk.to Script -->
-    <script type="text/javascript">
-        var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
-        (function(){
-            var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
-            s1.async=true;
-            s1.src='https://embed.tawk.to/673f4ae72480f5b4f5a1dbce/1id7jp68o';
-            s1.charset='UTF-8';
-            s1.setAttribute('crossorigin','*');
-            s0.parentNode.insertBefore(s1,s0);
-        })();
-    </script>
+    <!-- Tawk.to removed (offline mode) -->
 </body>
 </html>
