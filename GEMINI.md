@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.7.7] - 2026-06-14
+### Corrigé
+- **Compteur d'historique** : Les variables `historyCount` et `historyLimit` n'étaient pas transmises aux vues EJS. Le badge "Historique (X/Y)" affichait toujours `0/0`.
+
 ## [1.7.6] - 2026-06-14
 ### Corrigé
 - **Import hors module** : Suppression des appels `binval.validateBinaries()` et `console.log` au top-level de `downloader.js` qui s'exécutaient à chaque import et causaient des effets de bord.

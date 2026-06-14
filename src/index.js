@@ -490,13 +490,16 @@ web.set('views', path.join(app.getPath('userData'), 'views'));
 
 // Helper: rend index.ejs avec les données communes de la DB en une seule passe
 function renderIndex(res, results, channel, channelUrl = null) {
+  const historyLimit = Math.floor(db.database.length * 0.8);
   res.render('index', {
     results,
     channel,
     channelUrl,
     playlists: db.getPlaylists(),
     allTags: db.getAllTags(),
-    allChannels: db.getAllChannels()
+    allChannels: db.getAllChannels(),
+    historyCount: db.history.length,
+    historyLimit: historyLimit > 0 ? historyLimit : db.database.length
   });
 }
 
@@ -875,6 +878,7 @@ web.get("/watch", function (req, res) {
     nextVideo = currentIdx === filteredReferencement.length - 1 ? filteredReferencement[0] : filteredReferencement[currentIdx + 1];
   }
 
+  const historyLimit = Math.floor(db.database.length * 0.8);
   res.render('view', {
     code: req.query.id,
     videos: filteredReferencement,
@@ -886,7 +890,9 @@ web.get("/watch", function (req, res) {
     isFavorite: isFavorite,
     playlists: db.getPlaylists(),
     allTags: db.getAllTags(),
-    allChannels: db.getAllChannels()
+    allChannels: db.getAllChannels(),
+    historyCount: db.history.length,
+    historyLimit: historyLimit > 0 ? historyLimit : db.database.length
   });
 });
 
