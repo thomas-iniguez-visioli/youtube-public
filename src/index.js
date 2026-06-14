@@ -838,7 +838,8 @@ web.get("/watch", function (req, res) {
   }
 
   const historySet = new Set(db.history);
-  historySet.delete(req.query.id);
+  // Ne pas retirer la vidéo courante du historySet : elle doit rester filtrée des suggestions
+  historySet.add(req.query.id);
   const referencement = [...db.database].sort((a, b) => (b.score || 0) - (a.score || 0));
 
   const filteredReferencement = referencement.filter(item => !historySet.has(item.yid));

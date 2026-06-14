@@ -34,6 +34,8 @@ test('FileDatabase should manage history correctly', (t) => {
             tags: []
         });
     }
+    // Reconstruire l'index après insertion directe dans db.database
+    db._buildIndex();
     
     // Add 8 items to history (80% of 10)
     for (let i = 0; i < 8; i++) {

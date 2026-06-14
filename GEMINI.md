@@ -1,5 +1,10 @@
 # Gemini CLI - Journal des modifications
 
+## [1.7.6] - 2026-06-14
+### Corrigé
+- **Import hors module** : Suppression des appels `binval.validateBinaries()` et `console.log` au top-level de `downloader.js` qui s'exécutaient à chaque import et causaient des effets de bord.
+- **Anti-rejoue** : Correction du filtre d'historique dans la route `/watch` — la vidéo en cours était retirée du `historySet` au lieu d'y être ajoutée, permettant à la vidéo courante de se proposer elle-même comme suivante.
+
 ## [1.6.8] - 2026-05-23
 ### Changé
 - **Design System** : Refonte visuelle complète (typographie Inter, Glassmorphism affiné, thèmes sombres vibrants et gradients animés).
