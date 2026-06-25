@@ -954,13 +954,15 @@ web.get("/api/search", function (req, res) {
 
 web.get("/api/related", async function (req, res) {
   const title = req.query.title || "";
+  const uploader = req.query.uploader || "";
   const ytdlpPath = binaryResolver.ytdlp;
   const denoPath = binaryResolver.deno;
   if (!title || !ytdlpPath) {
     return res.json([]);
   }
   try {
-    const query = title.replace(/\.mp4$/i, '').trim();
+    let cleanTitle = title.replace(/\.mp4$/i, '').replace(/\s*\[[^\]]+\]$/, '').trim();
+    const query = uploader ? `${cleanTitle} ${uploader}` : cleanTitle;
     const results = await fetchSuggestions(ytdlpPath, query, denoPath);
     res.json(results.slice(0, 5));
   } catch (e) {

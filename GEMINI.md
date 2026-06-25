@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.8.9] - 2026-06-25
+### Changé
+- **Recherche de similarité** : Utilisation du titre propre d'origine YouTube et du nom de l'uploader comme paramètres de recherche de similarité pour cibler des suggestions plus pertinentes.
+
 ## [1.8.8] - 2026-06-25
 ### Changé
 - **Alignement des suggestions** : Refactoring de la structure HTML des cartes de suggestions locales pour correspondre à celle des suggestions en ligne et fermeture d'une balise d'ancrage orpheline dans `view.ejs`.

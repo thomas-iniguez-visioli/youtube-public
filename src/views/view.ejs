@@ -284,9 +284,10 @@
             });
 
             // Charger les vidéos similaires de YouTube de manière asynchrone
-            const videoTitle = <%- JSON.stringify(typeof title !== 'undefined' ? title : '') %>;
+            const videoTitle = <%- JSON.stringify(typeof videodata !== 'undefined' && videodata.title ? videodata.title : '') %>;
+            const videoUploader = <%- JSON.stringify(typeof videodata !== 'undefined' && videodata.uploader ? videodata.uploader : '') %>;
             if (videoTitle) {
-                fetch(`/api/related?title=${encodeURIComponent(videoTitle)}`)
+                fetch(`/api/related?title=${encodeURIComponent(videoTitle)}&uploader=${encodeURIComponent(videoUploader)}`)
                     .then(r => r.json())
                     .then(data => {
                         const loader = document.getElementById('relatedYoutubeLoading');
