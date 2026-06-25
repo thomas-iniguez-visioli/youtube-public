@@ -294,6 +294,7 @@
             if (window.location.pathname === '/' && 
                 lastUrl && 
                 lastUrl !== currentUrl && 
+                !lastUrl.includes('/suggestions') &&
                 !sessionStorage.getItem(sessionNavKey)) {
                 
                 sessionStorage.setItem(sessionNavKey, 'true');
