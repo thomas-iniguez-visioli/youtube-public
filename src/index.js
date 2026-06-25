@@ -20,6 +20,8 @@ import { createServer } from 'http';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 
+app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
+
 const require = createRequire(import.meta.url);
 const pkg = require('../package.json');
 const rollbarConfig = require('../rollbar.config.cjs');
@@ -1186,6 +1188,7 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       enableRemoteModule: false,
+      autoplayPolicy: 'no-user-gesture-required',
     },
   });
   
