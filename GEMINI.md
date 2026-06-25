@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.9.1] - 2026-06-25
+### Corrigé
+- **Lecture automatique** : Restauration du lancement automatique des vidéos (autoplay) dans Electron en configurant `autoplayPolicy: 'no-user-gesture-required'` dans les préférences web de la fenêtre principale.
+
 ## [1.8.10] - 2026-06-25
 ### Corrigé
 - **Suggestions de vidéos** : Filtrage automatique pour exclure des suggestions (recherche et vidéos similaires) les vidéos qui sont déjà téléchargées dans la bibliothèque locale.
