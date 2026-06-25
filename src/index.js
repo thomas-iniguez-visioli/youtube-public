@@ -951,6 +951,23 @@ web.get("/api/search", function (req, res) {
   res.json(results);
 });
 
+web.get("/api/related", async function (req, res) {
+  const title = req.query.title || "";
+  const ytdlpPath = binaryResolver.ytdlp;
+  const denoPath = binaryResolver.deno;
+  if (!title || !ytdlpPath) {
+    return res.json([]);
+  }
+  try {
+    const query = title.replace(/\.mp4$/i, '').trim();
+    const results = await fetchSuggestions(ytdlpPath, query, denoPath);
+    res.json(results.slice(0, 5));
+  } catch (e) {
+    log.error(`Erreur related api: ${e.message}`);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 web.get("/channel", function (req, res) {
   const channelName = req.query.name;
   const results = db.database.filter(item => item.uploader === channelName);
