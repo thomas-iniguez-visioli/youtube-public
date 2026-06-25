@@ -137,7 +137,7 @@ if (typeof io !== 'undefined') {
                 div.textContent = line;
                 consoleLogs.appendChild(div);
             });
-            while (consoleLogs.children.length > 100) consoleLogs.removeChild(consoleLogs.firstChild);
+            while (consoleLogs.children.length > 1000) consoleLogs.removeChild(consoleLogs.firstChild);
             downloadConsole.scrollTop = downloadConsole.scrollHeight;
         }
     });
