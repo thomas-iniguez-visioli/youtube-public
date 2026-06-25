@@ -963,8 +963,9 @@ web.get("/api/related", async function (req, res) {
   try {
     let cleanTitle = title.replace(/\.mp4$/i, '').replace(/\s*\[[^\]]+\]$/, '').trim();
     const query = uploader ? `${cleanTitle} ${uploader}` : cleanTitle;
-    const results = await fetchSuggestions(ytdlpPath, query, denoPath);
-    res.json(results.slice(0, 5));
+    const rawResults = await fetchSuggestions(ytdlpPath, query, denoPath);
+    const filtered = rawResults.filter(video => !db.getFile(video.id));
+    res.json(filtered.slice(0, 5));
   } catch (e) {
     log.error(`Erreur related api: ${e.message}`);
     res.status(500).json({ error: e.message });
@@ -1008,7 +1009,8 @@ web.get("/suggestions", async function (req, res) {
 
   if (ytdlpPath) {
     try {
-      results = await fetchSuggestions(ytdlpPath, query, denoPath);
+      const rawResults = await fetchSuggestions(ytdlpPath, query, denoPath);
+      results = rawResults.filter(video => !db.getFile(video.id));
     } catch (e) {
       log.error(`Erreur suggestions: ${e.message}`);
       errorMsg = e.message;
