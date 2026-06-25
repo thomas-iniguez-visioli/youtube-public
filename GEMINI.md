@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.8.4] - 2026-06-25
+### Corrigé
+- **Restauration de session** : Exclusion de la vue `/suggestions` lors de la restauration automatique de la dernière page visitée au démarrage pour éviter les chargements lents.
+
 ## [1.8.3] - 2026-06-25
 ### Ajouté
 - **Suggestions de vidéos similaires** : Ajout d'un panneau latéral asynchrone sur la page de lecture proposant des vidéos similaires YouTube prêtes à être téléchargées.
