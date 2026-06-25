@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>YouTube Downloader - Suggestions</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="/bootstrap.min.css" rel="stylesheet">
+    <!-- Roboto Font -->
+    <link href="/roboto.css" rel="stylesheet">
+
+    <script src="socket.io.js"></script>
+    <script src="renderer.js"></script>
+
+    <link rel="stylesheet" href="/style.css">
+    <style>
+        .suggestion-search-container {
+            max-width: 600px;
+            margin: 2rem auto;
+        }
+        .download-btn {
+            border-radius: 20px;
+            padding: 0.3rem 1.2rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        .download-btn:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <!-- Toast Container -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1060;">
+    </div>
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+        <div class="container-fluid">
+            <a class="navbar-brand d-flex align-items-center" href="/">
+                <img src="/favicon.ico" width="30" height="30" class="me-2" alt="">
+                <div class="d-flex flex-column">
+                    <strong>YouTube Downloader</strong>
+                    <span style="font-size: 0.65rem; color: #aaaaaa; margin-top: -5px;">v<%= typeof appVersion !== 'undefined' ? appVersion : '' %></span>
+                </div>
+            </a>
+            
+            <div class="d-flex flex-grow-1 justify-content-center mx-4">
+                <form id="commandForm" class="d-flex w-100 search-container m-0 flex-column">
+                    <div class="d-flex w-100 align-items-center">
+                        <input class="form-control me-2 rounded-pill ps-4" type="text" id="commandInput" placeholder="Coller une URL YouTube..." required>
+                        <button class="btn btn-outline-light rounded-pill px-4" type="submit">Télécharger</button>
+                        <button type="button" class="btn btn-outline-secondary rounded-pill ms-2" title="Changer le dossier de téléchargement" onclick="changeFolder()">📂</button>
+                    </div>
+                    <small class="text-muted text-center mt-1" style="font-size: 0.65rem; color: #777 !important;">Fichier backlog : <%= typeof backlogFile !== 'undefined' ? backlogFile : '' %></small>
+                </form>
+            </div>
+            <div class="d-flex">
+                <a href="/suggestions" class="btn btn-primary rounded-pill px-4 me-2">✨ Suggestions</a>
+                <a href="/favorites" class="btn btn-outline-danger rounded-pill px-4 me-2">Favoris (<%= typeof favoritesCount !== 'undefined' ? favoritesCount : 0 %>)</a>
+                <a href="/queue" class="btn btn-outline-success rounded-pill px-4 me-2">File (<%= typeof queueCount !== 'undefined' ? queueCount : 0 %>)</a>
+                <a href="/playlists" class="btn btn-outline-warning rounded-pill px-4 me-2">Playlists</a>
+                <a href="/history" class="btn btn-outline-info rounded-pill px-4">Historique (<%= typeof historyCount !== 'undefined' ? historyCount : 0 %>/<%= typeof historyLimit !== 'undefined' ? historyLimit : 0 %>)</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid px-4">
+        <div class="suggestion-search-container text-center">
+            <h2 class="text-white mb-3">Rechercher des suggestions</h2>
+            <form action="/suggestions" method="GET" class="d-flex justify-content-center">
+                <input type="text" name="q" class="form-control rounded-pill ps-4 bg-dark text-white border-secondary me-2" placeholder="Rechercher des vidéos sur YouTube..." value="<%= query %>" required>
+                <button type="submit" class="btn btn-primary rounded-pill px-4">Rechercher</button>
+            </form>
+        </div>
+
+        <% if (errorMsg) { %>
+            <div class="alert alert-danger text-center mx-auto" style="max-width: 600px;">
+                <%= errorMsg %>
+            </div>
+        <% } %>
+
+        <div class="row mt-4" id="suggestionsList">
+            <% if (results && results.length > 0) { %>
+                <% results.forEach(function(video) { %>
+                    <% 
+                        // Resolve thumbnail
+                        let thumbUrl = `https://i.ytimg.com/vi/${video.id}/hqdefault.jpg`;
+                        if (video.thumbnails && video.thumbnails.length > 0) {
+                            thumbUrl = video.thumbnails[video.thumbnails.length - 1].url;
+                        }
+                        // Format duration
+                        let durStr = '';
+                        if (video.duration) {
+                            const minutes = Math.floor(video.duration / 60);
+                            const seconds = Math.floor(video.duration % 60);
+                            durStr = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+                        }
+                    %>
+                    <div class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-2 mb-4">
+                        <div class="video-card d-flex flex-column h-100">
+                            <div class="video-thumb-container position-relative">
+                                <img src="<%= thumbUrl %>" class="video-thumbnail" alt="Thumbnail" loading="lazy">
+                                <% if (durStr) { %>
+                                    <span class="position-absolute bottom-0 end-0 bg-dark text-white px-2 py-0.5 m-2 rounded" style="font-size: 0.75rem; opacity: 0.85;"><%= durStr %></span>
+                                <% } %>
+                            </div>
+                            <div class="video-info p-3 d-flex flex-column justify-content-between" style="flex-grow: 1;">
+                                <div>
+                                    <div class="video-title text-white mb-1" style="font-size: 0.9rem; line-height: 1.2; max-height: 2.4rem; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;"><%= video.title %></div>
+                                    <div class="text-muted mb-2" style="font-size: 0.8rem;"><%= video.uploader || video.channel || 'Chaîne inconnue' %></div>
+                                    <% if (video.view_count) { %>
+                                        <div class="text-muted mb-3" style="font-size: 0.75rem;"><%= video.view_count.toLocaleString() %> vues</div>
+                                    <% } %>
+                                </div>
+                                <div>
+                                    <button class="btn btn-success w-100 download-btn" onclick="downloadVideo('<%= video.id %>')">
+                                        📥 Télécharger
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                <% }); %>
+            <% } else if (!errorMsg) { %>
+                <div class="text-center text-muted my-5">
+                    Aucune suggestion trouvée. Essayez une autre recherche.
+                </div>
+            <% } %>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="/bootstrap.bundle.min.js"></script>
+
+    <script>
+        function downloadVideo(id) {
+            const url = `https://www.youtube.com/watch?v=${id}`;
+            if (window.electronAPI && window.electronAPI.setTitle) {
+                window.electronAPI.setTitle(url);
+                showToast('Téléchargement', 'Téléchargement lancé avec succès !', 'primary');
+            } else {
+                window.location.href = `/download?url=${encodeURIComponent(url)}`;
+            }
+        }
+    </script>
+</body>
+</html>
