@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.8.6] - 2026-06-25
+### Changé
+- **Navigation de suggestion** : Redirection des clics sur les cartes de suggestions similaires vers la route de visionnage/téléchargement direct pour correspondre au comportement des vidéos locales.
+
 ## [1.8.5] - 2026-06-25
 ### Changé
 - **Organisation CSS** : Refactoring global et structuration propre de `style.css` par sections fonctionnelles, et migration des styles ad-hoc de `suggestions.ejs` vers la feuille de style centrale.

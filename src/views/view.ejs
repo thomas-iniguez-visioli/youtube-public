@@ -310,7 +310,7 @@
                                 card.className = 'suggestion-card d-flex align-items-center justify-content-between w-100';
                                 card.style.cursor = 'default';
                                 card.innerHTML = `
-                                    <div class="d-flex" style="flex: 1; min-width: 0; cursor: pointer;" onclick="downloadYoutubeVideo('${v.id}')">
+                                    <a class="d-flex text-decoration-none" style="flex: 1; min-width: 0; color: inherit;" href="/watch?id=${v.id}">
                                         <div class="position-relative flex-shrink-0">
                                             <img src="${thumbUrl}" class="suggestion-thumb" alt="${v.title}">
                                             ${durStr ? `<span class="position-absolute bottom-0 end-0 bg-dark text-white px-1 rounded" style="font-size: 0.65rem; margin: 2px; opacity: 0.85;">${durStr}</span>` : ''}
@@ -319,7 +319,7 @@
                                             <span class="suggestion-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;" title="${v.title}">${v.title}</span>
                                             <span class="suggestion-channel" style="font-size: 0.75rem; color: #aaaaaa;">${v.uploader || v.channel || 'YouTube'}</span>
                                         </div>
-                                    </div>
+                                    </a>
                                     <button onclick="downloadYoutubeVideo('${v.id}')" class="btn btn-outline-success btn-sm ms-2" title="Télécharger">
                                         📥
                                     </button>
