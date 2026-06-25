@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.8.10] - 2026-06-25
+### Corrigé
+- **Suggestions de vidéos** : Filtrage automatique pour exclure des suggestions (recherche et vidéos similaires) les vidéos qui sont déjà téléchargées dans la bibliothèque locale.
+
 ## [1.8.9] - 2026-06-25
 ### Changé
 - **Recherche de similarité** : Utilisation du titre propre d'origine YouTube et du nom de l'uploader comme paramètres de recherche de similarité pour cibler des suggestions plus pertinentes.
