@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.8.2] - 2026-06-25
+### Ajouté
+- **Moteur de suggestions** : Intégration d'un moteur de suggestions et de recherche de vidéos YouTube sans connexion, permettant de chercher et de lancer directement des téléchargements depuis l'interface via une nouvelle vue dédiée `/suggestions`.
+
 ## [1.8.1] - 2026-06-25
 ### Changé
 - **Console de téléchargement** : Augmentation du buffer de la console logs du front de 100 à 1000 lignes pour permettre un historique de téléchargement plus complet.

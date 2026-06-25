@@ -10,7 +10,7 @@ import escapeHtml from 'escape-html';
 import path from 'path';
 import os from 'os';
 import { updateFile } from './updater.js';
-import { createDownloadArgs, runDownload, createMetadataArgs } from './downloader.js';
+import { createDownloadArgs, runDownload, createMetadataArgs, fetchSuggestions } from './downloader.js';
 import FileDatabase from './db.js';
 import child from 'child_process';
 import log from 'electron-log';
@@ -977,6 +977,39 @@ web.get("/favorite/toggle", function (req, res) {
 
 web.get("/history", function (req, res) {
   renderIndex(res, db.getHistory(), "Historique");
+});
+
+web.get("/suggestions", async function (req, res) {
+  const query = req.query.q || "youtube trending";
+  const ytdlpPath = binaryResolver.ytdlp;
+  const denoPath = binaryResolver.deno;
+  let results = [];
+  let errorMsg = null;
+
+  if (ytdlpPath) {
+    try {
+      results = await fetchSuggestions(ytdlpPath, query, denoPath);
+    } catch (e) {
+      log.error(`Erreur suggestions: ${e.message}`);
+      errorMsg = e.message;
+    }
+  } else {
+    errorMsg = "Binaire yt-dlp indisponible.";
+  }
+
+  const historyLimit = Math.floor(db.database.length * 0.8);
+  res.render('suggestions', {
+    results,
+    query,
+    errorMsg,
+    playlists: db.getPlaylists(),
+    allTags: db.getAllTags(),
+    allChannels: db.getAllChannels(),
+    favoritesCount: db.favorites.length,
+    queueCount: db.queue.length,
+    historyCount: db.history.length,
+    historyLimit: historyLimit > 0 ? historyLimit : db.database.length
+  });
 });
 
 web.get("/playlists", function (req, res) {

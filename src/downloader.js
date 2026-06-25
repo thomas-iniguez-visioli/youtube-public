@@ -116,8 +116,65 @@ function createMetadataArgs(parameter, ffmpegDir, storagePath, outputFileFormat,
   return args;
 }
 
+function fetchSuggestions(ytdlpPath, query, denoPath) {
+  return new Promise((resolve, reject) => {
+    if (!ytdlpPath || (!fs.existsSync(ytdlpPath) && !ytdlpPath.includes('/') && !ytdlpPath.includes('\\'))) {
+      // Si le binaire n'existe pas et n'est pas un chemin absolu/relatif, on rejette directement
+      return reject(new Error(`ytdlp binary not found: ${ytdlpPath}`));
+    }
+    const args = [
+      '--flat-playlist',
+      '--dump-single-json',
+      `ytsearch24:${query}`
+    ];
+    if (denoPath && fs.existsSync(denoPath)) {
+      args.push('--js-runtimes', `deno:${denoPath}`);
+    }
+
+    const env = { ...process.env };
+    const ytdlpDir = path.dirname(ytdlpPath);
+    if (process.platform === 'win32') {
+      env.Path = `${ytdlpDir};${env.Path || ''}`;
+    } else {
+      env.PATH = `${ytdlpDir}:${env.PATH || ''}`;
+    }
+
+    let childProcess;
+    try {
+      childProcess = child.spawn(ytdlpPath, args, { env });
+    } catch (err) {
+      return reject(err);
+    }
+    let stdoutData = '';
+    let stderrData = '';
+
+    childProcess.stdout.on('data', (data) => {
+      stdoutData += data.toString();
+    });
+
+    childProcess.stderr.on('data', (data) => {
+      stderrData += data.toString();
+    });
+
+    childProcess.on('close', (code) => {
+      if (code === 0) {
+        try {
+          const parsed = JSON.parse(stdoutData);
+          const entries = parsed.entries || [];
+          resolve(entries);
+        } catch (e) {
+          reject(new Error(`Failed to parse suggestions JSON: ${e.message}`));
+        }
+      } else {
+        reject(new Error(`ytdlp search exited with code ${code}. Stderr: ${stderrData}`));
+      }
+    });
+  });
+}
+
 export {
   createDownloadArgs,
   createMetadataArgs,
-  runDownload
+  runDownload,
+  fetchSuggestions
 };
