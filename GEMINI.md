@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.8.8] - 2026-06-25
+### Changé
+- **Alignement des suggestions** : Refactoring de la structure HTML des cartes de suggestions locales pour correspondre à celle des suggestions en ligne et fermeture d'une balise d'ancrage orpheline dans `view.ejs`.
+
 ## [1.8.7] - 2026-06-25
 ### Corrigé
 - **Copie des Assets** : Ajout de la vue `suggestions.ejs` au dictionnaire de synchronisation `assetMap` pour qu'elle soit correctement déployée dans le dossier `userData` au démarrage.
