@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.7.11] - 2026-06-25
+### Changé
+- **Console de téléchargement** : Augmentation du buffer de la console logs du front de 100 à 1000 lignes pour permettre un historique de téléchargement plus complet.
+
 ## [1.7.10] - 2026-06-25
 ### Ajouté
 - **Bouton Voir la chaîne** : Ajout d'un bouton dédié "Voir la chaîne" sur la page de lecture d'une vidéo pour naviguer directement vers les vidéos de l'uploader.
