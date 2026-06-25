@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.7.10] - 2026-06-25
+### Ajouté
+- **Bouton Voir la chaîne** : Ajout d'un bouton dédié "Voir la chaîne" sur la page de lecture d'une vidéo pour naviguer directement vers les vidéos de l'uploader.
+
 ## [1.7.8] - 2026-06-25
 ### Corrigé
 - **Lecture de chaîne/playlist** : Désactivation du filtrage par historique pour les vidéos appartenant à la playlist ou chaîne en cours de lecture afin de permettre le visionnage séquentiel complet et le revisionnage des vidéos déjà vues.
