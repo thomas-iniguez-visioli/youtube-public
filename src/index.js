@@ -840,14 +840,23 @@ web.get("/watch", function (req, res) {
     }
   }
 
+  const playlistName = req.query.playlist;
+  const playlist = playlistName ? db.getPlaylist(playlistName) : null;
+  const playlistVideoIds = playlist ? new Set(playlist.videoIds) : new Set();
+
   const historySet = new Set(db.history);
   // Ne pas retirer la vidéo courante du historySet : elle doit rester filtrée des suggestions
   historySet.add(req.query.id);
   const referencement = [...db.database].sort((a, b) => (b.score || 0) - (a.score || 0));
 
-  const filteredReferencement = referencement.filter(item => !historySet.has(item.yid));
+  const filteredReferencement = referencement.filter(item => {
+    // Si la vidéo appartient à la playlist/chaîne en cours de lecture, on l'affiche/suggère pour permettre de la revisionner
+    if (playlistVideoIds.has(item.yid)) {
+      return true;
+    }
+    return !historySet.has(item.yid);
+  });
 
-  const playlistName = req.query.playlist;
   let nextVideo = null;
   const currentInQueue = db.queue.includes(req.query.id);
   const isFavorite = db.isFavorite(req.query.id);
