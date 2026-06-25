@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.8.7] - 2026-06-25
+### Corrigé
+- **Copie des Assets** : Ajout de la vue `suggestions.ejs` au dictionnaire de synchronisation `assetMap` pour qu'elle soit correctement déployée dans le dossier `userData` au démarrage.
+
 ## [1.8.6] - 2026-06-25
 ### Changé
 - **Navigation de suggestion** : Redirection des clics sur les cartes de suggestions similaires vers la route de visionnage/téléchargement direct pour correspondre au comportement des vidéos locales.

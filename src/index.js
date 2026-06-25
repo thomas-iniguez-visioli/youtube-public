@@ -569,6 +569,7 @@ async function build() {
     ['./renderer.js',                       'src/renderer.js'],
     ['./views/index.ejs',                   'views/index.ejs'],
     ['./views/view.ejs',                    'views/view.ejs'],
+    ['./views/suggestions.ejs',             'views/suggestions.ejs'],
   ];
   for (const [rel, dest] of assetMap) {
     ensureLocalAsset(rel, path.join(app.getPath('userData'), dest), isNewVersion);
