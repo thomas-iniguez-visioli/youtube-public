@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.8.5] - 2026-06-25
+### Changé
+- **Organisation CSS** : Refactoring global et structuration propre de `style.css` par sections fonctionnelles, et migration des styles ad-hoc de `suggestions.ejs` vers la feuille de style centrale.
+
 ## [1.8.4] - 2026-06-25
 ### Corrigé
 - **Restauration de session** : Exclusion de la vue `/suggestions` lors de la restauration automatique de la dernière page visitée au démarrage pour éviter les chargements lents.
