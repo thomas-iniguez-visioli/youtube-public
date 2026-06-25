@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.7.8] - 2026-06-25
+### Corrigé
+- **Lecture de chaîne/playlist** : Désactivation du filtrage par historique pour les vidéos appartenant à la playlist ou chaîne en cours de lecture afin de permettre le visionnage séquentiel complet et le revisionnage des vidéos déjà vues.
+
 ## [1.7.7] - 2026-06-14
 ### Corrigé
 - **Compteur d'historique** : Les variables `historyCount` et `historyLimit` n'étaient pas transmises aux vues EJS. Le badge "Historique (X/Y)" affichait toujours `0/0`.
