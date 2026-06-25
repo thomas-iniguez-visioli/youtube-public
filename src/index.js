@@ -1109,7 +1109,7 @@ web.get("/video", limiter, function (req, res) {
   if (!fs.existsSync(videoPath)) return res.status(404).send("File not found on disk");
 
   const videoSize = fs.statSync(videoPath).size;
-  const CHUNK_SIZE = 2 * 10 ** 6; // 2MB
+  const CHUNK_SIZE = 10 * 10 ** 6; // 10MB
   const start = Number(range.replace(/\D/g, ""));
   const end = Math.min(start + CHUNK_SIZE, videoSize - 1);
 
