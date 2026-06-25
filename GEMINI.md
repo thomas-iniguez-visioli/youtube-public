@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.8.3] - 2026-06-25
+### Ajouté
+- **Suggestions de vidéos similaires** : Ajout d'un panneau latéral asynchrone sur la page de lecture proposant des vidéos similaires YouTube prêtes à être téléchargées.
+
 ## [1.8.2] - 2026-06-25
 ### Ajouté
 - **Moteur de suggestions** : Intégration d'un moteur de suggestions et de recherche de vidéos YouTube sans connexion, permettant de chercher et de lancer directement des téléchargements depuis l'interface via une nouvelle vue dédiée `/suggestions`.
