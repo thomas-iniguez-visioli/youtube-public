@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.9.8] - 2026-06-27
+### Corrigé
+- **Sécurité & Échappement** : Remplacement de l'attribut inline `onclick` par une liaison dynamique via `addEventListener` dans `createYoutubeSuggestionCard` pour éviter les injections XSS ou les erreurs de syntaxe d'attribut si l'ID renvoyé par l'API contient des guillemets.
+
 ## [1.9.7] - 2026-06-27
 ### Ajouté
 - **Stress & Race Condition Tests** : Ajout de tests de robustesse (stress tests) et de vérification d'absence de race condition sur les opérations concurrentes du cache de suggestions.
