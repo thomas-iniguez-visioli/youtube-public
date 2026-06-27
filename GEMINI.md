@@ -1,5 +1,10 @@
 # Gemini CLI - Journal des modifications
 
+## [1.9.5] - 2026-06-27
+### Changé
+- **Optimisation API Suggestions** : Ajout d'un cache en mémoire de 5 minutes pour les suggestions (`/api/related` et `/api/remixes`) afin de limiter les exécutions de `yt-dlp`.
+- **Nettoyage client** : Factorisation du code JavaScript de génération des cartes YouTube et sécurisation HTML (échappement) dans `view.ejs`.
+
 ## [1.9.4] - 2026-06-27
 ### Ajouté
 - **Recherche de remixes** : Ajout d'une section "Remixes (YouTube)" dans la vue de visionnage des vidéos (`view.ejs`) qui recherche de manière asynchrone des remixes sur YouTube en se basant sur le titre de la vidéo.

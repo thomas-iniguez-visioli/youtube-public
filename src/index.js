@@ -971,6 +971,25 @@ web.get("/api/search", function (req, res) {
   res.json(results);
 });
 
+const suggestionCache = new Map();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache TTL
+
+function getCachedSuggestions(key) {
+  const cached = suggestionCache.get(key);
+  if (cached && (Date.now() - cached.timestamp < CACHE_TTL)) {
+    return cached.data;
+  }
+  return null;
+}
+
+function setCachedSuggestions(key, data) {
+  suggestionCache.set(key, { data, timestamp: Date.now() });
+  if (suggestionCache.size > 100) {
+    const firstKey = suggestionCache.keys().next().value;
+    suggestionCache.delete(firstKey);
+  }
+}
+
 web.get("/api/related", async function (req, res) {
   const title = req.query.title || "";
   const uploader = req.query.uploader || "";
@@ -982,7 +1001,14 @@ web.get("/api/related", async function (req, res) {
   try {
     let cleanTitle = title.replace(/\.mp4$/i, '').replace(/\s*\[[^\]]+\]$/, '').trim();
     const query = uploader ? `${cleanTitle} ${uploader}` : cleanTitle;
-    const rawResults = await fetchSuggestions(ytdlpPath, query, denoPath);
+    const cacheKey = `related:${query}`;
+    
+    let rawResults = getCachedSuggestions(cacheKey);
+    if (!rawResults) {
+      rawResults = await fetchSuggestions(ytdlpPath, query, denoPath);
+      setCachedSuggestions(cacheKey, rawResults);
+    }
+    
     const filtered = rawResults.filter(video => !db.getFile(video.id));
     res.json(filtered.slice(0, 5));
   } catch (e) {
@@ -1001,7 +1027,14 @@ web.get("/api/remixes", async function (req, res) {
   try {
     let cleanTitle = title.replace(/\.mp4$/i, '').replace(/\s*\[[^\]]+\]$/, '').trim();
     const query = `${cleanTitle} remix`;
-    const rawResults = await fetchSuggestions(ytdlpPath, query, denoPath);
+    const cacheKey = `remixes:${query}`;
+    
+    let rawResults = getCachedSuggestions(cacheKey);
+    if (!rawResults) {
+      rawResults = await fetchSuggestions(ytdlpPath, query, denoPath);
+      setCachedSuggestions(cacheKey, rawResults);
+    }
+    
     const filtered = rawResults.filter(video => !db.getFile(video.id));
     res.json(filtered.slice(0, 5));
   } catch (e) {
