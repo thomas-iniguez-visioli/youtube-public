@@ -3,6 +3,9 @@
 ## [1.8.11] - 2026-06-25
 ### Changé
 - **Lecture automatique** : Restauration de la politique d'autoplay sans interaction de l'utilisateur (`no-user-gesture-required`) au niveau d'Electron pour permettre le lancement immédiat des vidéos.
+## [1.9.1] - 2026-06-25
+### Corrigé
+- **Lecture automatique** : Restauration du lancement automatique des vidéos (autoplay) dans Electron en configurant `autoplayPolicy: 'no-user-gesture-required'` dans les préférences web de la fenêtre principale.
 
 ## [1.8.10] - 2026-06-25
 ### Corrigé
