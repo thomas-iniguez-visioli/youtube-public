@@ -1,5 +1,10 @@
 # Gemini CLI - Journal des modifications
 
+## [1.9.4] - 2026-06-27
+### Ajouté
+- **Recherche de remixes** : Ajout d'une section "Remixes (YouTube)" dans la vue de visionnage des vidéos (`view.ejs`) qui recherche de manière asynchrone des remixes sur YouTube en se basant sur le titre de la vidéo.
+- **Route de remixes** : Ajout d'un endpoint `/api/remixes` dans le serveur Express.
+
 ## [1.9.2] - 2026-06-27
 ### Ajouté
 - **File d'attente de masse** : Ajout d'un bouton sur les pages de chaînes pour ajouter instantanément toutes les vidéos de la chaîne à la file d'attente.

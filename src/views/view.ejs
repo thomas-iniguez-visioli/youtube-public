@@ -176,6 +176,15 @@
                     </div>
                     <div id="relatedYoutubeList" class="d-flex flex-column gap-2"></div>
                 </div>
+                
+                <div class="mt-4 pt-4 border-top border-secondary" id="remixesYoutubeContainer">
+                    <h5 class="mb-3">Remixes (YouTube)</h5>
+                    <div id="remixesYoutubeLoading" class="text-center py-3">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                        <span class="ms-2 text-muted" style="font-size: 0.85rem;">Recherche de remixes...</span>
+                    </div>
+                    <div id="remixesYoutubeList" class="d-flex flex-column gap-2"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -335,6 +344,58 @@
                     .catch(err => {
                         console.error("Erreur chargement vidéos similaires:", err);
                         const loader = document.getElementById('relatedYoutubeLoading');
+                        if (loader) loader.innerHTML = '<span class="text-danger" style="font-size: 0.8rem;">Erreur de chargement</span>';
+                    });
+
+                // Charger les remixes de YouTube de manière asynchrone
+                fetch(`/api/remixes?title=${encodeURIComponent(videoTitle)}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        const loader = document.getElementById('remixesYoutubeLoading');
+                        const list = document.getElementById('remixesYoutubeList');
+                        if (loader) loader.style.display = 'none';
+                        if (!list) return;
+
+                        if (data && data.length > 0) {
+                            data.forEach(v => {
+                                let thumbUrl = `https://i.ytimg.com/vi/${v.id}/hqdefault.jpg`;
+                                if (v.thumbnails && v.thumbnails.length > 0) {
+                                    thumbUrl = v.thumbnails[v.thumbnails.length - 1].url;
+                                }
+                                let durStr = '';
+                                if (v.duration) {
+                                    const min = Math.floor(v.duration / 60);
+                                    const sec = Math.floor(v.duration % 60);
+                                    durStr = `${min}:${sec < 10 ? '0' : ''}${sec}`;
+                                }
+                                
+                                const card = document.createElement('div');
+                                card.className = 'suggestion-card d-flex align-items-center justify-content-between w-100';
+                                card.style.cursor = 'default';
+                                card.innerHTML = `
+                                    <a class="d-flex text-decoration-none" style="flex: 1; min-width: 0; color: inherit;" href="/watch?id=${v.id}">
+                                        <div class="position-relative flex-shrink-0">
+                                            <img src="${thumbUrl}" class="suggestion-thumb" alt="${v.title}">
+                                            ${durStr ? `<span class="position-absolute bottom-0 end-0 bg-dark text-white px-1 rounded" style="font-size: 0.65rem; margin: 2px; opacity: 0.85;">${durStr}</span>` : ''}
+                                        </div>
+                                        <div class="suggestion-info" style="min-width: 0;">
+                                            <span class="suggestion-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;" title="${v.title}">${v.title}</span>
+                                            <span class="suggestion-channel" style="font-size: 0.75rem; color: #aaaaaa;">${v.uploader || v.channel || 'YouTube'}</span>
+                                        </div>
+                                    </a>
+                                    <button onclick="downloadYoutubeVideo('${v.id}')" class="btn btn-outline-success btn-sm ms-2" title="Télécharger">
+                                        📥
+                                    </button>
+                                `;
+                                list.appendChild(card);
+                            });
+                        } else {
+                            list.innerHTML = '<div class="text-center text-muted py-2" style="font-size: 0.8rem;">Aucun remix trouvé.</div>';
+                        }
+                    })
+                    .catch(err => {
+                        console.error("Erreur chargement remixes:", err);
+                        const loader = document.getElementById('remixesYoutubeLoading');
                         if (loader) loader.innerHTML = '<span class="text-danger" style="font-size: 0.8rem;">Erreur de chargement</span>';
                     });
             }
