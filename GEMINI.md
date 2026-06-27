@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.9.7] - 2026-06-27
+### Ajouté
+- **Stress & Race Condition Tests** : Ajout de tests de robustesse (stress tests) et de vérification d'absence de race condition sur les opérations concurrentes du cache de suggestions.
+
 ## [1.9.6] - 2026-06-27
 ### Ajouté
 - **Tests unitaires Cache** : Création d'une suite de tests unitaires dédiés `tests/cache.test.js` pour valider le système de cache de suggestions.
