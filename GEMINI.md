@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.9.9] - 2026-06-27
+### Changé
+- **Refactoring Cache & Modularisation** : Refactorisation de `suggestionCache.js` pour utiliser une classe `SuggestionCache` orientée objet. Cela élimine la fonction orpheline `clearCache` (dead export) de la production et permet d'instancier des caches autonomes pour les tests unitaires afin d'isoler leur état.
+
 ## [1.9.8] - 2026-06-27
 ### Corrigé
 - **Sécurité & Échappement** : Remplacement de l'attribut inline `onclick` par une liaison dynamique via `addEventListener` dans `createYoutubeSuggestionCard` pour éviter les injections XSS ou les erreurs de syntaxe d'attribut si l'ID renvoyé par l'API contient des guillemets.

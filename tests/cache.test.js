@@ -1,59 +1,57 @@
 import assert from 'node:assert';
 import { test } from 'node:test';
-import { getCachedSuggestions, setCachedSuggestions, clearCache } from '../src/suggestionCache.js';
+import { SuggestionCache } from '../src/suggestionCache.js';
 
 test('should return null for cache miss', () => {
-    clearCache();
-    const data = getCachedSuggestions('non-existent-key');
+    const cache = new SuggestionCache();
+    const data = cache.get('non-existent-key');
     assert.strictEqual(data, null);
 });
 
 test('should set and get cache hit before TTL expiration', () => {
-    clearCache();
+    const cache = new SuggestionCache();
     const testData = [{ id: '123', title: 'Test Video' }];
-    setCachedSuggestions('test-key', testData);
+    cache.set('test-key', testData);
     
-    const data = getCachedSuggestions('test-key');
+    const data = cache.get('test-key');
     assert.deepStrictEqual(data, testData);
 });
 
 test('should expire cache after TTL size limit', () => {
-    clearCache();
+    const cache = new SuggestionCache();
     const testData = [{ id: '456', title: 'Expired Video' }];
     
-    setCachedSuggestions('expire-key', testData);
+    cache.set('expire-key', testData);
     
     // We add more than 100 entries to check size limit eviction.
     for (let i = 0; i <= 100; i++) {
-        setCachedSuggestions(`key-${i}`, [{ id: `${i}` }]);
+        cache.set(`key-${i}`, [{ id: `${i}` }]);
     }
     
     // First key should be evicted because size exceeds 100
-    const evicted = getCachedSuggestions('expire-key');
+    const evicted = cache.get('expire-key');
     assert.strictEqual(evicted, null);
 });
 
 test('should handle heavy stress test of read/write operations', () => {
-    clearCache();
+    const cache = new SuggestionCache();
     const iterations = 5000;
     
     // Rapid write of many elements
     for (let i = 0; i < iterations; i++) {
-        setCachedSuggestions(`stress-key-${i}`, [{ id: `id-${i}`, title: `Title ${i}` }]);
+        cache.set(`stress-key-${i}`, [{ id: `id-${i}`, title: `Title ${i}` }]);
     }
     
-    // Verify eviction limits kept cache size within bounds (should not exceed 100 entries + buffer eviction margin)
-    // Note that setCachedSuggestions deletes the first key when size > 100.
-    // So the final cache should only contain keys from stress-key-(iterations-100) to stress-key-(iterations-1).
+    // Verify eviction limits kept cache size within bounds
     const oldestPossibleKey = `stress-key-${iterations - 101}`;
-    assert.strictEqual(getCachedSuggestions(oldestPossibleKey), null);
+    assert.strictEqual(cache.get(oldestPossibleKey), null);
     
     const newestKey = `stress-key-${iterations - 1}`;
-    assert.ok(getCachedSuggestions(newestKey) !== null);
+    assert.ok(cache.get(newestKey) !== null);
 });
 
 test('should not have race conditions on concurrent async reads and writes', async () => {
-    clearCache();
+    const cache = new SuggestionCache();
     const key = 'concurrent-key';
     
     const operations = [];
@@ -63,9 +61,9 @@ test('should not have race conditions on concurrent async reads and writes', asy
         operations.push((async (index) => {
             // Introduce slight randomized async deferral to test interleaving
             await new Promise(resolve => setTimeout(resolve, Math.random() * 10));
-            setCachedSuggestions(key, [{ id: `val-${index}` }]);
+            cache.set(key, [{ id: `val-${index}` }]);
             
-            const readVal = getCachedSuggestions(key);
+            const readVal = cache.get(key);
             assert.ok(readVal && readVal.length > 0);
             assert.ok(readVal[0].id.startsWith('val-'));
         })(i));
@@ -74,6 +72,6 @@ test('should not have race conditions on concurrent async reads and writes', asy
     await Promise.all(operations);
     
     // Final value should be a valid latest written element
-    const finalVal = getCachedSuggestions(key);
+    const finalVal = cache.get(key);
     assert.ok(finalVal && finalVal.length > 0);
 });

@@ -12,7 +12,8 @@ import os from 'os';
 import { updateFile } from './updater.js';
 import { createDownloadArgs, runDownload, createMetadataArgs, fetchSuggestions } from './downloader.js';
 import FileDatabase from './db.js';
-import { getCachedSuggestions, setCachedSuggestions } from './suggestionCache.js';
+import { SuggestionCache } from './suggestionCache.js';
+const suggestionCache = new SuggestionCache();
 import child from 'child_process';
 import log from 'electron-log';
 import morgan from 'morgan';
@@ -986,10 +987,10 @@ web.get("/api/related", async function (req, res) {
     const query = uploader ? `${cleanTitle} ${uploader}` : cleanTitle;
     const cacheKey = `related:${query}`;
     
-    let rawResults = getCachedSuggestions(cacheKey);
+    let rawResults = suggestionCache.get(cacheKey);
     if (!rawResults) {
       rawResults = await fetchSuggestions(ytdlpPath, query, denoPath);
-      setCachedSuggestions(cacheKey, rawResults);
+      suggestionCache.set(cacheKey, rawResults);
     }
     
     const filtered = rawResults.filter(video => !db.getFile(video.id));
@@ -1012,10 +1013,10 @@ web.get("/api/remixes", async function (req, res) {
     const query = `${cleanTitle} remix`;
     const cacheKey = `remixes:${query}`;
     
-    let rawResults = getCachedSuggestions(cacheKey);
+    let rawResults = suggestionCache.get(cacheKey);
     if (!rawResults) {
       rawResults = await fetchSuggestions(ytdlpPath, query, denoPath);
-      setCachedSuggestions(cacheKey, rawResults);
+      suggestionCache.set(cacheKey, rawResults);
     }
     
     const filtered = rawResults.filter(video => !db.getFile(video.id));
