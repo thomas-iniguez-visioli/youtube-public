@@ -5,6 +5,9 @@
 - **File d'attente de masse** : Ajout d'un bouton sur les pages de chaînes pour ajouter instantanément toutes les vidéos de la chaîne à la file d'attente.
 - **Route Express** : Ajout de la route POST `/queue/add_multiple` pour traiter l'ajout en lot.
 
+## [1.8.11] - 2026-06-25
+### Changé
+- **Lecture automatique** : Restauration de la politique d'autoplay sans interaction de l'utilisateur (`no-user-gesture-required`) au niveau d'Electron pour permettre le lancement immédiat des vidéos.
 ## [1.9.1] - 2026-06-25
 ### Corrigé
 - **Lecture automatique** : Restauration du lancement automatique des vidéos (autoplay) dans Electron en configurant `autoplayPolicy: 'no-user-gesture-required'` dans les préférences web de la fenêtre principale.
