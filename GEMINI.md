@@ -1,5 +1,19 @@
 # Gemini CLI - Journal des modifications
 
+## [1.9.8] - 2026-06-27
+### Corrigé
+- **Sécurité & Échappement** : Remplacement de l'attribut inline `onclick` par une liaison dynamique via `addEventListener` dans `createYoutubeSuggestionCard` pour éviter les injections XSS ou les erreurs de syntaxe d'attribut si l'ID renvoyé par l'API contient des guillemets.
+
+## [1.9.7] - 2026-06-27
+### Ajouté
+- **Stress & Race Condition Tests** : Ajout de tests de robustesse (stress tests) et de vérification d'absence de race condition sur les opérations concurrentes du cache de suggestions.
+
+## [1.9.6] - 2026-06-27
+### Ajouté
+- **Tests unitaires Cache** : Création d'une suite de tests unitaires dédiés `tests/cache.test.js` pour valider le système de cache de suggestions.
+### Changé
+- **Modularisation du Cache** : Extraction de la logique du cache dans un module dédié `src/suggestionCache.js` pour une meilleure testabilité et séparation des responsabilités.
+
 ## [1.9.5] - 2026-06-27
 ### Changé
 - **Optimisation API Suggestions** : Ajout d'un cache en mémoire de 5 minutes pour les suggestions (`/api/related` et `/api/remixes`) afin de limiter les exécutions de `yt-dlp`.
