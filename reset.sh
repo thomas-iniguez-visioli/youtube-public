@@ -1,5 +1,5 @@
 #! /bin/sh
-
+ 
 for num in `gh release list 2>/dev/null | awk '{print $1}'`; do
   gh release delete $num -y
 done

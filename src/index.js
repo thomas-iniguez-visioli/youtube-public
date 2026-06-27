@@ -784,7 +784,7 @@ web.get("/queue", function (req, res) {
 
 web.get("/queue/add", function (req, res) {
   const videoId = req.query.id;
-  if (videoId) {
+  if (videoId && typeof videoId === 'string' && db.getFile(videoId)) {
     db.addToQueue(videoId);
   }
   if (req.xhr || req.headers.accept.indexOf('json') > -1) {
@@ -792,6 +792,23 @@ web.get("/queue/add", function (req, res) {
   } else {
     res.redirect("back");
   }
+});
+
+web.post("/queue/add_multiple", function (req, res) {
+  const videoIds = req.body.ids;
+  if (Array.isArray(videoIds)) {
+    let added = 0;
+    videoIds.forEach(id => {
+      if (id && typeof id === 'string' && db.getFile(id) && !db.queue.includes(id)) {
+        db.queue.push(id);
+        added++;
+      }
+    });
+    if (added > 0) {
+      db.saveDatabase();
+    }
+  }
+  res.json({ success: true, queueCount: db.queue.length });
 });
 
 web.get("/queue/remove", function (req, res) {

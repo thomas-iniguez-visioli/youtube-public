@@ -339,7 +339,7 @@ export default class FileDatabase {
     }
 
     addToQueue(videoId) {
-        if (!this.queue.includes(videoId)) {
+        if (videoId && typeof videoId === 'string' && this.getFile(videoId) && !this.queue.includes(videoId)) {
             this.queue.push(videoId);
             this.saveDatabase();
             return true;
