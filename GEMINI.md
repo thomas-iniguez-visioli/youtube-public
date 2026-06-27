@@ -1,5 +1,10 @@
 # Gemini CLI - Journal des modifications
 
+## [1.9.2] - 2026-06-27
+### Ajouté
+- **File d'attente de masse** : Ajout d'un bouton sur les pages de chaînes pour ajouter instantanément toutes les vidéos de la chaîne à la file d'attente.
+- **Route Express** : Ajout de la route POST `/queue/add_multiple` pour traiter l'ajout en lot.
+
 ## [1.9.1] - 2026-06-25
 ### Corrigé
 - **Lecture automatique** : Restauration du lancement automatique des vidéos (autoplay) dans Electron en configurant `autoplayPolicy: 'no-user-gesture-required'` dans les préférences web de la fenêtre principale.
