@@ -12,6 +12,7 @@ import os from 'os';
 import { updateFile } from './updater.js';
 import { createDownloadArgs, runDownload, createMetadataArgs, fetchSuggestions } from './downloader.js';
 import FileDatabase from './db.js';
+import { getCachedSuggestions, setCachedSuggestions } from './suggestionCache.js';
 import child from 'child_process';
 import log from 'electron-log';
 import morgan from 'morgan';
@@ -971,24 +972,6 @@ web.get("/api/search", function (req, res) {
   res.json(results);
 });
 
-const suggestionCache = new Map();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache TTL
-
-function getCachedSuggestions(key) {
-  const cached = suggestionCache.get(key);
-  if (cached && (Date.now() - cached.timestamp < CACHE_TTL)) {
-    return cached.data;
-  }
-  return null;
-}
-
-function setCachedSuggestions(key, data) {
-  suggestionCache.set(key, { data, timestamp: Date.now() });
-  if (suggestionCache.size > 100) {
-    const firstKey = suggestionCache.keys().next().value;
-    suggestionCache.delete(firstKey);
-  }
-}
 
 web.get("/api/related", async function (req, res) {
   const title = req.query.title || "";

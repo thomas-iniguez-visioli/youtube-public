@@ -1,5 +1,11 @@
 # Gemini CLI - Journal des modifications
 
+## [1.9.6] - 2026-06-27
+### Ajouté
+- **Tests unitaires Cache** : Création d'une suite de tests unitaires dédiés `tests/cache.test.js` pour valider le système de cache de suggestions.
+### Changé
+- **Modularisation du Cache** : Extraction de la logique du cache dans un module dédié `src/suggestionCache.js` pour une meilleure testabilité et séparation des responsabilités.
+
 ## [1.9.5] - 2026-06-27
 ### Changé
 - **Optimisation API Suggestions** : Ajout d'un cache en mémoire de 5 minutes pour les suggestions (`/api/related` et `/api/remixes`) afin de limiter les exécutions de `yt-dlp`.
