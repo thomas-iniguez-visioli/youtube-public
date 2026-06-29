@@ -1219,9 +1219,15 @@ web.get("/video", limiter, function (req, res) {
   if (!fs.existsSync(videoPath)) return res.status(404).send("File not found on disk");
 
   const videoSize = fs.statSync(videoPath).size;
-  const CHUNK_SIZE = 10 * 10 ** 6; // 10MB
-  const start = Number(range.replace(/\D/g, ""));
-  const end = Math.min(start + CHUNK_SIZE, videoSize - 1);
+  const parts = range.replace(/bytes=/, "").split("-");
+  const start = parseInt(parts[0], 10);
+  const endPart = parts[1];
+  const clientEnd = endPart ? parseInt(endPart, 10) : NaN;
+
+  // Use a smaller chunk size (1MB) at the beginning for fast startup and metadata reading,
+  // and larger chunks (10MB) for continuous playback.
+  const CHUNK_SIZE = start === 0 ? 1 * 10 ** 6 : 10 * 10 ** 6;
+  const end = !isNaN(clientEnd) ? Math.min(clientEnd, videoSize - 1) : Math.min(start + CHUNK_SIZE, videoSize - 1);
 
   res.writeHead(206, {
     "Content-Range": `bytes ${start}-${end}/${videoSize}`,

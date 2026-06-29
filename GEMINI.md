@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.10.0] - 2026-06-29
+### Corrigé
+- **Streaming & Buffering Initial** : Correction du lag au début de la lecture de certaines vidéos en adaptant la taille du premier fragment à 1 Mo (au lieu de 10 Mo) pour un chargement instantané de l'en-tête et des métadonnées vidéo. Les fragments suivants restent à 10 Mo pour une lecture continue fluide. Prise en compte plus précise des bornes `Range` demandées par le client.
+
 ## [1.9.9] - 2026-06-27
 ### Changé
 - **Refactoring Cache & Modularisation** : Refactorisation de `suggestionCache.js` pour utiliser une classe `SuggestionCache` orientée objet. Cela élimine la fonction orpheline `clearCache` (dead export) de la production et permet d'instancier des caches autonomes pour les tests unitaires afin d'isoler leur état.
