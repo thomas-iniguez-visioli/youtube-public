@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.10.3] - 2026-06-29
+### Changé
+- **Report de mise à jour automatique** : Les mises à jour téléchargées ne déclenchent plus le redémarrage et la réinstallation de l'application si l'utilisateur est en cours de lecture d'une vidéo (inactivité détectée sur les requêtes de streaming depuis moins de 30 secondes).
+
 ## [1.10.2] - 2026-06-29
 ### Ajouté
 - **Hook Post-push** : Ajout du script `postpush` déclenchant la commande `gh signoff` dans `package.json` et création du hook Git physique `.git/hooks/post-push`.
