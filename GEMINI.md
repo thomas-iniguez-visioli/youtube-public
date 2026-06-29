@@ -1,5 +1,8 @@
 # Gemini CLI - Journal des modifications
 
+## [1.7.11] - 2026-06-25
+### Changé
+- **Console de téléchargement** : Augmentation du buffer de la console logs du front de 100 à 1000 lignes pour permettre un historique de téléchargement plus complet.
 ## [1.10.3] - 2026-06-29
 ### Changé
 - **Report de mise à jour automatique** : Les mises à jour téléchargées ne déclenchent plus le redémarrage et la réinstallation de l'application si l'utilisateur est en cours de lecture d'une vidéo (inactivité détectée sur les requêtes de streaming depuis moins de 30 secondes).
