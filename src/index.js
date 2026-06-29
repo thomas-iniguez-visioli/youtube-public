@@ -243,6 +243,24 @@ function getRedirectedUrl(url) {
   });
 }
 
+let lastVideoRequestTime = 0;
+let updatePending = false;
+
+const checkAndInstallUpdate = () => {
+  if (updatePending) {
+    const isVideoPlaying = (Date.now() - lastVideoRequestTime) < 30000; // Video playing if requested in last 30s
+    if (!isVideoPlaying) {
+      sendStatusToWindow('System idle, restarting to install update...');
+      setTimeout(() => {
+        autoUpdater.quitAndInstall();
+      }, 3000);
+    } else {
+      sendStatusToWindow('Update deferred: video is currently playing.');
+      setTimeout(checkAndInstallUpdate, 15000); // Check again in 15 seconds
+    }
+  }
+};
+
 // Move initial autoUpdater check to background or deferred
 const initAutoUpdater = () => {
   getRedirectedUrl("https://github.com/thomas-iniguez-visioli/youtube-public/releases/latest").then((url)=>{
@@ -288,10 +306,9 @@ autoUpdater.on('download-progress', (progressObj) => {
   sendStatusToWindow(log_message);
 })
 autoUpdater.on('update-downloaded', (info) => {
-  sendStatusToWindow('Update downloaded. Restarting to install...');
-  setTimeout(() => {
-    autoUpdater.quitAndInstall();
-  }, 3000);
+  sendStatusToWindow('Update downloaded. Waiting for video to finish to install...');
+  updatePending = true;
+  checkAndInstallUpdate();
 });
 
 let backlogFile = 'backlog.txt';
@@ -1207,6 +1224,7 @@ web.get("/thumbnail/:id", function (req, res) {
 });
 
 web.get("/video", limiter, function (req, res) {
+  lastVideoRequestTime = Date.now();
   const range = req.headers.range;
   if (!range) return res.status(400).send("Requires Range header");
 
