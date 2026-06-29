@@ -1,5 +1,13 @@
 # Gemini CLI - Journal des modifications
 
+## [1.10.2] - 2026-06-29
+### Ajouté
+- **Hook Post-push** : Ajout du script `postpush` déclenchant la commande `gh signoff` dans `package.json` et création du hook Git physique `.git/hooks/post-push`.
+
+## [1.10.1] - 2026-06-29
+### Corrigé
+- **Validation HTTP Range** : Validation des bornes du header `Range` avant le streaming vidéo. Les requêtes avec des bornes mal formées, invalides ou négatives renvoient maintenant un code HTTP `416 Range Not Satisfiable` afin d'éviter les valeurs `NaN` et de sécuriser les appels à `fs.createReadStream`.
+
 ## [1.10.0] - 2026-06-29
 ### Corrigé
 - **Streaming & Buffering Initial** : Correction du lag au début de la lecture de certaines vidéos en adaptant la taille du premier fragment à 1 Mo (au lieu de 10 Mo) pour un chargement instantané de l'en-tête et des métadonnées vidéo. Les fragments suivants restent à 10 Mo pour une lecture continue fluide. Prise en compte plus précise des bornes `Range` demandées par le client.

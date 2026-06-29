@@ -1,6 +1,6 @@
 {
   "name": "youtube",
-  "version": "1.10.0",
+  "version": "1.10.2",
   "type": "module",
   "description": "youtube local",
   "main": "src/index.js",
@@ -8,6 +8,7 @@
   "scripts": {
     "build": "bun i helmet cors && bun x electron-rebuild -y  ",
     "prepush": "bun test",
+    "postpush": "gh signoff",
     "start": "electron .",
     "test": "bun test ./tests/*.test.js"
   },
