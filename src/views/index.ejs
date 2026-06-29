@@ -51,6 +51,7 @@
                 </form>
             </div>
             <div class="d-flex">
+                <a href="/suggestions" class="btn btn-outline-primary rounded-pill px-4 me-2">✨ Suggestions</a>
                 <a href="/favorites" class="btn btn-outline-danger rounded-pill px-4 me-2">Favoris (<%= typeof favoritesCount !== 'undefined' ? favoritesCount : 0 %>)</a>
                 <a href="/queue" class="btn btn-outline-success rounded-pill px-4 me-2">File (<%= typeof queueCount !== 'undefined' ? queueCount : 0 %>)</a>
                 <a href="/playlists" class="btn btn-outline-warning rounded-pill px-4 me-2">Playlists</a>
@@ -71,6 +72,9 @@
                 <h2 class="text-white"><%= channel %></h2>
                 <% if (typeof channelUrl !== 'undefined' && channelUrl) { %>
                     <button class="btn btn-primary btn-sm ms-3" onclick="downloadChannel(<%- JSON.stringify(channelUrl || '').replace(/\"/g, '&quot;') %>)">Télécharger la chaîne</button>
+                <% } %>
+                <% if (channel !== "Ma File d'attente" && channel !== "Mes Playlists" && channel !== "Mes Favoris" && channel !== "Historique" && !channel.startsWith('Playlist : ')) { %>
+                    <button class="btn btn-success btn-sm ms-3" onclick="addAllToQueue()">Ajouter toute la chaîne à la file d'attente</button>
                 <% } %>
                 <% if (channel.startsWith('Playlist : ')) { %>
                     <a href="/playlist/delete?name=<%= encodeURIComponent(channel.replace('Playlist : ', '')) %>" class="btn btn-danger btn-sm ms-3" onclick="return confirm('Supprimer cette playlist ?')">Supprimer la playlist</a>
@@ -293,6 +297,7 @@
             if (window.location.pathname === '/' && 
                 lastUrl && 
                 lastUrl !== currentUrl && 
+                !lastUrl.includes('/suggestions') &&
                 !sessionStorage.getItem(sessionNavKey)) {
                 
                 sessionStorage.setItem(sessionNavKey, 'true');
@@ -316,6 +321,33 @@
                 window.location.href = `/download?url=${encodeURIComponent(url)}`;
             }
         });
+
+        async function addAllToQueue() {
+            const ids = allVideos.map(v => v.yid);
+            if (ids.length === 0) return;
+            
+            try {
+                const response = await fetch('/queue/add_multiple', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ ids })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    const btn = document.querySelector('a[href="/queue"]');
+                    if (btn) {
+                        btn.textContent = `File (${data.queueCount})`;
+                    }
+                    showToast('File d\'attente', 'Toutes les vidéos ont été ajoutées !', 'success');
+                }
+            } catch (e) {
+                console.error(e);
+                showToast('Erreur', 'Erreur lors de l\'ajout des vidéos à la file d\'attente.', 'error');
+            }
+        }
     </script>
 
     <!-- Tawk.to removed (offline mode) -->

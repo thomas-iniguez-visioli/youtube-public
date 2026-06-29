@@ -3,6 +3,102 @@
 ## [1.7.11] - 2026-06-25
 ### Changé
 - **Console de téléchargement** : Augmentation du buffer de la console logs du front de 100 à 1000 lignes pour permettre un historique de téléchargement plus complet.
+## [1.10.3] - 2026-06-29
+### Changé
+- **Report de mise à jour automatique** : Les mises à jour téléchargées ne déclenchent plus le redémarrage et la réinstallation de l'application si l'utilisateur est en cours de lecture d'une vidéo (inactivité détectée sur les requêtes de streaming depuis moins de 30 secondes).
+
+## [1.10.2] - 2026-06-29
+### Ajouté
+- **Hook Post-push** : Ajout du script `postpush` déclenchant la commande `gh signoff` dans `package.json` et création du hook Git physique `.git/hooks/post-push`.
+
+## [1.10.1] - 2026-06-29
+### Corrigé
+- **Validation HTTP Range** : Validation des bornes du header `Range` avant le streaming vidéo. Les requêtes avec des bornes mal formées, invalides ou négatives renvoient maintenant un code HTTP `416 Range Not Satisfiable` afin d'éviter les valeurs `NaN` et de sécuriser les appels à `fs.createReadStream`.
+
+## [1.10.0] - 2026-06-29
+### Corrigé
+- **Streaming & Buffering Initial** : Correction du lag au début de la lecture de certaines vidéos en adaptant la taille du premier fragment à 1 Mo (au lieu de 10 Mo) pour un chargement instantané de l'en-tête et des métadonnées vidéo. Les fragments suivants restent à 10 Mo pour une lecture continue fluide. Prise en compte plus précise des bornes `Range` demandées par le client.
+
+## [1.9.9] - 2026-06-27
+### Changé
+- **Refactoring Cache & Modularisation** : Refactorisation de `suggestionCache.js` pour utiliser une classe `SuggestionCache` orientée objet. Cela élimine la fonction orpheline `clearCache` (dead export) de la production et permet d'instancier des caches autonomes pour les tests unitaires afin d'isoler leur état.
+
+## [1.9.8] - 2026-06-27
+### Corrigé
+- **Sécurité & Échappement** : Remplacement de l'attribut inline `onclick` par une liaison dynamique via `addEventListener` dans `createYoutubeSuggestionCard` pour éviter les injections XSS ou les erreurs de syntaxe d'attribut si l'ID renvoyé par l'API contient des guillemets.
+
+## [1.9.7] - 2026-06-27
+### Ajouté
+- **Stress & Race Condition Tests** : Ajout de tests de robustesse (stress tests) et de vérification d'absence de race condition sur les opérations concurrentes du cache de suggestions.
+
+## [1.9.6] - 2026-06-27
+### Ajouté
+- **Tests unitaires Cache** : Création d'une suite de tests unitaires dédiés `tests/cache.test.js` pour valider le système de cache de suggestions.
+### Changé
+- **Modularisation du Cache** : Extraction de la logique du cache dans un module dédié `src/suggestionCache.js` pour une meilleure testabilité et séparation des responsabilités.
+
+## [1.9.5] - 2026-06-27
+### Changé
+- **Optimisation API Suggestions** : Ajout d'un cache en mémoire de 5 minutes pour les suggestions (`/api/related` et `/api/remixes`) afin de limiter les exécutions de `yt-dlp`.
+- **Nettoyage client** : Factorisation du code JavaScript de génération des cartes YouTube et sécurisation HTML (échappement) dans `view.ejs`.
+
+## [1.9.4] - 2026-06-27
+### Ajouté
+- **Recherche de remixes** : Ajout d'une section "Remixes (YouTube)" dans la vue de visionnage des vidéos (`view.ejs`) qui recherche de manière asynchrone des remixes sur YouTube en se basant sur le titre de la vidéo.
+- **Route de remixes** : Ajout d'un endpoint `/api/remixes` dans le serveur Express.
+
+## [1.9.2] - 2026-06-27
+### Ajouté
+- **File d'attente de masse** : Ajout d'un bouton sur les pages de chaînes pour ajouter instantanément toutes les vidéos de la chaîne à la file d'attente.
+- **Route Express** : Ajout de la route POST `/queue/add_multiple` pour traiter l'ajout en lot.
+
+## [1.8.11] - 2026-06-25
+### Changé
+- **Lecture automatique** : Restauration de la politique d'autoplay sans interaction de l'utilisateur (`no-user-gesture-required`) au niveau d'Electron pour permettre le lancement immédiat des vidéos.
+## [1.9.1] - 2026-06-25
+### Corrigé
+- **Lecture automatique** : Restauration du lancement automatique des vidéos (autoplay) dans Electron en configurant `autoplayPolicy: 'no-user-gesture-required'` dans les préférences web de la fenêtre principale.
+
+## [1.8.10] - 2026-06-25
+### Corrigé
+- **Suggestions de vidéos** : Filtrage automatique pour exclure des suggestions (recherche et vidéos similaires) les vidéos qui sont déjà téléchargées dans la bibliothèque locale.
+
+## [1.8.9] - 2026-06-25
+### Changé
+- **Recherche de similarité** : Utilisation du titre propre d'origine YouTube et du nom de l'uploader comme paramètres de recherche de similarité pour cibler des suggestions plus pertinentes.
+
+## [1.8.8] - 2026-06-25
+### Changé
+- **Alignement des suggestions** : Refactoring de la structure HTML des cartes de suggestions locales pour correspondre à celle des suggestions en ligne et fermeture d'une balise d'ancrage orpheline dans `view.ejs`.
+
+## [1.8.7] - 2026-06-25
+### Corrigé
+- **Copie des Assets** : Ajout de la vue `suggestions.ejs` au dictionnaire de synchronisation `assetMap` pour qu'elle soit correctement déployée dans le dossier `userData` au démarrage.
+
+## [1.8.6] - 2026-06-25
+### Changé
+- **Navigation de suggestion** : Redirection des clics sur les cartes de suggestions similaires vers la route de visionnage/téléchargement direct pour correspondre au comportement des vidéos locales.
+
+## [1.8.5] - 2026-06-25
+### Changé
+- **Organisation CSS** : Refactoring global et structuration propre de `style.css` par sections fonctionnelles, et migration des styles ad-hoc de `suggestions.ejs` vers la feuille de style centrale.
+
+## [1.8.4] - 2026-06-25
+### Corrigé
+- **Restauration de session** : Exclusion de la vue `/suggestions` lors de la restauration automatique de la dernière page visitée au démarrage pour éviter les chargements lents.
+
+## [1.8.3] - 2026-06-25
+### Ajouté
+- **Suggestions de vidéos similaires** : Ajout d'un panneau latéral asynchrone sur la page de lecture proposant des vidéos similaires YouTube prêtes à être téléchargées.
+
+## [1.8.2] - 2026-06-25
+### Ajouté
+- **Moteur de suggestions** : Intégration d'un moteur de suggestions et de recherche de vidéos YouTube sans connexion, permettant de chercher et de lancer directement des téléchargements depuis l'interface via une nouvelle vue dédiée `/suggestions`.
+
+## [1.8.1] - 2026-06-25
+### Changé
+- **Console de téléchargement** : Augmentation du buffer de la console logs du front de 100 à 1000 lignes pour permettre un historique de téléchargement plus complet.
+- **Streaming vidéo** : Augmentation du buffer vidéo de 2Mo à 10Mo par fragment pour un chargement et une lecture plus fluide de la vidéo.
 
 ## [1.7.10] - 2026-06-25
 ### Ajouté

@@ -10,8 +10,10 @@ import escapeHtml from 'escape-html';
 import path from 'path';
 import os from 'os';
 import { updateFile } from './updater.js';
-import { createDownloadArgs, runDownload, createMetadataArgs } from './downloader.js';
+import { createDownloadArgs, runDownload, createMetadataArgs, fetchSuggestions } from './downloader.js';
 import FileDatabase from './db.js';
+import { SuggestionCache } from './suggestionCache.js';
+const suggestionCache = new SuggestionCache();
 import child from 'child_process';
 import log from 'electron-log';
 import morgan from 'morgan';
@@ -19,6 +21,8 @@ import { Server as SocketServer } from 'socket.io';
 import { createServer } from 'http';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+
+app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 
 const require = createRequire(import.meta.url);
 const pkg = require('../package.json');
@@ -239,6 +243,24 @@ function getRedirectedUrl(url) {
   });
 }
 
+let lastVideoRequestTime = 0;
+let updatePending = false;
+
+const checkAndInstallUpdate = () => {
+  if (updatePending) {
+    const isVideoPlaying = (Date.now() - lastVideoRequestTime) < 30000; // Video playing if requested in last 30s
+    if (!isVideoPlaying) {
+      sendStatusToWindow('System idle, restarting to install update...');
+      setTimeout(() => {
+        autoUpdater.quitAndInstall();
+      }, 3000);
+    } else {
+      sendStatusToWindow('Update deferred: video is currently playing.');
+      setTimeout(checkAndInstallUpdate, 15000); // Check again in 15 seconds
+    }
+  }
+};
+
 // Move initial autoUpdater check to background or deferred
 const initAutoUpdater = () => {
   getRedirectedUrl("https://github.com/thomas-iniguez-visioli/youtube-public/releases/latest").then((url)=>{
@@ -284,10 +306,9 @@ autoUpdater.on('download-progress', (progressObj) => {
   sendStatusToWindow(log_message);
 })
 autoUpdater.on('update-downloaded', (info) => {
-  sendStatusToWindow('Update downloaded. Restarting to install...');
-  setTimeout(() => {
-    autoUpdater.quitAndInstall();
-  }, 3000);
+  sendStatusToWindow('Update downloaded. Waiting for video to finish to install...');
+  updatePending = true;
+  checkAndInstallUpdate();
 });
 
 let backlogFile = 'backlog.txt';
@@ -569,6 +590,7 @@ async function build() {
     ['./renderer.js',                       'src/renderer.js'],
     ['./views/index.ejs',                   'views/index.ejs'],
     ['./views/view.ejs',                    'views/view.ejs'],
+    ['./views/suggestions.ejs',             'views/suggestions.ejs'],
   ];
   for (const [rel, dest] of assetMap) {
     ensureLocalAsset(rel, path.join(app.getPath('userData'), dest), isNewVersion);
@@ -781,7 +803,7 @@ web.get("/queue", function (req, res) {
 
 web.get("/queue/add", function (req, res) {
   const videoId = req.query.id;
-  if (videoId) {
+  if (videoId && typeof videoId === 'string' && db.getFile(videoId)) {
     db.addToQueue(videoId);
   }
   if (req.xhr || req.headers.accept.indexOf('json') > -1) {
@@ -789,6 +811,23 @@ web.get("/queue/add", function (req, res) {
   } else {
     res.redirect("back");
   }
+});
+
+web.post("/queue/add_multiple", function (req, res) {
+  const videoIds = req.body.ids;
+  if (Array.isArray(videoIds)) {
+    let added = 0;
+    videoIds.forEach(id => {
+      if (id && typeof id === 'string' && db.getFile(id) && !db.queue.includes(id)) {
+        db.queue.push(id);
+        added++;
+      }
+    });
+    if (added > 0) {
+      db.saveDatabase();
+    }
+  }
+  res.json({ success: true, queueCount: db.queue.length });
 });
 
 web.get("/queue/remove", function (req, res) {
@@ -951,6 +990,60 @@ web.get("/api/search", function (req, res) {
   res.json(results);
 });
 
+
+web.get("/api/related", async function (req, res) {
+  const title = req.query.title || "";
+  const uploader = req.query.uploader || "";
+  const ytdlpPath = binaryResolver.ytdlp;
+  const denoPath = binaryResolver.deno;
+  if (!title || !ytdlpPath) {
+    return res.json([]);
+  }
+  try {
+    let cleanTitle = title.replace(/\.mp4$/i, '').replace(/\s*\[[^\]]+\]$/, '').trim();
+    const query = uploader ? `${cleanTitle} ${uploader}` : cleanTitle;
+    const cacheKey = `related:${query}`;
+    
+    let rawResults = suggestionCache.get(cacheKey);
+    if (!rawResults) {
+      rawResults = await fetchSuggestions(ytdlpPath, query, denoPath);
+      suggestionCache.set(cacheKey, rawResults);
+    }
+    
+    const filtered = rawResults.filter(video => !db.getFile(video.id));
+    res.json(filtered.slice(0, 5));
+  } catch (e) {
+    log.error(`Erreur related api: ${e.message}`);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+web.get("/api/remixes", async function (req, res) {
+  const title = req.query.title || "";
+  const ytdlpPath = binaryResolver.ytdlp;
+  const denoPath = binaryResolver.deno;
+  if (!title || !ytdlpPath) {
+    return res.json([]);
+  }
+  try {
+    let cleanTitle = title.replace(/\.mp4$/i, '').replace(/\s*\[[^\]]+\]$/, '').trim();
+    const query = `${cleanTitle} remix`;
+    const cacheKey = `remixes:${query}`;
+    
+    let rawResults = suggestionCache.get(cacheKey);
+    if (!rawResults) {
+      rawResults = await fetchSuggestions(ytdlpPath, query, denoPath);
+      suggestionCache.set(cacheKey, rawResults);
+    }
+    
+    const filtered = rawResults.filter(video => !db.getFile(video.id));
+    res.json(filtered.slice(0, 5));
+  } catch (e) {
+    log.error(`Erreur remixes api: ${e.message}`);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 web.get("/channel", function (req, res) {
   const channelName = req.query.name;
   const results = db.database.filter(item => item.uploader === channelName);
@@ -977,6 +1070,40 @@ web.get("/favorite/toggle", function (req, res) {
 
 web.get("/history", function (req, res) {
   renderIndex(res, db.getHistory(), "Historique");
+});
+
+web.get("/suggestions", async function (req, res) {
+  const query = req.query.q || "youtube trending";
+  const ytdlpPath = binaryResolver.ytdlp;
+  const denoPath = binaryResolver.deno;
+  let results = [];
+  let errorMsg = null;
+
+  if (ytdlpPath) {
+    try {
+      const rawResults = await fetchSuggestions(ytdlpPath, query, denoPath);
+      results = rawResults.filter(video => !db.getFile(video.id));
+    } catch (e) {
+      log.error(`Erreur suggestions: ${e.message}`);
+      errorMsg = e.message;
+    }
+  } else {
+    errorMsg = "Binaire yt-dlp indisponible.";
+  }
+
+  const historyLimit = Math.floor(db.database.length * 0.8);
+  res.render('suggestions', {
+    results,
+    query,
+    errorMsg,
+    playlists: db.getPlaylists(),
+    allTags: db.getAllTags(),
+    allChannels: db.getAllChannels(),
+    favoritesCount: db.favorites.length,
+    queueCount: db.queue.length,
+    historyCount: db.history.length,
+    historyLimit: historyLimit > 0 ? historyLimit : db.database.length
+  });
 });
 
 web.get("/playlists", function (req, res) {
@@ -1097,6 +1224,7 @@ web.get("/thumbnail/:id", function (req, res) {
 });
 
 web.get("/video", limiter, function (req, res) {
+  lastVideoRequestTime = Date.now();
   const range = req.headers.range;
   if (!range) return res.status(400).send("Requires Range header");
 
@@ -1109,9 +1237,20 @@ web.get("/video", limiter, function (req, res) {
   if (!fs.existsSync(videoPath)) return res.status(404).send("File not found on disk");
 
   const videoSize = fs.statSync(videoPath).size;
-  const CHUNK_SIZE = 2 * 10 ** 6; // 2MB
-  const start = Number(range.replace(/\D/g, ""));
-  const end = Math.min(start + CHUNK_SIZE, videoSize - 1);
+  const parts = range.replace(/bytes=/, "").split("-");
+  const start = parseInt(parts[0], 10);
+  const endPart = parts[1];
+  const clientEnd = endPart ? parseInt(endPart, 10) : NaN;
+
+  if (isNaN(start) || start < 0 || start >= videoSize) {
+    res.setHeader("Content-Range", `bytes */${videoSize}`);
+    return res.status(416).send("Requested Range Not Satisfiable");
+  }
+
+  // Use a smaller chunk size (1MB) at the beginning for fast startup and metadata reading,
+  // and larger chunks (10MB) for continuous playback.
+  const CHUNK_SIZE = start === 0 ? 1 * 10 ** 6 : 10 * 10 ** 6;
+  const end = !isNaN(clientEnd) ? Math.min(clientEnd, videoSize - 1) : Math.min(start + CHUNK_SIZE, videoSize - 1);
 
   res.writeHead(206, {
     "Content-Range": `bytes ${start}-${end}/${videoSize}`,
@@ -1131,6 +1270,7 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       enableRemoteModule: false,
+      autoplayPolicy: 'no-user-gesture-required',
     },
   });
   

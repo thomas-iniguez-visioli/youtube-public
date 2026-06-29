@@ -1,7 +1,7 @@
 import assert from 'node:assert';
 import { test } from 'node:test';
 import path from 'path';
-import { createDownloadArgs, createMetadataArgs } from '../src/downloader.js';
+import { createDownloadArgs, createMetadataArgs, fetchSuggestions } from '../src/downloader.js';
 
 test('createDownloadArgs should generate correct arguments', (t) => {
   const parameter = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
@@ -29,4 +29,11 @@ test('createMetadataArgs should generate correct arguments', (t) => {
   assert.ok(args.includes('--simulate'));
   assert.ok(args.includes('--write-info-json'));
   assert.ok(args.includes('-J'));
+});
+
+test('fetchSuggestions should reject on invalid ytdlp binary', async (t) => {
+  await assert.rejects(
+    fetchSuggestions('invalid-ytdlp-path', 'test query'),
+    /ENOENT|ytdlp/
+  );
 });
