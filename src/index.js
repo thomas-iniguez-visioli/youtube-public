@@ -1224,6 +1224,11 @@ web.get("/video", limiter, function (req, res) {
   const endPart = parts[1];
   const clientEnd = endPart ? parseInt(endPart, 10) : NaN;
 
+  if (isNaN(start) || start < 0 || start >= videoSize) {
+    res.setHeader("Content-Range", `bytes */${videoSize}`);
+    return res.status(416).send("Requested Range Not Satisfiable");
+  }
+
   // Use a smaller chunk size (1MB) at the beginning for fast startup and metadata reading,
   // and larger chunks (10MB) for continuous playback.
   const CHUNK_SIZE = start === 0 ? 1 * 10 ** 6 : 10 * 10 ** 6;
