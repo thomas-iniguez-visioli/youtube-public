@@ -10,7 +10,7 @@ import escapeHtml from 'escape-html';
 import path from 'path';
 import os from 'os';
 import { updateFile } from './updater.js';
-import { createDownloadArgs, runDownload, createMetadataArgs, fetchSuggestions } from './downloader.js';
+import { createDownloadArgs, runDownload, createMetadataArgs, fetchSuggestions, compressVideo } from './downloader.js';
 import FileDatabase from './db.js';
 import { SuggestionCache } from './suggestionCache.js';
 const suggestionCache = new SuggestionCache();
@@ -422,8 +422,10 @@ const downloadbacklog = (parameter) => {
     };
 
     const notifiedVideos = new Set();
+    let downloadedFilePath = null;
 
     runDownload(ytdlpPath, args, logger, (filePath) => {
+      downloadedFilePath = filePath;
       // Extract video ID from filename like "Title [ID].mp4"
       const match = filePath.match(/\[([^\]]+)\]\.(mp4|mkv|webm|avi)$/);
       if (match) {
@@ -444,8 +446,35 @@ const downloadbacklog = (parameter) => {
           }, 1000);
         }
       }
+    }, (progress) => {
+      if (io) {
+        io.emit('download-progress', {
+          parameter,
+          percent: progress.percent,
+          eta: progress.eta,
+          speed: progress.speed
+        });
+      }
     })
-      .then((res) => {
+      .then(async (res) => {
+        if (downloadedFilePath && fs.existsSync(downloadedFilePath)) {
+          try {
+            const ffmpegPath = binaryResolver.ffmpeg;
+            if (ffmpegPath) {
+              if (io) {
+                io.emit('download-progress', {
+                  parameter,
+                  percent: 100,
+                  eta: 'Compression...',
+                  speed: ''
+                });
+              }
+              await compressVideo(ffmpegPath, downloadedFilePath, logger);
+            }
+          } catch (compressErr) {
+            log.error(`Échec de compression de la vidéo : ${compressErr.message}`);
+          }
+        }
         db.readDatabase(); // Final refresh
         optimizeMemory();
         resolve(res);

@@ -118,6 +118,62 @@ async function changeFolder() {
 if (typeof io !== 'undefined') {
     const socket = io();
     socket.on('error-notification', (data) => showToast('Erreur', data.message, 'error'));
+
+    // Create Progress Card dynamically
+    let progressContainer = document.getElementById('global-download-progress');
+    if (!progressContainer) {
+        progressContainer = document.createElement('div');
+        progressContainer.id = 'global-download-progress';
+        progressContainer.className = 'download-progress-container';
+        progressContainer.innerHTML = `
+            <div class="download-progress-card">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="progress-title" style="font-size: 0.9rem; font-weight:600; color: #fff;">Téléchargement...</span>
+                    <span class="progress-meta text-muted" style="font-size: 0.8rem;">0%</span>
+                </div>
+                <div class="progress" style="height: 6px; background-color: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%; background: linear-gradient(90deg, #3b82f6, #8b5cf6); transition: width 0.2s ease;"></div>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mt-2" style="font-size: 0.75rem; color: #a1a1aa;">
+                    <span class="progress-speed">-- MB/s</span>
+                    <span class="progress-eta">ETA: --:--</span>
+                </div>
+            </div>
+        `;
+        progressContainer.style.display = 'none';
+        document.body.appendChild(progressContainer);
+    }
+
+    socket.on('download-progress', (data) => {
+        if (progressContainer) {
+            progressContainer.style.display = 'block';
+            
+            const titleEl = progressContainer.querySelector('.progress-title');
+            const percentEl = progressContainer.querySelector('.progress-meta');
+            const barEl = progressContainer.querySelector('.progress-bar');
+            const speedEl = progressContainer.querySelector('.progress-speed');
+            const etaEl = progressContainer.querySelector('.progress-eta');
+
+            let displayName = "Téléchargement...";
+            if (data.parameter && data.parameter.includes('watch?v=')) {
+                try {
+                    const urlParams = new URLSearchParams(data.parameter.split('?')[1]);
+                    if (urlParams.has('v')) displayName = `Vidéo (${urlParams.get('v')})`;
+                } catch(e) {
+                    displayName = data.parameter.substring(0, 30) + '...';
+                }
+            } else if (data.parameter) {
+                displayName = data.parameter.substring(0, 30) + '...';
+            }
+
+            titleEl.textContent = displayName;
+            percentEl.textContent = `${data.percent}%`;
+            barEl.style.width = `${data.percent}%`;
+            speedEl.textContent = data.speed ? data.speed : '-- MB/s';
+            etaEl.textContent = data.eta ? `ETA: ${data.eta}` : 'ETA: --:--';
+        }
+    });
+
     socket.on('download-finished', (data) => {
         showToast(
             'Téléchargement terminé',
@@ -125,7 +181,18 @@ if (typeof io !== 'undefined') {
             'primary',
             { url: `/watch?id=${data.videoId}`, text: 'Regarder' }
         );
+        if (progressContainer) {
+            const percentEl = progressContainer.querySelector('.progress-meta');
+            const barEl = progressContainer.querySelector('.progress-bar');
+            if (percentEl) percentEl.textContent = '100%';
+            if (barEl) barEl.style.width = '100%';
+            setTimeout(() => {
+                progressContainer.style.display = 'none';
+                if (barEl) barEl.style.width = '0%';
+            }, 2000);
+        }
     });
+
     socket.on('chat message', (msg) => {
         const consoleLogs = document.getElementById('consoleLogs');
         const downloadConsole = document.getElementById('downloadConsole');

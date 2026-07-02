@@ -34,7 +34,7 @@ function createDownloadArgs(parameter, ffmpegDir, storagePath, outputFileFormat,
   return args;
 }
 
-function runDownload(ytdlpPath, args, logger, onVideoFinished) {
+function runDownload(ytdlpPath, args, logger, onVideoFinished, onProgress) {
   return new Promise((resolve, reject) => {
     // Quote all arguments to handle spaces
     const quotedArgs = args.map((arg) => {
@@ -75,6 +75,21 @@ function runDownload(ytdlpPath, args, logger, onVideoFinished) {
           onVideoFinished(mergeMatch[1]);
         } else if (alreadyMatch) {
           onVideoFinished(alreadyMatch[1]);
+        }
+      }
+
+      // Detect download progress
+      if (onProgress) {
+        const progressMatch = output.match(/\[download\]\s+(\d+(?:\.\d+)?)%/);
+        if (progressMatch) {
+          const percent = parseFloat(progressMatch[1]);
+          const etaMatch = output.match(/ETA\s+(\d+:\d+)/);
+          const speedMatch = output.match(/at\s+(\d+(?:\.\d+)?\w+\/s)/);
+          onProgress({
+            percent,
+            eta: etaMatch ? etaMatch[1] : null,
+            speed: speedMatch ? speedMatch[1] : null
+          });
         }
       }
     });
@@ -172,9 +187,70 @@ function fetchSuggestions(ytdlpPath, query, denoPath) {
   });
 }
 
+function compressVideo(ffmpegPath, inputPath, logger) {
+  return new Promise((resolve, reject) => {
+    if (!ffmpegPath || !fs.existsSync(ffmpegPath)) {
+      return reject(new Error("Binaire ffmpeg introuvable pour la compression"));
+    }
+    const ext = path.extname(inputPath);
+    const tempOutputPath = inputPath.replace(ext, `.tmp-compressed${ext}`);
+    
+    // Compression x264 CRF 28 veryfast + audio AAC 128k pour optimiser l'espace disque
+    const args = [
+      '-y',
+      '-i', inputPath,
+      '-vcodec', 'libx264',
+      '-crf', '28',
+      '-preset', 'veryfast',
+      '-acodec', 'aac',
+      '-b:a', '128k',
+      tempOutputPath
+    ];
+    
+    if (logger) logger.info(`Début de compression de la vidéo : "${inputPath}"`);
+    
+    const cp = child.spawn(ffmpegPath, args);
+    
+    cp.on('error', (err) => {
+      if (logger) logger.info(`Erreur d'exécution de ffmpeg : ${err.message}`);
+      reject(err);
+    });
+
+    cp.on('close', (code) => {
+      if (code === 0) {
+        try {
+          const originalStats = fs.statSync(inputPath);
+          const compressedStats = fs.statSync(tempOutputPath);
+          
+          if (compressedStats.size < originalStats.size) {
+            fs.unlinkSync(inputPath);
+            fs.renameSync(tempOutputPath, inputPath);
+            const savedBytes = originalStats.size - compressedStats.size;
+            const savedMB = (savedBytes / (1024 * 1024)).toFixed(2);
+            const ratio = Math.round((savedBytes / originalStats.size) * 100);
+            if (logger) logger.info(`Compression réussie ! Économie de ${savedMB} Mo (${ratio}%)`);
+          } else {
+            fs.unlinkSync(tempOutputPath);
+            if (logger) logger.info(`La compression n'a pas réduit la taille du fichier. Conservation de l'original.`);
+          }
+          resolve();
+        } catch (err) {
+          reject(err);
+        }
+      } else {
+        if (fs.existsSync(tempOutputPath)) {
+          fs.unlinkSync(tempOutputPath);
+        }
+        reject(new Error(`La compression ffmpeg a échoué avec le code ${code}`));
+      }
+    });
+  });
+}
+
 export {
   createDownloadArgs,
   createMetadataArgs,
   runDownload,
-  fetchSuggestions
+  fetchSuggestions,
+  compressVideo
 };
