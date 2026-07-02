@@ -1,9 +1,16 @@
 # Gemini CLI - Journal des modifications
 
+## [1.10.5] - 2026-07-02
+### Ajouté
+- **Compression vidéo automatique** : Compression automatique des vidéos téléchargées (x264 CRF 28 / AAC 128k) avec vérification de gain d'espace pour optimiser le disque.
+
 ## [1.10.4] - 2026-07-01
 ### Ajouté
 - **Barre de progression du téléchargement** : Ajout d'une barre de progression globale et animée sur l'interface (pourcentage, vitesse et ETA) lors des téléchargements de vidéos, alimentée par la capture en temps réel de la sortie stdout de `yt-dlp` via Socket.io.
 
+## [1.7.11] - 2026-06-25
+### Changé
+- **Console de téléchargement** : Augmentation du buffer de la console logs du front de 100 à 1000 lignes pour permettre un historique de téléchargement plus complet.
 ## [1.10.3] - 2026-06-29
 ### Changé
 - **Report de mise à jour automatique** : Les mises à jour téléchargées ne déclenchent plus le redémarrage et la réinstallation de l'application si l'utilisateur est en cours de lecture d'une vidéo (inactivité détectée sur les requêtes de streaming depuis moins de 30 secondes).
