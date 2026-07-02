@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.10.7] - 2026-07-02
+### Ajouté
+- **CI / Auto-update** : Ajout d'une étape d'upload explicite du fichier de configuration d'auto-update Windows (`latest.yml`) dans le workflow GitHub Actions de release afin de garantir sa présence systématique parmi les assets publiés.
+
 ## [1.10.6] - 2026-07-02
 ### Corrigé
 - **Dimensions de compression ffmpeg** : Ajout d'un filtre d'échelle limitant la résolution à 720p maximum (`scale=-2:min(720,ih)`) tout en forçant des dimensions paires et le format de pixel compatible `yuv420p` pour éviter les échecs et crashs (erreur Microsoft C++ Exception / AVERROR_EXTERNAL) lors de la compression de vidéos.
