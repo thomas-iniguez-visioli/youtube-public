@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.10.8] - 2026-07-02
+### Ajouté
+- **Cible de packaging** : Ajout de la compression `zip` aux formats de release Windows (NSIS, Portable, ZIP) dans la configuration d'electron-builder de `package.json` pour permettre une version archive de l'application.
+
 ## [1.10.7] - 2026-07-02
 ### Ajouté
 - **CI / Auto-update** : Ajout d'une étape d'upload explicite du fichier de configuration d'auto-update Windows (`latest.yml`) dans le workflow GitHub Actions de release afin de garantir sa présence systématique parmi les assets publiés.
