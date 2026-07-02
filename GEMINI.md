@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.10.9] - 2026-07-02
+### Ajouté
+- **Archivage et décompression des vidéos** : Implémentation d'une compression `.gz` (gzip) automatique des vidéos sur le stockage après téléchargement et compression FFmpeg. Ajout de la décompression à la volée temporaire lors de la lecture (/video) et d'un Garbage Collector automatique supprimant les vidéos décompressées inactives après 30 secondes d'inactivité.
+
 ## [1.10.8] - 2026-07-02
 ### Ajouté
 - **Cible de packaging** : Ajout de la compression `zip` aux formats de release Windows (NSIS, Portable, ZIP) dans la configuration d'electron-builder de `package.json` pour permettre une version archive de l'application.

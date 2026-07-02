@@ -1,6 +1,8 @@
 import child from 'child_process';
 import path from 'path';
 import fs from 'fs';
+import zlib from 'zlib';
+import { pipeline } from 'stream/promises';
 import binval from "./binaryResolver.js";
 
 function getBrowserForCookies() {
@@ -249,10 +251,34 @@ function compressVideo(ffmpegPath, inputPath, logger) {
   });
 }
 
+async function gzipFile(filePath, logger) {
+  if (logger) logger.info(`Gzipping file: ${filePath}`);
+  const gzPath = filePath + '.gz';
+  const source = fs.createReadStream(filePath);
+  const destination = fs.createWriteStream(gzPath);
+  const gzip = zlib.createGzip();
+  await pipeline(source, gzip, destination);
+  if (fs.existsSync(filePath)) {
+    fs.unlinkSync(filePath);
+  }
+  if (logger) logger.info(`Gzipped successfully: ${gzPath}`);
+}
+
+async function gunzipFile(gzPath, outputPath, logger) {
+  if (logger) logger.info(`Gunzipping file: ${gzPath} -> ${outputPath}`);
+  const source = fs.createReadStream(gzPath);
+  const destination = fs.createWriteStream(outputPath);
+  const gunzip = zlib.createGunzip();
+  await pipeline(source, gunzip, destination);
+  if (logger) logger.info(`Gunzipped successfully to: ${outputPath}`);
+}
+
 export {
   createDownloadArgs,
   createMetadataArgs,
   runDownload,
   fetchSuggestions,
-  compressVideo
+  compressVideo,
+  gzipFile,
+  gunzipFile
 };

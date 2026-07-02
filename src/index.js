@@ -10,7 +10,7 @@ import escapeHtml from 'escape-html';
 import path from 'path';
 import os from 'os';
 import { updateFile } from './updater.js';
-import { createDownloadArgs, runDownload, createMetadataArgs, fetchSuggestions, compressVideo } from './downloader.js';
+import { createDownloadArgs, runDownload, createMetadataArgs, fetchSuggestions, compressVideo, gzipFile, gunzipFile } from './downloader.js';
 import FileDatabase from './db.js';
 import { SuggestionCache } from './suggestionCache.js';
 const suggestionCache = new SuggestionCache();
@@ -471,8 +471,17 @@ const downloadbacklog = (parameter) => {
               }
               await compressVideo(ffmpegPath, downloadedFilePath, logger);
             }
+            if (io) {
+              io.emit('download-progress', {
+                parameter,
+                percent: 100,
+                eta: 'Archivage ZIP...',
+                speed: ''
+              });
+            }
+            await gzipFile(downloadedFilePath, logger);
           } catch (compressErr) {
-            log.error(`Échec de compression de la vidéo : ${compressErr.message}`);
+            log.error(`Échec de compression/archivage de la vidéo : ${compressErr.message}`);
           }
         }
         db.readDatabase(); // Final refresh
@@ -1252,7 +1261,10 @@ web.get("/thumbnail/:id", function (req, res) {
   }).on('error', () => res.status(500).send("Error"));
 });
 
-web.get("/video", limiter, function (req, res) {
+const decompressedFiles = new Map();
+const ongoingDecompressions = new Map();
+
+web.get("/video", limiter, async function (req, res) {
   lastVideoRequestTime = Date.now();
   const range = req.headers.range;
   if (!range) return res.status(400).send("Requires Range header");
@@ -1263,7 +1275,35 @@ web.get("/video", limiter, function (req, res) {
   const fileName = path.basename(fileData.fileName); // strip any path components
   const videoPath = path.join(base, fileName);
   if (!videoPath.startsWith(base)) return res.status(400).send("Invalid file path");
-  if (!fs.existsSync(videoPath)) return res.status(404).send("File not found on disk");
+
+  const gzPath = videoPath + '.gz';
+
+  // Si le fichier décompressé n'existe pas, on tente de le décompresser depuis son archive .gz
+  if (!fs.existsSync(videoPath)) {
+    if (fs.existsSync(gzPath)) {
+      try {
+        if (ongoingDecompressions.has(videoPath)) {
+          // Attendre la décompression en cours
+          await ongoingDecompressions.get(videoPath);
+        } else {
+          // Lancer la décompression
+          const decompressPromise = gunzipFile(gzPath, videoPath);
+          ongoingDecompressions.set(videoPath, decompressPromise);
+          await decompressPromise;
+          ongoingDecompressions.delete(videoPath);
+        }
+      } catch (err) {
+        log.error(`Erreur de décompression temporaire de ${fileName}: ${err.message}`);
+        ongoingDecompressions.delete(videoPath);
+        return res.status(500).send("Erreur lors de la décompression de la vidéo");
+      }
+    } else {
+      return res.status(404).send("File not found on disk");
+    }
+  }
+
+  // Mettre à jour le timestamp de dernier accès pour éviter le nettoyage automatique
+  decompressedFiles.set(videoPath, Date.now());
 
   const videoSize = fs.statSync(videoPath).size;
   const parts = range.replace(/bytes=/, "").split("-");
@@ -1287,8 +1327,30 @@ web.get("/video", limiter, function (req, res) {
     "Content-Length": end - start + 1,
     "Content-Type": "video/mp4",
   });
+  
+  // Pour chaque lecture de chunk, on rafraîchit l'inactivité
+  decompressedFiles.set(videoPath, Date.now());
+
   fs.createReadStream(videoPath, { start, end }).pipe(res);
 });
+
+// Nettoyage régulier des vidéos décompressées inactives depuis plus de 30 secondes
+setInterval(() => {
+  const now = Date.now();
+  for (const [filePath, lastAccessTime] of decompressedFiles.entries()) {
+    if (now - lastAccessTime > 30000) { // 30 secondes
+      try {
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+          log.info(`Nettoyage temporaire réussi de la vidéo : ${path.basename(filePath)}`);
+        }
+        decompressedFiles.delete(filePath);
+      } catch (err) {
+        log.error(`Erreur de suppression du fichier temporaire décompressé ${filePath}: ${err.message}`);
+      }
+    }
+  }
+}, 10000); // Exécuté toutes les 10 secondes
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
