@@ -1,7 +1,7 @@
 import assert from 'node:assert';
 import { test } from 'node:test';
 import path from 'path';
-import { createDownloadArgs, createMetadataArgs, fetchSuggestions } from '../src/downloader.js';
+import { createDownloadArgs, createMetadataArgs, fetchSuggestions, compressVideo } from '../src/downloader.js';
 
 test('createDownloadArgs should generate correct arguments', (t) => {
   const parameter = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
@@ -35,5 +35,12 @@ test('fetchSuggestions should reject on invalid ytdlp binary', async (t) => {
   await assert.rejects(
     fetchSuggestions('invalid-ytdlp-path', 'test query'),
     /ENOENT|ytdlp/
+  );
+});
+
+test('compressVideo should reject on invalid ffmpeg binary', async (t) => {
+  await assert.rejects(
+    compressVideo('invalid-ffmpeg-path', 'some-input-path.mp4'),
+    /Binaire ffmpeg introuvable/
   );
 });
