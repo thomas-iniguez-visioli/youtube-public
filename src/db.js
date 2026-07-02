@@ -82,9 +82,11 @@ export default class FileDatabase {
         let modified = false;
 
         files.forEach((item) => {
-            if (!item.endsWith(".mp4")) return;
+            const isGz = item.endsWith(".mp4.gz");
+            if (!item.endsWith(".mp4") && !isGz) return;
 
-            const existingEntry = existingFiles.get(item);
+            const baseFileName = isGz ? item.slice(0, -3) : item;
+            const existingEntry = existingFiles.get(baseFileName);
             const fullPath = path.join(this.directoryPath, item);
             let stats;
             try {
@@ -94,10 +96,10 @@ export default class FileDatabase {
             }
 
             if (!existingEntry || existingEntry.mtime !== stats.mtimeMs || existingEntry.fileUuid.includes(' ') || (existingEntry.yid && !existingEntry.fileUuid.includes(existingEntry.yid))) {
-                const idMatch = item.match(regex);
+                const idMatch = baseFileName.match(regex);
                 if (idMatch) {
                     const videoId = idMatch[1];
-                    const infoPath = fullPath.replace(".mp4", ".info.json");
+                    const infoPath = path.join(this.directoryPath, baseFileName.replace(".mp4", ".info.json"));
                     let metadata = {
                         uploader: 'Uploader inconnu',
                         view_count: 0,
@@ -123,7 +125,7 @@ export default class FileDatabase {
                     }
 
                     const newEntry = {
-                        fileName: item,
+                        fileName: baseFileName,
                         fileUuid: `https://www.youtube.com/watch?v=${videoId}`.replace(":", '_'),
                         yid: metadata.display_id,
                         mtime: stats.mtimeMs,
@@ -152,10 +154,10 @@ export default class FileDatabase {
             }
         });
 
-        // Cleanup: remove entries for files that no longer exist
+        // Cleanup: remove entries for files that no longer exist (either as .mp4 or .mp4.gz)
         const fileSet = new Set(files);
         const originalLength = this.database.length;
-        this.database = this.database.filter(entry => fileSet.has(entry.fileName));
+        this.database = this.database.filter(entry => fileSet.has(entry.fileName) || fileSet.has(entry.fileName + '.gz'));
         if (this.database.length !== originalLength) modified = true;
 
         if (modified) {

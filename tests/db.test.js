@@ -25,12 +25,23 @@ test('FileDatabase should parse filenames correctly', (t) => {
     
     db.readDatabase();
     
-    const file = db.getFile("videoId");
+    let file = db.getFile("videoId");
     assert.ok(file, "File should be found by videoId");
     assert.strictEqual(file.fileName, testFileName);
     
-    // Clean up
+    // Clean up mp4 and write .mp4.gz instead
     fs.unlinkSync(path.join(filesPath, testFileName));
+    const testFileNameGz = "Channel-Folder-Title [videoId].mp4.gz";
+    fs.writeFileSync(path.join(filesPath, testFileNameGz), "fake gz content");
+    
+    db.readDatabase();
+    
+    file = db.getFile("videoId");
+    assert.ok(file, "File should still be found by videoId even if stored as .mp4.gz");
+    assert.strictEqual(file.fileName, testFileName, "Filename inside DB should still use .mp4 extension");
+    
+    // Clean up
+    fs.unlinkSync(path.join(filesPath, testFileNameGz));
     fs.unlinkSync(path.join(filesPath, infoFileName));
     fs.rmSync(userDataPath, { recursive: true, force: true });
     fs.rmSync(filesPath, { recursive: true, force: true });

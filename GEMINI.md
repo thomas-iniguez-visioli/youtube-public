@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.10.10] - 2026-07-02
+### Corrigé
+- **Indexation de la galerie** : Correction de la détection et du nettoyage de la base de données dans `src/db.js` pour accepter et scanner également les fichiers `.mp4.gz` sans les supprimer de la galerie, tout en préservant le format d'enregistrement logique en `.mp4` attendu par le lecteur.
+
 ## [1.10.9] - 2026-07-02
 ### Ajouté
 - **Archivage et décompression des vidéos** : Implémentation d'une compression `.gz` (gzip) automatique des vidéos sur le stockage après téléchargement et compression FFmpeg. Ajout de la décompression à la volée temporaire lors de la lecture (/video) et d'un Garbage Collector automatique supprimant les vidéos décompressées inactives après 30 secondes d'inactivité.
