@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.10.6] - 2026-07-02
+### Corrigé
+- **Dimensions de compression ffmpeg** : Ajout d'un filtre d'échelle forcing des dimensions paires (`scale=trunc(iw/2)*2:trunc(ih/2)*2`) et le format de pixel compatible `yuv420p` pour éviter les échecs et crashs (erreur Microsoft C++ Exception / AVERROR_EXTERNAL) lors de la compression de vidéos à dimensions impaires.
+
 ## [1.10.5] - 2026-07-02
 ### Ajouté
 - **Compression vidéo automatique** : Compression automatique des vidéos téléchargées (x264 CRF 28 / AAC 128k) avec vérification de gain d'espace pour optimiser le disque.

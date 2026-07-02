@@ -196,9 +196,11 @@ function compressVideo(ffmpegPath, inputPath, logger) {
     const tempOutputPath = inputPath.replace(ext, `.tmp-compressed${ext}`);
     
     // Compression x264 CRF 28 veryfast + audio AAC 128k pour optimiser l'espace disque
+    // -vf force des dimensions paires et le format yuv420p compatible avec tous les lecteurs
     const args = [
       '-y',
       '-i', inputPath,
+      '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p',
       '-vcodec', 'libx264',
       '-crf', '28',
       '-preset', 'veryfast',
