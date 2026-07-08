@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.12.0] - 2026-07-08
+### Corrigé
+- **Compression GZ systématique** : Correction de la détection de fin de téléchargement dans `src/downloader.js` pour capturer également les lignes `Destination:` de `yt-dlp`. Cela garantit que les vidéos n'ayant pas besoin de fusion (téléchargement direct en MP4 standard) déclenchent correctement l'archivage en `.gz` après le téléchargement.
+
 ## [1.11.3] - 2026-07-08
 ### Ajouté
 - **Nettoyage au démarrage** : Implémentation d'une routine de nettoyage automatique lors du lancement de l'application, supprimant tous les fichiers `.mp4` décompressés résiduels de la session précédente si leur archive `.mp4.gz` est bien présente sur le stockage.

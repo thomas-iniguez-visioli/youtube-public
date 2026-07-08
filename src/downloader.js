@@ -69,14 +69,19 @@ function runDownload(ytdlpPath, args, logger, onVideoFinished, onProgress) {
       // Detect video completion (merging format or finished downloading)
       // Example: [ffmpeg] Merging formats into "C:\Users\alpha\Downloads\Video [ID].mp4"
       if (onVideoFinished) {
+        const destMatch = output.match(/\[download\] Destination: (.+)/);
         const mergeMatch = output.match(/Merging formats into "(.+)"/);
         const alreadyMatch = output.match(/\[download\] (.+) has already been downloaded/);
-        const finishedMatch = output.match(/\[download\] 100% of .+/); // This might be too broad
         
         if (mergeMatch) {
           onVideoFinished(mergeMatch[1]);
         } else if (alreadyMatch) {
           onVideoFinished(alreadyMatch[1]);
+        } else if (destMatch) {
+          const destFile = destMatch[1];
+          if (destFile.endsWith('.mp4') && !/\.f\d+\.mp4$/.test(destFile) && !/\.temp\./.test(destFile)) {
+            onVideoFinished(destFile);
+          }
         }
       }
 
