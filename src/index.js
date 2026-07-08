@@ -1017,6 +1017,8 @@ web.get("/delete", function (req, res) {
   if (!fileData) return res.status(404).send("Video not found");
   const filePath = path.join(base, fileData.fileName);
   if (fs.existsSync(filePath)) fs.rmSync(filePath);
+  const gzPath = filePath + '.gz';
+  if (fs.existsSync(gzPath)) fs.rmSync(gzPath);
   db.removeFile(req.query.id);
   db.save();
   res.redirect("/");
@@ -1344,7 +1346,7 @@ setInterval(() => {
     if (now - lastAccessTime > 300000) { // 5 minutes
       try {
         const gzPath = filePath + '.gz';
-        if (fs.existsSync(filePath) && fs.existsSync(gzPath)) {
+        if (!filePath.endsWith('.gz') && fs.existsSync(filePath) && fs.existsSync(gzPath)) {
           fs.unlinkSync(filePath);
           log.info(`Nettoyage temporaire réussi de la vidéo : ${path.basename(filePath)}`);
         }
