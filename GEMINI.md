@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.11.1] - 2026-07-08
+### Changé
+- **Nettoyage des déclencheurs de Release** : Retrait du trigger redondant `release` de GitHub Actions (`main.yml`) qui causait le saut systématique (*skip*) des builds d'assets lors de la republication.
+
 ## [1.11.0] - 2026-07-08
 ### Ajouté
 - **Page des Notes de mise à jour (Patchnotes)** : Intégration d'une nouvelle route `/patchnotes` lisant et convertissant dynamiquement `GEMINI.md` en HTML via un parseur léger. Création d'une vue dédiée `src/views/patchnotes.ejs` respectant la charte esthétique "glassmorphism", et ajout d'un bouton de raccourci "📜 Notes" dans la barre de navigation.

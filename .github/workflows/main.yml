@@ -6,8 +6,6 @@ on:
   workflow_dispatch:
   push:
     branches: main
-  release:
-    types: [published]
 
 concurrency:
   group: "pages"
@@ -20,7 +18,6 @@ jobs:
   prepare-release:
     name: Prepare Release
     runs-on: ubuntu-latest
-    if: github.event_name != 'release'
     permissions:
       contents: write
     outputs:
@@ -38,9 +35,9 @@ jobs:
           gh release create "v${{ steps.version.outputs.version }}" \
             --title "${{ steps.version.outputs.version }}" \
             --notes '### YouTube Downloader Extension' \
-            --draft
+            --draft || echo "Release draft already exists"
         env:
-          GH_TOKEN: ${{ secrets.GH_PAT }}
+          GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
 
   build-and-upload:
     name: Build and Upload Assets
@@ -77,15 +74,15 @@ jobs:
         run: bunx electron-builder --publish always
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
-          GH_TOKEN: ${{ secrets.GH_PAT }}
-          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+          GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
 
       - name: Upload latest.yml for Auto-Update (Windows)
         if: matrix.os == 'windows-latest'
         run: |
           gh release upload v${{ needs.prepare-release.outputs.version }} dist/latest.yml --clobber
         env:
-          GH_TOKEN: ${{ secrets.GH_PAT }}
+          GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
 
       - name: Create and Upload extension ZIP
         if: matrix.os == 'ubuntu-latest'
@@ -93,13 +90,12 @@ jobs:
           zip -r youtube-downloader-extension.zip extension/
           gh release upload v${{ needs.prepare-release.outputs.version }} youtube-downloader-extension.zip --clobber
         env:
-          GH_TOKEN: ${{ secrets.GH_PAT }}
+          GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
 
   publish-release:
     name: Publish Release
     needs: [prepare-release, build-and-upload]
     runs-on: ubuntu-latest
-    if: github.event_name != 'release'
     permissions:
       contents: write
     steps:
@@ -109,4 +105,4 @@ jobs:
       - name: Publish Draft Release
         run: gh release edit v${{ needs.prepare-release.outputs.version }} --draft=false
         env:
-          GH_TOKEN: ${{ secrets.GH_PAT }}
+          GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
