@@ -263,6 +263,7 @@ const checkAndInstallUpdate = () => {
 
 // Move initial autoUpdater check to background or deferred
 const initAutoUpdater = () => {
+  autoUpdater.disableDifferentialDownload = true;
   getRedirectedUrl("https://github.com/thomas-iniguez-visioli/youtube-public/releases/latest").then((url)=>{
     log.info("AutoUpdater Feed URL: " + url.replace("tag","download")+"")
     autoUpdater.setFeedURL(url.replace("tag","download")+"")

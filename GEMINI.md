@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.11.2] - 2026-07-08
+### Corrigé
+- **Résolution du problème de hash d'auto-update** : Désactivation du téléchargement différentiel (`disableDifferentialDownload = true`) dans `electron-updater` pour éviter les erreurs de validation de signature blockmap SHA512 sous Windows lors des mises à jour automatiques.
+
 ## [1.11.1] - 2026-07-08
 ### Changé
 - **Nettoyage des déclencheurs de Release** : Retrait du trigger redondant `release` de GitHub Actions (`main.yml`) qui causait le saut systématique (*skip*) des builds d'assets lors de la republication.
