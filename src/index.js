@@ -55,8 +55,30 @@ const { autoUpdater } = require("electron-updater");
 let base = config.storagePath;
 const db = new FileDatabase(base);
 
+const cleanupDecompressedFilesOnStartup = () => {
+  try {
+    const storagePath = config.storagePath;
+    if (!fs.existsSync(storagePath)) return;
+    const files = fs.readdirSync(storagePath);
+    files.forEach((file) => {
+      if (file.endsWith('.mp4') && files.includes(file + '.gz')) {
+        const fullPath = path.join(storagePath, file);
+        try {
+          fs.unlinkSync(fullPath);
+          log.info(`Nettoyage au démarrage réussi pour : ${file}`);
+        } catch (e) {
+          log.error(`Erreur de nettoyage au démarrage pour ${file} : ${e.message}`);
+        }
+      }
+    });
+  } catch (err) {
+    log.error(`Erreur lors du nettoyage au démarrage : ${err.message}`);
+  }
+};
+
 // Deferred sync to avoid blocking startup
 setTimeout(() => {
+  cleanupDecompressedFilesOnStartup();
   db.readDatabase();
   db.save();
 }, 1000);

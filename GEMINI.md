@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.11.3] - 2026-07-08
+### Ajouté
+- **Nettoyage au démarrage** : Implémentation d'une routine de nettoyage automatique lors du lancement de l'application, supprimant tous les fichiers `.mp4` décompressés résiduels de la session précédente si leur archive `.mp4.gz` est bien présente sur le stockage.
+
 ## [1.11.2] - 2026-07-08
 ### Corrigé
 - **Résolution du problème de hash d'auto-update** : Désactivation du téléchargement différentiel (`disableDifferentialDownload = true`) dans `electron-updater` pour éviter les erreurs de validation de signature blockmap SHA512 sous Windows lors des mises à jour automatiques.
