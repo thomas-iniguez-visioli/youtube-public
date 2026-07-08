@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.10.12] - 2026-07-08
+### Changé
+- **Seuil d'inactivité du Garbage Collector** : Augmentation du délai d'inactivité requis avant la suppression automatique des vidéos temporaires décompressées (`.gz`) de 30 secondes à 5 minutes pour éviter d'interrompre les pauses ou la lecture lente. Fréquence de nettoyage ajustée à 1 minute.
+
 ## [1.10.11] - 2026-07-08
 ### Corrigé
 - **Résolution des vidéos existantes (Erreur 404)** : Correction du bug où le changement dynamique de dossier de téléchargement (`config.storagePath`) laissait la variable globale `base` (utilisée pour servir `/video` et supprimer des vidéos) pointée vers l'ancien dossier. Correction également de l'appel erroné `db.scan(newPath)` par le bon enchaînement `db.directoryPath = newPath; db.readDatabase();`.

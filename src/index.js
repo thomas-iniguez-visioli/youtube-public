@@ -1334,11 +1334,11 @@ web.get("/video", limiter, async function (req, res) {
   fs.createReadStream(videoPath, { start, end }).pipe(res);
 });
 
-// Nettoyage régulier des vidéos décompressées inactives depuis plus de 30 secondes
+// Nettoyage régulier des vidéos décompressées inactives depuis plus de 5 minutes
 setInterval(() => {
   const now = Date.now();
   for (const [filePath, lastAccessTime] of decompressedFiles.entries()) {
-    if (now - lastAccessTime > 30000) { // 30 secondes
+    if (now - lastAccessTime > 300000) { // 5 minutes
       try {
         if (fs.existsSync(filePath)) {
           fs.unlinkSync(filePath);
@@ -1350,7 +1350,7 @@ setInterval(() => {
       }
     }
   }
-}, 10000); // Exécuté toutes les 10 secondes
+}, 60000); // Exécuté toutes les minutes
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
