@@ -33,11 +33,26 @@ const Rollbar = require('rollbar');
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+const getconfig = () => {
+  const configPath = path.join(app.getPath('userData'), 'config.json');
+  if (fs.existsSync(configPath)) {
+    return require(configPath);
+  }
+  const defaultConfig = {
+    "storagePath": path.join(app.getPath('userData'), 'file'),
+    "videoUrlFormat": "https://www.youtube.com/watch?v=${id}",
+    "outputFileFormat": "%(channel|)s-%(folder_name|)s-%(title)s [%(id)s].%(ext)s"
+  };
+  fs.writeFileSync(configPath, JSON.stringify(defaultConfig));
+  return defaultConfig;
+};
+const config = getconfig();
+
 const rollbar = new Rollbar(rollbarConfig);
 var booted = false;
 const { autoUpdater } = require("electron-updater");
 
-const base = path.join(app.getPath('userData'), 'file');
+let base = config.storagePath;
 const db = new FileDatabase(base);
 
 // Deferred sync to avoid blocking startup
@@ -161,21 +176,6 @@ function setupElectronLogForwarding() {
   });
 }
 setupElectronLogForwarding();
-
-const getconfig = () => {
-  const configPath = path.join(app.getPath('userData'), 'config.json');
-  if (fs.existsSync(configPath)) {
-    return require(configPath);
-  }
-  const defaultConfig = {
-    "storagePath": path.join(app.getPath('userData'), 'file'),
-    "videoUrlFormat": "https://www.youtube.com/watch?v=${id}",
-    "outputFileFormat": "%(channel|)s-%(folder_name|)s-%(title)s [%(id)s].%(ext)s"
-  };
-  fs.writeFileSync(configPath, JSON.stringify(defaultConfig));
-  return defaultConfig;
-};
-const config = getconfig();
 
 // Surveillance du dossier vidéo pour mise à jour automatique de la DB
 const videoFolder = config.storagePath;
@@ -1383,7 +1383,9 @@ function createWindow() {
       config.storagePath = newPath;
       const configPath = path.join(app.getPath('userData'), 'config.json');
       fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
-      db.scan(newPath);
+      db.directoryPath = newPath;
+      db.readDatabase();
+      base = newPath;
       log.info(`Dossier de téléchargement mis à jour et scan relancé : ${newPath}`);
       return newPath;
     }

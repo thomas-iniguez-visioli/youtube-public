@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.10.11] - 2026-07-08
+### Corrigé
+- **Résolution des vidéos existantes (Erreur 404)** : Correction du bug où le changement dynamique de dossier de téléchargement (`config.storagePath`) laissait la variable globale `base` (utilisée pour servir `/video` et supprimer des vidéos) pointée vers l'ancien dossier. Correction également de l'appel erroné `db.scan(newPath)` par le bon enchaînement `db.directoryPath = newPath; db.readDatabase();`.
+
 ## [1.10.10] - 2026-07-02
 ### Corrigé
 - **Indexation de la galerie** : Correction de la détection et du nettoyage de la base de données dans `src/db.js` pour accepter et scanner également les fichiers `.mp4.gz` sans les supprimer de la galerie, tout en préservant le format d'enregistrement logique en `.mp4` attendu par le lecteur.
