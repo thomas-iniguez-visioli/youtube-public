@@ -629,6 +629,7 @@ async function build() {
     ['./views/index.ejs',                   'views/index.ejs'],
     ['./views/view.ejs',                    'views/view.ejs'],
     ['./views/suggestions.ejs',             'views/suggestions.ejs'],
+    ['./views/patchnotes.ejs',              'views/patchnotes.ejs'],
   ];
   for (const [rel, dest] of assetMap) {
     ensureLocalAsset(rel, path.join(app.getPath('userData'), dest), isNewVersion);
@@ -1110,6 +1111,79 @@ web.get("/favorite/toggle", function (req, res) {
 
 web.get("/history", function (req, res) {
   renderIndex(res, db.getHistory(), "Historique");
+});
+
+web.get("/patchnotes", function (req, res) {
+  const geminiPath = path.join(__dirname, '../GEMINI.md');
+  let mdContent = '';
+  if (fs.existsSync(geminiPath)) {
+    mdContent = fs.readFileSync(geminiPath, 'utf8');
+  } else {
+    const projectRootPath = path.join(process.cwd(), 'GEMINI.md');
+    if (fs.existsSync(projectRootPath)) {
+      mdContent = fs.readFileSync(projectRootPath, 'utf8');
+    }
+  }
+
+  let htmlContent = '';
+  if (mdContent) {
+    let md = mdContent
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+
+    md = md.replace(/^# (.*$)/gim, '<h1 class="my-4 text-white">$1</h1>');
+    md = md.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+    md = md.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+    md = md.replace(/^\- (.*$)/gim, '<li>$1</li>');
+    md = md.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    md = md.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    md = md.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+    const lines = md.split('\n');
+    let inList = false;
+    const formattedLines = [];
+
+    for (let line of lines) {
+      const trimmed = line.trim();
+      if (trimmed.startsWith('<li>')) {
+        if (!inList) {
+          formattedLines.push('<ul>');
+          inList = true;
+        }
+        formattedLines.push(line);
+      } else {
+        if (inList) {
+          formattedLines.push('</ul>');
+          inList = false;
+        }
+        if (trimmed === '') {
+          formattedLines.push('');
+        } else if (trimmed.startsWith('<h') || trimmed.startsWith('<ul') || trimmed.startsWith('</ul')) {
+          formattedLines.push(line);
+        } else {
+          formattedLines.push(`<p>${line}</p>`);
+        }
+      }
+    }
+    if (inList) {
+      formattedLines.push('</ul>');
+    }
+    htmlContent = formattedLines.join('\n');
+  } else {
+    htmlContent = '<p class="text-muted">Aucune note de mise à jour disponible.</p>';
+  }
+
+  const historyLimit = Math.floor(db.database.length * 0.8);
+  res.render('patchnotes', {
+    htmlContent,
+    favoritesCount: db.favorites.length,
+    queueCount: db.queue.length,
+    historyCount: db.history.length,
+    historyLimit: historyLimit > 0 ? historyLimit : db.database.length,
+    appVersion: pkg.version,
+    backlogFile: typeof backlogFile !== 'undefined' ? backlogFile : ''
+  });
 });
 
 web.get("/suggestions", async function (req, res) {

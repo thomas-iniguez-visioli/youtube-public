@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.11.0] - 2026-07-08
+### Ajouté
+- **Page des Notes de mise à jour (Patchnotes)** : Intégration d'une nouvelle route `/patchnotes` lisant et convertissant dynamiquement `GEMINI.md` en HTML via un parseur léger. Création d'une vue dédiée `src/views/patchnotes.ejs` respectant la charte esthétique "glassmorphism", et ajout d'un bouton de raccourci "📜 Notes" dans la barre de navigation.
+
 ## [1.10.16] - 2026-07-08
 ### Corrigé
 - **Protection des archives GZ** : Ajustement du Garbage Collector pour s'assurer qu'il ne supprime jamais de fichier se terminant par `.gz` dans le dossier de stockage.
