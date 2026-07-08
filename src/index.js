@@ -76,11 +76,46 @@ const cleanupDecompressedFilesOnStartup = () => {
   }
 };
 
+const compressMissingVideosOnStartup = async () => {
+  try {
+    const storagePath = config.storagePath;
+    const ffmpegPath = binaryResolver.ffmpeg;
+    if (!ffmpegPath) {
+      log.warn("FFmpeg non trouvé, compression au démarrage impossible.");
+      return;
+    }
+
+    const logger = {
+      info: (msg) => log.info(`[Startup Compression] ${msg}`)
+    };
+
+    for (const entry of db.database) {
+      if (entry.fileName) {
+        const fullPath = path.join(storagePath, entry.fileName);
+        const gzPath = fullPath + '.gz';
+        if (fs.existsSync(fullPath) && !fs.existsSync(gzPath)) {
+          log.info(`Vidéo non compressée détectée au démarrage : ${entry.fileName}. Lancement de la compression...`);
+          try {
+            await compressVideo(ffmpegPath, fullPath, logger);
+            await gzipFile(fullPath, logger);
+            log.info(`Vidéo compressée et archivée au démarrage : ${entry.fileName}`);
+          } catch (e) {
+            log.error(`Échec de compression au démarrage pour ${entry.fileName} : ${e.message}`);
+          }
+        }
+      }
+    }
+  } catch (err) {
+    log.error(`Erreur lors de la compression des vidéos manquantes au démarrage : ${err.message}`);
+  }
+};
+
 // Deferred sync to avoid blocking startup
 setTimeout(() => {
   cleanupDecompressedFilesOnStartup();
   db.readDatabase();
   db.save();
+  compressMissingVideosOnStartup();
 }, 1000);
 
 const web = express();

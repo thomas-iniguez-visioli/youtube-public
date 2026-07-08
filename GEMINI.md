@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.12.1] - 2026-07-08
+### Ajouté
+- **Recompression de rattrapage au démarrage** : Intégration d'un processus asynchrone au boot analysant la base de données pour identifier et compresser automatiquement en `.gz` les vidéos `.mp4` physiques n'ayant pas encore été archivées.
+
 ## [1.12.0] - 2026-07-08
 ### Corrigé
 - **Compression GZ systématique** : Correction de la détection de fin de téléchargement dans `src/downloader.js` pour capturer également les lignes `Destination:` de `yt-dlp`. Cela garantit que les vidéos n'ayant pas besoin de fusion (téléchargement direct en MP4 standard) déclenchent correctement l'archivage en `.gz` après le téléchargement.
