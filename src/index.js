@@ -1343,7 +1343,8 @@ setInterval(() => {
   for (const [filePath, lastAccessTime] of decompressedFiles.entries()) {
     if (now - lastAccessTime > 300000) { // 5 minutes
       try {
-        if (fs.existsSync(filePath)) {
+        const gzPath = filePath + '.gz';
+        if (fs.existsSync(filePath) && fs.existsSync(gzPath)) {
           fs.unlinkSync(filePath);
           log.info(`Nettoyage temporaire réussi de la vidéo : ${path.basename(filePath)}`);
         }

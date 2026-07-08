@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.10.14] - 2026-07-08
+### Corrigé
+- **Préservation des vidéos non compressées** : Correction de la logique de nettoyage (Garbage Collector) pour supprimer uniquement les fichiers `.mp4` temporaires lorsqu'un fichier `.mp4.gz` correspondant est présent sur le disque. Les fichiers `.mp4` normaux (sans archive `.gz`) ne sont plus supprimés.
+
 ## [1.10.13] - 2026-07-08
 ### Changé
 - **Suspension du Garbage Collector pendant la lecture** : Désactivation du nettoyage automatique des fichiers décompressés si une activité de lecture vidéo est détectée (requêtes de fragments actives dans les 30 dernières secondes).
