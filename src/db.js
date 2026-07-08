@@ -95,6 +95,13 @@ export default class FileDatabase {
                 return;
             }
 
+            if (existingEntry) {
+                if (existingEntry.isGz !== isGz) {
+                    existingEntry.isGz = isGz;
+                    modified = true;
+                }
+            }
+
             if (!existingEntry || existingEntry.mtime !== stats.mtimeMs || existingEntry.fileUuid.includes(' ') || (existingEntry.yid && !existingEntry.fileUuid.includes(existingEntry.yid))) {
                 const idMatch = baseFileName.match(regex);
                 if (idMatch) {
@@ -129,6 +136,7 @@ export default class FileDatabase {
                         fileUuid: `https://www.youtube.com/watch?v=${videoId}`.replace(":", '_'),
                         yid: metadata.display_id,
                         mtime: stats.mtimeMs,
+                        isGz: isGz,
                         tags: existingEntry ? existingEntry.tags : [],
                         uploader: metadata.uploader,
                         view_count: metadata.view_count,

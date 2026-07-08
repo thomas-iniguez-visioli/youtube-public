@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.10.15] - 2026-07-08
+### Ajouté
+- **Indicateur visuel des vidéos compressées (GZ)** : Intégration du flag `isGz` au scan de la base de données (`src/db.js`) et affichage d'un badge élégant "📦 gz" sur l'interface utilisateur pour indiquer qu'une vidéo est actuellement stockée sous format compressé.
+
 ## [1.10.14] - 2026-07-08
 ### Corrigé
 - **Préservation des vidéos non compressées** : Correction de la logique de nettoyage (Garbage Collector) pour supprimer uniquement les fichiers `.mp4` temporaires lorsqu'un fichier `.mp4.gz` correspondant est présent sur le disque. Les fichiers `.mp4` normaux (sans archive `.gz`) ne sont plus supprimés.
