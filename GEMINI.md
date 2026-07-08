@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.10.13] - 2026-07-08
+### Changé
+- **Suspension du Garbage Collector pendant la lecture** : Désactivation du nettoyage automatique des fichiers décompressés si une activité de lecture vidéo est détectée (requêtes de fragments actives dans les 30 dernières secondes).
+
 ## [1.10.12] - 2026-07-08
 ### Changé
 - **Seuil d'inactivité du Garbage Collector** : Augmentation du délai d'inactivité requis avant la suppression automatique des vidéos temporaires décompressées (`.gz`) de 30 secondes à 5 minutes pour éviter d'interrompre les pauses ou la lecture lente. Fréquence de nettoyage ajustée à 1 minute.

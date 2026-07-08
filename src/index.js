@@ -1336,6 +1336,9 @@ web.get("/video", limiter, async function (req, res) {
 
 // Nettoyage régulier des vidéos décompressées inactives depuis plus de 5 minutes
 setInterval(() => {
+  const isVideoPlaying = (Date.now() - lastVideoRequestTime) < 30000;
+  if (isVideoPlaying) return;
+
   const now = Date.now();
   for (const [filePath, lastAccessTime] of decompressedFiles.entries()) {
     if (now - lastAccessTime > 300000) { // 5 minutes
