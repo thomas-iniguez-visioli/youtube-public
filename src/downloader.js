@@ -4,6 +4,7 @@ import fs from 'fs';
 import zlib from 'zlib';
 import { pipeline } from 'stream/promises';
 import binval from "./binaryResolver.js";
+import AdmZip from 'adm-zip';
 
 function getBrowserForCookies() {
   // Priorité Firefox, sinon Chrome
@@ -257,25 +258,37 @@ function compressVideo(ffmpegPath, inputPath, logger) {
 }
 
 async function gzipFile(filePath, logger) {
-  if (logger) logger.info(`Gzipping file: ${filePath}`);
-  const gzPath = filePath + '.gz';
-  const source = fs.createReadStream(filePath);
-  const destination = fs.createWriteStream(gzPath);
-  const gzip = zlib.createGzip();
-  await pipeline(source, gzip, destination);
-  if (fs.existsSync(filePath)) {
-    fs.unlinkSync(filePath);
+  if (logger) logger.info(`Zipping file with adm-zip: ${filePath}`);
+  const zipPath = filePath + '.zip';
+  try {
+    const zip = new AdmZip();
+    zip.addLocalFile(filePath);
+    zip.writeZip(zipPath);
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+    if (logger) logger.info(`Zipped successfully: ${zipPath}`);
+  } catch (err) {
+    if (logger) logger.info(`Failed to zip file: ${err.message}`);
+    throw err;
   }
-  if (logger) logger.info(`Gzipped successfully: ${gzPath}`);
 }
 
-async function gunzipFile(gzPath, outputPath, logger) {
-  if (logger) logger.info(`Gunzipping file: ${gzPath} -> ${outputPath}`);
-  const source = fs.createReadStream(gzPath);
-  const destination = fs.createWriteStream(outputPath);
-  const gunzip = zlib.createGunzip();
-  await pipeline(source, gunzip, destination);
-  if (logger) logger.info(`Gunzipped successfully to: ${outputPath}`);
+async function gunzipFile(zipPath, outputPath, logger) {
+  if (logger) logger.info(`Unzipping file with adm-zip: ${zipPath} -> ${outputPath}`);
+  try {
+    const zip = new AdmZip(zipPath);
+    const zipEntries = zip.getEntries();
+    if (zipEntries.length > 0) {
+      const entry = zipEntries[0];
+      const buffer = zip.readFile(entry);
+      fs.writeFileSync(outputPath, buffer);
+    }
+    if (logger) logger.info(`Unzipped successfully to: ${outputPath}`);
+  } catch (err) {
+    if (logger) logger.info(`Failed to unzip file: ${err.message}`);
+    throw err;
+  }
 }
 
 export {

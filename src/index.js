@@ -61,7 +61,7 @@ const cleanupDecompressedFilesOnStartup = () => {
     if (!fs.existsSync(storagePath)) return;
     const files = fs.readdirSync(storagePath);
     files.forEach((file) => {
-      if (file.endsWith('.mp4') && files.includes(file + '.gz')) {
+      if (file.endsWith('.mp4') && files.includes(file + '.zip')) {
         const fullPath = path.join(storagePath, file);
         try {
           fs.unlinkSync(fullPath);
@@ -79,12 +79,6 @@ const cleanupDecompressedFilesOnStartup = () => {
 const compressMissingVideosOnStartup = async () => {
   try {
     const storagePath = config.storagePath;
-    const ffmpegPath = binaryResolver.ffmpeg;
-    if (!ffmpegPath) {
-      log.warn("FFmpeg non trouvé, compression au démarrage impossible.");
-      return;
-    }
-
     const logger = {
       info: (msg) => log.info(`[Startup Compression] ${msg}`)
     };
@@ -92,15 +86,14 @@ const compressMissingVideosOnStartup = async () => {
     for (const entry of db.database) {
       if (entry.fileName) {
         const fullPath = path.join(storagePath, entry.fileName);
-        const gzPath = fullPath + '.gz';
+        const gzPath = fullPath + '.zip';
         if (fs.existsSync(fullPath) && !fs.existsSync(gzPath)) {
-          log.info(`Vidéo non compressée détectée au démarrage : ${entry.fileName}. Lancement de la compression...`);
+          log.info(`Vidéo non compressée détectée au démarrage : ${entry.fileName}. Lancement de l'archivage...`);
           try {
-            await compressVideo(ffmpegPath, fullPath, logger);
             await gzipFile(fullPath, logger);
-            log.info(`Vidéo compressée et archivée au démarrage : ${entry.fileName}`);
+            log.info(`Vidéo archivée en ZIP au démarrage : ${entry.fileName}`);
           } catch (e) {
-            log.error(`Échec de compression au démarrage pour ${entry.fileName} : ${e.message}`);
+            log.error(`Échec d'archivage au démarrage pour ${entry.fileName} : ${e.message}`);
           }
         }
       }
@@ -517,18 +510,6 @@ const downloadbacklog = (parameter) => {
       .then(async (res) => {
         if (downloadedFilePath && fs.existsSync(downloadedFilePath)) {
           try {
-            const ffmpegPath = binaryResolver.ffmpeg;
-            if (ffmpegPath) {
-              if (io) {
-                io.emit('download-progress', {
-                  parameter,
-                  percent: 100,
-                  eta: 'Compression...',
-                  speed: ''
-                });
-              }
-              await compressVideo(ffmpegPath, downloadedFilePath, logger);
-            }
             if (io) {
               io.emit('download-progress', {
                 parameter,
@@ -539,7 +520,7 @@ const downloadbacklog = (parameter) => {
             }
             await gzipFile(downloadedFilePath, logger);
           } catch (compressErr) {
-            log.error(`Échec de compression/archivage de la vidéo : ${compressErr.message}`);
+            log.error(`Échec d'archivage de la vidéo : ${compressErr.message}`);
           }
         }
         db.readDatabase(); // Final refresh
@@ -1076,7 +1057,7 @@ web.get("/delete", function (req, res) {
   if (!fileData) return res.status(404).send("Video not found");
   const filePath = path.join(base, fileData.fileName);
   if (fs.existsSync(filePath)) fs.rmSync(filePath);
-  const gzPath = filePath + '.gz';
+  const gzPath = filePath + '.zip';
   if (fs.existsSync(gzPath)) fs.rmSync(gzPath);
   db.removeFile(req.query.id);
   db.save();
@@ -1410,9 +1391,9 @@ web.get("/video", limiter, async function (req, res) {
   const videoPath = path.join(base, fileName);
   if (!videoPath.startsWith(base)) return res.status(400).send("Invalid file path");
 
-  const gzPath = videoPath + '.gz';
+  const gzPath = videoPath + '.zip';
 
-  // Si le fichier décompressé n'existe pas, on tente de le décompresser depuis son archive .gz
+  // Si le fichier décompressé n'existe pas, on tente de le décompresser depuis son archive .zip
   if (!fs.existsSync(videoPath)) {
     if (fs.existsSync(gzPath)) {
       try {
@@ -1477,8 +1458,8 @@ setInterval(() => {
   for (const [filePath, lastAccessTime] of decompressedFiles.entries()) {
     if (now - lastAccessTime > 300000) { // 5 minutes
       try {
-        const gzPath = filePath + '.gz';
-        if (!filePath.endsWith('.gz') && fs.existsSync(filePath) && fs.existsSync(gzPath)) {
+        const gzPath = filePath + '.zip';
+        if (!filePath.endsWith('.zip') && fs.existsSync(filePath) && fs.existsSync(gzPath)) {
           fs.unlinkSync(filePath);
           log.info(`Nettoyage temporaire réussi de la vidéo : ${path.basename(filePath)}`);
         }

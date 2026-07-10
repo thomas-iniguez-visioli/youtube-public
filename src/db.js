@@ -82,10 +82,10 @@ export default class FileDatabase {
         let modified = false;
 
         files.forEach((item) => {
-            const isGz = item.endsWith(".mp4.gz");
+            const isGz = item.endsWith(".mp4.zip");
             if (!item.endsWith(".mp4") && !isGz) return;
 
-            const baseFileName = isGz ? item.slice(0, -3) : item;
+            const baseFileName = isGz ? item.slice(0, -4) : item;
             const existingEntry = existingFiles.get(baseFileName);
             const fullPath = path.join(this.directoryPath, item);
             let stats;
@@ -162,10 +162,10 @@ export default class FileDatabase {
             }
         });
 
-        // Cleanup: remove entries for files that no longer exist (either as .mp4 or .mp4.gz)
+        // Cleanup: remove entries for files that no longer exist (either as .mp4 or .mp4.zip)
         const fileSet = new Set(files);
         const originalLength = this.database.length;
-        this.database = this.database.filter(entry => fileSet.has(entry.fileName) || fileSet.has(entry.fileName + '.gz'));
+        this.database = this.database.filter(entry => fileSet.has(entry.fileName) || fileSet.has(entry.fileName + '.zip'));
         if (this.database.length !== originalLength) modified = true;
 
         if (modified) {
