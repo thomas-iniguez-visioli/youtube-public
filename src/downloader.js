@@ -18,7 +18,7 @@ function getBrowserForCookies() {
 
 function createDownloadArgs(parameter, ffmpegDir, storagePath, outputFileFormat, denoPath) {
   const args = [
-    '--merge-output-format', 'mp4',
+    '--merge-output-format', 'mp4','-uV',
     '--newline',
     '--write-info-json',
     '--cookies-from-browser', getBrowserForCookies(),
