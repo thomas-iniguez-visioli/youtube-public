@@ -1459,11 +1459,15 @@ setInterval(() => {
     if (now - lastAccessTime > 300000) { // 5 minutes
       try {
         const gzPath = filePath + '.zip';
-        if (!filePath.endsWith('.zip') && fs.existsSync(filePath) && fs.existsSync(gzPath)) {
-          fs.unlinkSync(filePath);
-          log.info(`Nettoyage temporaire réussi de la vidéo : ${path.basename(filePath)}`);
+        if (!filePath.endsWith('.zip') && fs.existsSync(filePath)) {
+          if (fs.existsSync(gzPath)) {
+            fs.unlinkSync(filePath);
+            log.info(`Nettoyage temporaire réussi de la vidéo : ${path.basename(filePath)}`);
+            decompressedFiles.delete(filePath);
+          }
+        } else {
+          decompressedFiles.delete(filePath);
         }
-        decompressedFiles.delete(filePath);
       } catch (err) {
         log.error(`Erreur de suppression du fichier temporaire décompressé ${filePath}: ${err.message}`);
       }

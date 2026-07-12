@@ -1,5 +1,17 @@
 # Gemini CLI - Journal des modifications
 
+## [1.13.2] - 2026-07-12
+### Corrigé
+- **Suivi robuste du nettoyeur** : Correction du nettoyeur automatique qui retirait les entrées de la liste de suivi même si le fichier `.mp4` n'avait pas pu être supprimé. Maintenant, l'entrée n'est retirée que si la suppression du fichier ou de l'archive a été effective.
+
+## [1.13.1] - 2026-07-12
+### Changé
+- **Optimisation du cycle de nettoyage** : Correction de la logique de vérification d'existence du zip avant suppression pour éviter les fuites de fichiers décompressés.
+
+## [1.13.0] - 2026-07-08
+### Changé
+- **Migration vers ADM-ZIP** : Remplacement de la compression vidéo lente par FFmpeg par une compression d'archivage rapide en `.zip` via `adm-zip`. Suppression du ré-encodage vidéo FFmpeg.
+
 ## [1.12.1] - 2026-07-08
 ### Ajouté
 - **Recompression de rattrapage au démarrage** : Intégration d'un processus asynchrone au boot analysant la base de données pour identifier et compresser automatiquement en `.gz` les vidéos `.mp4` physiques n'ayant pas encore été archivées.
