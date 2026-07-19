@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.13.4] - 2026-07-19
+### Corrigé
+- **Réparation et restauration de la mise à jour automatique de yt-dlp** : Remplacement de l'argument invalide `-uV` par la bonne option de mise à jour `--update` dans les paramètres de téléchargement. Cela résout le plantage immédiat des téléchargements et permet à `yt-dlp` de se mettre à jour automatiquement de manière fiable.
+
 ## [1.13.3] - 2026-07-19
 ### Corrigé
 - **Indexation de la vidéo suivante** : Correction d'un bug dans le calcul de la vidéo suivante suggérée (route `/watch`), qui renvoyait toujours la première vidéo de la liste (index 0) car l'index de la vidéo en cours de lecture était cherché sur la liste déjà filtrée (d'où elle était par conséquent exclue). La recherche de l'index s'effectue désormais sur le catalogue global.
