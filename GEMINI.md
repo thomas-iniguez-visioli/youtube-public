@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.13.8] - 2026-07-19
+### Ajouté
+- **Gestion globale des exceptions (Rollbar)** : Ajout d'écouteurs d'événements Node.js (`uncaughtException` et `unhandledRejection`) dans le Main Process d'Electron pour remonter automatiquement les erreurs globales non capturées de la "zone blanche" sur notre tableau de bord Rollbar.
+
 ## [1.13.7] - 2026-07-19
 ### Ajouté
 - **Tests de cas limites (Edge Cases)** : Création d'une nouvelle suite de tests unitaires `tests/edge_cases.test.js` couvrant les erreurs potentielles d'archivage ADM-ZIP (fichiers vides, fichiers inexistants) et les comportements limites de la base de données (indexation vide, extensions non valides).

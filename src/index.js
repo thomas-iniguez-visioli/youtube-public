@@ -49,6 +49,22 @@ const getconfig = () => {
 const config = getconfig();
 
 const rollbar = new Rollbar(rollbarConfig);
+
+// Gestionnaire d'erreurs globales (zone blanche) pour transmission à Rollbar
+process.on('uncaughtException', (err) => {
+  log.error('Uncaught Exception:', err);
+  if (rollbar) {
+    rollbar.error(err, { type: 'uncaughtException' });
+  }
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  log.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  if (rollbar) {
+    rollbar.error(reason instanceof Error ? reason : new Error(String(reason)), { type: 'unhandledRejection' });
+  }
+});
+
 var booted = false;
 const { autoUpdater } = require("electron-updater");
 
