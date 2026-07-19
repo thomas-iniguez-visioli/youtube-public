@@ -1000,8 +1000,28 @@ web.get("/watch", function (req, res) {
   }
 
   if (!nextVideo) {
-    const currentIdx = filteredReferencement.findIndex(item => item.yid === req.query.id);
-    nextVideo = currentIdx === filteredReferencement.length - 1 ? filteredReferencement[0] : filteredReferencement[currentIdx + 1];
+    const currentIdx = referencement.findIndex(item => item.yid === req.query.id);
+    if (currentIdx !== -1) {
+      // Parcourir après l'index courant
+      for (let i = currentIdx + 1; i < referencement.length; i++) {
+        if (!historySet.has(referencement[i].yid) || playlistVideoIds.has(referencement[i].yid)) {
+          nextVideo = referencement[i];
+          break;
+        }
+      }
+      // Boucler depuis le début si aucun n'est trouvé
+      if (!nextVideo) {
+        for (let i = 0; i < currentIdx; i++) {
+          if (!historySet.has(referencement[i].yid) || playlistVideoIds.has(referencement[i].yid)) {
+            nextVideo = referencement[i];
+            break;
+          }
+        }
+      }
+    }
+    if (!nextVideo && filteredReferencement.length > 0) {
+      nextVideo = filteredReferencement[0];
+    }
   }
 
   const historyLimit = Math.floor(db.database.length * 0.8);

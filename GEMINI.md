@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.13.3] - 2026-07-19
+### Corrigé
+- **Indexation de la vidéo suivante** : Correction d'un bug dans le calcul de la vidéo suivante suggérée (route `/watch`), qui renvoyait toujours la première vidéo de la liste (index 0) car l'index de la vidéo en cours de lecture était cherché sur la liste déjà filtrée (d'où elle était par conséquent exclue). La recherche de l'index s'effectue désormais sur le catalogue global.
+
 ## [1.13.2] - 2026-07-12
 ### Corrigé
 - **Suivi robuste du nettoyeur** : Correction du nettoyeur automatique qui retirait les entrées de la liste de suivi même si le fichier `.mp4` n'avait pas pu être supprimé. Maintenant, l'entrée n'est retirée que si la suppression du fichier ou de l'archive a été effective.
