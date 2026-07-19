@@ -394,7 +394,7 @@
         });
 
         async function playNext() {
-            const nextId = '<%= (typeof nextVideo !== \'undefined\' && nextVideo) ? (nextVideo.id || nextVideo.yid) : \'\' %>';
+            const nextId = '<%= (typeof nextVideo !== "undefined" && nextVideo) ? (nextVideo.id || nextVideo.yid) : "" %>';
             const playlistParam = '<%= (typeof playlistName !== 'undefined' && playlistName) ? "&playlist=" + encodeURIComponent(playlistName).replace(/'/g, "%27") : "" %>';
             const currentInQueue = <%= typeof currentInQueue !== 'undefined' ? currentInQueue : 'false' %>;
             

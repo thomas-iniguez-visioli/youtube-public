@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.13.9] - 2026-07-19
+### Corrigé
+- **Résolution de l'erreur de compilation EJS (view.ejs)** : Remplacement des apostrophes échappées par des guillemets doubles dans l'expression de rendu EJS de la variable `nextId` pour éviter les erreurs de syntaxe de compilation.
+
 ## [1.13.8] - 2026-07-19
 ### Ajouté
 - **Gestion globale des exceptions (Rollbar)** : Ajout d'écouteurs d'événements Node.js (`uncaughtException` et `unhandledRejection`) dans le Main Process d'Electron pour remonter automatiquement les erreurs globales non capturées de la "zone blanche" sur notre tableau de bord Rollbar.
