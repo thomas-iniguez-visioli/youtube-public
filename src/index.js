@@ -1024,6 +1024,16 @@ web.get("/watch", function (req, res) {
     }
   }
 
+  // Fallback : S'assurer d'avoir obligatoirement une vidéo suivante si referencement n'est pas vide
+  if (!nextVideo && referencement.length > 0) {
+    const currentIdx = referencement.findIndex(item => item.yid === req.query.id);
+    if (currentIdx !== -1) {
+      nextVideo = currentIdx === referencement.length - 1 ? referencement[0] : referencement[currentIdx + 1];
+    } else {
+      nextVideo = referencement[0];
+    }
+  }
+
   const historyLimit = Math.floor(db.database.length * 0.8);
   res.render('view', {
     code: req.query.id,

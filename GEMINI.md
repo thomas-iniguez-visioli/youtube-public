@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.13.6] - 2026-07-19
+### Corrigé
+- **Vidéo suivante obligatoire** : Ajout d'un système de repli (fallback) dans le calcul de la vidéo suivante (route `/watch`) qui, si toutes les autres vidéos sont déjà dans l'historique de lecture, propose quand même la vidéo suivante brute dans le catalogue pour assurer la continuité de la lecture.
+
 ## [1.13.5] - 2026-07-19
 ### Corrigé
 - **Protection contre les valeurs nulles (view.ejs)** : Correction d'une erreur EJS `Cannot read properties of null (reading 'id')` sur la route `/watch` qui survenait si la variable de suggestion `nextVideo` renvoyait `null` (ou aucune vidéo disponible).
