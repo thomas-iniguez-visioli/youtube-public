@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.13.5] - 2026-07-19
+### Corrigé
+- **Protection contre les valeurs nulles (view.ejs)** : Correction d'une erreur EJS `Cannot read properties of null (reading 'id')` sur la route `/watch` qui survenait si la variable de suggestion `nextVideo` renvoyait `null` (ou aucune vidéo disponible).
+
 ## [1.13.4] - 2026-07-19
 ### Corrigé
 - **Réparation et restauration de la mise à jour automatique de yt-dlp** : Remplacement de l'argument invalide `-uV` par la bonne option de mise à jour `--update` dans les paramètres de téléchargement. Cela résout le plantage immédiat des téléchargements et permet à `yt-dlp` de se mettre à jour automatiquement de manière fiable.
