@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.13.7] - 2026-07-19
+### Ajouté
+- **Tests de cas limites (Edge Cases)** : Création d'une nouvelle suite de tests unitaires `tests/edge_cases.test.js` couvrant les erreurs potentielles d'archivage ADM-ZIP (fichiers vides, fichiers inexistants) et les comportements limites de la base de données (indexation vide, extensions non valides).
+
 ## [1.13.6] - 2026-07-19
 ### Corrigé
 - **Vidéo suivante obligatoire** : Ajout d'un système de repli (fallback) dans le calcul de la vidéo suivante (route `/watch`) qui, si toutes les autres vidéos sont déjà dans l'historique de lecture, propose quand même la vidéo suivante brute dans le catalogue pour assurer la continuité de la lecture.
