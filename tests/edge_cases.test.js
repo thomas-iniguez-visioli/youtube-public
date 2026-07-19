@@ -4,6 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import FileDatabase from '../src/db.js';
 import { gzipFile, gunzipFile } from '../src/downloader.js';
+import ejs from 'ejs';
 
 test('Edge cases - FileDatabase with empty or invalid states', (t) => {
     const filesPath = path.resolve('./test-files-edge');
@@ -63,4 +64,19 @@ test('Edge cases - adm-zip wrapper errors', async (t) => {
     if (fs.existsSync(zipPath)) fs.unlinkSync(zipPath);
     if (fs.existsSync(outPath)) fs.unlinkSync(outPath);
     fs.rmSync(tempDir, { recursive: true, force: true });
+});
+
+test('EJS compilation - all templates compile without syntax errors', (t) => {
+    const viewsDir = path.resolve('./src/views');
+    const templates = fs.readdirSync(viewsDir).filter(file => file.endsWith('.ejs'));
+
+    templates.forEach((file) => {
+        const filePath = path.join(viewsDir, file);
+        const templateContent = fs.readFileSync(filePath, 'utf8');
+        try {
+            ejs.compile(templateContent, { filename: filePath });
+        } catch (err) {
+            assert.fail(`Template EJS ${file} failed to compile: ${err.message}`);
+        }
+    });
 });

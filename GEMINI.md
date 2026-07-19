@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.13.10] - 2026-07-19
+### Ajouté
+- **Test de compilation EJS automatique** : Intégration d'un nouveau test unitaire dans `tests/edge_cases.test.js` qui parcourt et compile automatiquement tous les fichiers templates `.ejs` de l'application afin de détecter proactivement toute erreur de syntaxe ou de token invalide avant le runtime.
+
 ## [1.13.9] - 2026-07-19
 ### Corrigé
 - **Résolution de l'erreur de compilation EJS (view.ejs)** : Remplacement des apostrophes échappées par des guillemets doubles dans l'expression de rendu EJS de la variable `nextId` pour éviter les erreurs de syntaxe de compilation.
