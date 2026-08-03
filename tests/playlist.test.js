@@ -56,4 +56,11 @@ describe("Playlist System", () => {
         db.deletePlaylist("Ma Liste");
         assert.strictEqual(db.playlists.length, 0);
     });
+
+    test("should automatically ensure a YouTube playlist when read", () => {
+        db.ensureYoutubePlaylist("id2", "Mes Chansons Préférées");
+        const playlist = db.getPlaylist("Playlist: Mes Chansons Préférées");
+        assert.ok(playlist, "Playlist should be created");
+        assert.ok(playlist.videoIds.includes("id2"), "Video should be added to the playlist");
+    });
 });

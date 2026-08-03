@@ -124,7 +124,8 @@ export default class FileDatabase {
                                 like_count: info.like_count || 0,
                                 comment_count: info.comment_count || 0,
                                 display_id: info.display_id || videoId,
-                                channel_url: info.channel_url || info.uploader_url
+                                channel_url: info.channel_url || info.uploader_url,
+                                playlist_title: info.playlist_title || info.playlist || null
                             };
                         } catch (e) {
                             console.error(`Error reading info file ${infoPath}:`, e);
@@ -143,6 +144,7 @@ export default class FileDatabase {
                         like_count: metadata.like_count,
                         comment_count: metadata.comment_count,
                         channel_url: metadata.channel_url,
+                        playlist_title: metadata.playlist_title,
                         score: (metadata.view_count * 0.5) + (metadata.like_count * 0.3) + (metadata.comment_count * 0.2)
                     };
 
@@ -155,6 +157,11 @@ export default class FileDatabase {
                     // Auto-ensure playlist for channel
                     if (metadata.uploader !== 'Uploader inconnu') {
                         this.ensureChannelPlaylist(metadata.display_id, metadata.uploader);
+                    }
+
+                    // Auto-ensure downloaded YouTube playlist
+                    if (metadata.playlist_title) {
+                        this.ensureYoutubePlaylist(metadata.display_id, metadata.playlist_title);
                     }
                     
                     modified = true;
@@ -295,6 +302,13 @@ export default class FileDatabase {
     ensureChannelPlaylist(videoId, channelName) {
         if (!channelName || channelName === 'Uploader inconnu') return;
         const playlistName = `Channel: ${channelName}`;
+        this.createPlaylist(playlistName);
+        this.addVideoToPlaylist(playlistName, videoId);
+    }
+
+    ensureYoutubePlaylist(videoId, playlistTitle) {
+        if (!playlistTitle) return;
+        const playlistName = `Playlist: ${playlistTitle}`;
         this.createPlaylist(playlistName);
         this.addVideoToPlaylist(playlistName, videoId);
     }

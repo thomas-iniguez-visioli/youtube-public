@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.14.0] - 2026-08-03
+### Ajouté
+- **Importation et support des playlists YouTube** : Extraction automatique des métadonnées de la playlist d'origine depuis les fichiers `.info.json` des vidéos téléchargées, permettant de créer et d'associer automatiquement les vidéos à une playlist locale correspondante préfixée par `Playlist: `.
+
 ## [1.13.10] - 2026-07-19
 ### Ajouté
 - **Test de compilation EJS automatique** : Intégration d'un nouveau test unitaire dans `tests/edge_cases.test.js` qui parcourt et compile automatiquement tous les fichiers templates `.ejs` de l'application afin de détecter proactivement toute erreur de syntaxe ou de token invalide avant le runtime.
