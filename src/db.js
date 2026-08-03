@@ -169,6 +169,31 @@ export default class FileDatabase {
             }
         });
 
+        // Scanner également les fichiers JSON de métadonnées de playlists
+        files.forEach((item) => {
+            if (item.endsWith(".info.json")) {
+                const fullPath = path.join(this.directoryPath, item);
+                try {
+                    const content = fs.readFileSync(fullPath, 'utf8');
+                    const info = JSON.parse(content);
+                    if (info && info._type === 'playlist' && info.title) {
+                        const playlistName = `Playlist: ${info.title}`;
+                        this.createPlaylist(playlistName);
+                        
+                        if (Array.isArray(info.entries)) {
+                            info.entries.forEach(entry => {
+                                if (entry && entry.id) {
+                                    this.addVideoToPlaylist(playlistName, entry.id);
+                                }
+                            });
+                        }
+                    }
+                } catch (e) {
+                    // Ignorer
+                }
+            }
+        });
+
         // Cleanup: remove entries for files that no longer exist (either as .mp4 or .mp4.zip)
         const fileSet = new Set(files);
         const originalLength = this.database.length;

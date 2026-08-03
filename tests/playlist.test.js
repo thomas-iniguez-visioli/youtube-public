@@ -63,4 +63,26 @@ describe("Playlist System", () => {
         assert.ok(playlist, "Playlist should be created");
         assert.ok(playlist.videoIds.includes("id2"), "Video should be added to the playlist");
     });
+
+    test("should scan and import playlist info.json files during readDatabase", () => {
+        const playlistInfoPath = path.join(tempDir, "CCRVEVO--CCRVEVO - Videos [playlist_id].info.json");
+        const playlistData = {
+            _type: "playlist",
+            title: "CCRVEVO - Videos",
+            entries: [
+                { id: "id1" },
+                { id: "id2" }
+            ]
+        };
+        fs.writeFileSync(playlistInfoPath, JSON.stringify(playlistData));
+
+        db.readDatabase();
+        
+        const playlist = db.getPlaylist("Playlist: CCRVEVO - Videos");
+        assert.ok(playlist, "Playlist should be detected and created");
+        assert.ok(playlist.videoIds.includes("id1"), "id1 should be in the playlist");
+        assert.ok(playlist.videoIds.includes("id2"), "id2 should be in the playlist");
+
+        fs.unlinkSync(playlistInfoPath);
+    });
 });
