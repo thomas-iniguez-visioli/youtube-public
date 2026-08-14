@@ -83,6 +83,9 @@
                 <% if (channel === "Ma File d'attente") { %>
                     <a href="/queue/clear" class="btn btn-danger btn-sm ms-3" onclick="return confirm('Vider la file d\\'attente ?')">Vider la file</a>
                 <% } %>
+                <% if (channel === "Historique") { %>
+                    <a href="/history/clear" class="btn btn-danger btn-sm ms-3" onclick="return confirm('Purger l\\'historique ?')">Purger l'historique</a>
+                <% } %>
                 <a href="/" class="btn btn-outline-secondary btn-sm ms-3">Retour à l'accueil</a>
             </div>
         <% } %>

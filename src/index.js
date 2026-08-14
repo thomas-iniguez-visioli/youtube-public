@@ -1198,6 +1198,11 @@ web.get("/history", function (req, res) {
   renderIndex(res, db.getHistory(), "Historique");
 });
 
+web.get("/history/clear", function (req, res) {
+  db.clearHistory();
+  res.redirect("/history");
+});
+
 web.get("/patchnotes", function (req, res) {
   const geminiPath = path.join(__dirname, '../GEMINI.md');
   let mdContent = '';

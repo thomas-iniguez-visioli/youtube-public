@@ -60,6 +60,10 @@ test('FileDatabase should manage history correctly', (t) => {
     assert.strictEqual(historyItems.length, 8);
     assert.strictEqual(historyItems[0].yid, "v1");
     
+    // Purge history
+    db.clearHistory();
+    assert.strictEqual(db.history.length, 0);
+    
     // Clean up
     if (fs.existsSync(dbFilePath)) fs.unlinkSync(dbFilePath);
     fs.rmSync(filesPath, { recursive: true, force: true });

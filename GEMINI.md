@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.14.2] - 2026-08-14
+### Ajouté
+- **Bouton de purge de l'historique** : Implémentation d'une nouvelle route `/history/clear` et de la méthode de base de données `clearHistory()` permettant de purger complètement l'historique de lecture de l'application via un bouton rouge interactif de confirmation présent sur la vue d'historique.
+
 ## [1.14.1] - 2026-08-03
 ### Changé
 - **Scan des fichiers JSON globaux de playlists** : Ajout d'une recherche des fichiers `.info.json` de type `playlist` lors du scan initial de la base de données. Permet de reconstituer les playlists locales dans leur ordre exact d'origine et avec toutes leurs entrées à partir du fichier de métadonnées global généré par `yt-dlp`.

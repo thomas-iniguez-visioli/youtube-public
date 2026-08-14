@@ -387,6 +387,11 @@ export default class FileDatabase {
         return this.history.map(id => this.getFile(id)).filter(file => !!file);
     }
 
+    clearHistory() {
+        this.history = [];
+        this.saveDatabase();
+    }
+
     addToQueue(videoId) {
         if (videoId && typeof videoId === 'string' && this.getFile(videoId) && !this.queue.includes(videoId)) {
             this.queue.push(videoId);
