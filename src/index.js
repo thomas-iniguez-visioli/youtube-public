@@ -564,7 +564,7 @@ const downloaddata = (parameter) => {
       db.readDatabase();
       db.save();
     })
-    .catch(err => log.error(`Erreur mise à jour métadonnées : ${err.message}`));
+    .catch(err => log.warn(`Erreur mise à jour métadonnées : ${err.message}`));
 };
 
 const processBacklog = async () => {

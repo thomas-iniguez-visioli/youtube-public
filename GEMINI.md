@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.14.3] - 2026-08-14
+### Changé
+- **Journalisation de la mise à jour des métadonnées** : Passage de `log.error` à `log.warn` en cas d'échec de la mise à jour des métadonnées par `yt-dlp`. Cela évite d'émettre de fausses alertes d'erreurs critiques sur le tableau de bord Rollbar pour des événements normaux (vidéo supprimée ou privée sur YouTube).
+
 ## [1.14.2] - 2026-08-14
 ### Ajouté
 - **Bouton de purge de l'historique** : Implémentation d'une nouvelle route `/history/clear` et de la méthode de base de données `clearHistory()` permettant de purger complètement l'historique de lecture de l'application via un bouton rouge interactif de confirmation présent sur la vue d'historique.
