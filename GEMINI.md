@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.14.4] - 2026-08-15
+### Ajouté
+- **Analyse de la vitesse et notifications** : Analyse automatique des lignes de logs de fin de téléchargement pour extraire la vitesse de téléchargement globale, et transmission de cette information dans la notification toast de fin de téléchargement sur l'interface utilisateur.
+
 ## [1.14.3] - 2026-08-14
 ### Changé
 - **Journalisation de la mise à jour des métadonnées** : Passage de `log.error` à `log.warn` en cas d'échec de la mise à jour des métadonnées par `yt-dlp`. Cela évite d'émettre de fausses alertes d'erreurs critiques sur le tableau de bord Rollbar pour des événements normaux (vidéo supprimée ou privée sur YouTube).

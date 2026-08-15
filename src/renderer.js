@@ -175,9 +175,10 @@ if (typeof io !== 'undefined') {
     });
 
     socket.on('download-finished', (data) => {
+        const speedText = data.speed ? ` (Vitesse : ${data.speed})` : '';
         showToast(
             'Téléchargement terminé',
-            `<span class="fw-bold">${data.title}</span> est maintenant disponible.`,
+            `<span class="fw-bold">${data.title}</span> est maintenant disponible.${speedText}`,
             'primary',
             { url: `/watch?id=${data.videoId}`, text: 'Regarder' }
         );

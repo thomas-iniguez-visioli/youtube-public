@@ -490,6 +490,7 @@ const downloadbacklog = (parameter) => {
 
     const notifiedVideos = new Set();
     let downloadedFilePath = null;
+    let lastSpeed = null;
 
     runDownload(ytdlpPath, args, logger, (filePath) => {
       downloadedFilePath = filePath;
@@ -504,16 +505,39 @@ const downloadbacklog = (parameter) => {
           setTimeout(() => {
             db.readDatabase();
             const video = db.getFile(videoId);
+            
+            // Analyser la vitesse finale depuis le fichier de log
+            let finalSpeed = lastSpeed || 'inconnue';
+            try {
+              if (fs.existsSync(logFilePath)) {
+                const logContent = fs.readFileSync(logFilePath, 'utf8');
+                const logLines = logContent.split('\n');
+                for (let i = logLines.length - 1; i >= 0; i--) {
+                  const speedMatch = logLines[i].match(/100% of .* at ([\d.]+\w+\/s)/) || logLines[i].match(/in .* at ([\d.]+\w+\/s)/);
+                  if (speedMatch) {
+                    finalSpeed = speedMatch[1];
+                    break;
+                  }
+                }
+              }
+            } catch (e) {
+              log.warn(`Échec de l'analyse du log pour la vitesse : ${e.message}`);
+            }
+
             if (io) {
               io.emit('download-finished', {
                 title: video ? video.fileName.replace(` [${video.yid}].mp4`, '').split('-').pop() : 'Vidéo',
-                videoId: videoId
+                videoId: videoId,
+                speed: finalSpeed
               });
             }
           }, 1000);
         }
       }
     }, (progress) => {
+      if (progress.speed) {
+        lastSpeed = progress.speed;
+      }
       if (io) {
         io.emit('download-progress', {
           parameter,
