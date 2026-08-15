@@ -144,6 +144,8 @@ if (typeof io !== 'undefined') {
         document.body.appendChild(progressContainer);
     }
 
+    let downloadToastId = null;
+
     socket.on('download-progress', (data) => {
         if (progressContainer) {
             progressContainer.style.display = 'block';
@@ -172,9 +174,55 @@ if (typeof io !== 'undefined') {
             speedEl.textContent = data.speed ? data.speed : '-- MB/s';
             etaEl.textContent = data.eta ? `ETA: ${data.eta}` : 'ETA: --:--';
         }
+
+        // Notification (Toast) en temps réel durant le téléchargement
+        const toastContainer = document.querySelector('.toast-container');
+        if (toastContainer) {
+            const speedText = data.speed ? ` à ${data.speed}` : '';
+            const etaText = data.eta ? ` (ETA: ${data.eta})` : '';
+            const bodyContent = `Téléchargement : <span class="fw-bold">${data.percent}%</span>${speedText}${etaText}`;
+            
+            let toastEl = downloadToastId ? document.getElementById(downloadToastId) : null;
+            if (toastEl) {
+                const bodyEl = toastEl.querySelector('.toast-body');
+                if (bodyEl) bodyEl.innerHTML = bodyContent;
+            } else {
+                downloadToastId = 'toast-progress-' + Date.now();
+                toastContainer.insertAdjacentHTML('beforeend', `
+                    <div id="${downloadToastId}" class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="false">
+                        <div class="toast-header bg-primary text-white">
+                            <strong class="me-auto">Téléchargement en cours</strong>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+                        </div>
+                        <div class="toast-body">
+                            ${bodyContent}
+                        </div>
+                    </div>
+                `);
+                const newToastEl = document.getElementById(downloadToastId);
+                const toast = new bootstrap.Toast(newToastEl);
+                toast.show();
+                newToastEl.addEventListener('hidden.bs.toast', () => {
+                    if (downloadToastId === newToastEl.id) {
+                        downloadToastId = null;
+                    }
+                    newToastEl.remove();
+                });
+            }
+        }
     });
 
     socket.on('download-finished', (data) => {
+        // Fermer le toast de progression s'il existe
+        if (downloadToastId) {
+            const toastEl = document.getElementById(downloadToastId);
+            if (toastEl) {
+                const toast = bootstrap.Toast.getInstance(toastEl);
+                if (toast) toast.hide();
+            }
+            downloadToastId = null;
+        }
+
         const speedText = data.speed ? ` (Vitesse : ${data.speed})` : '';
         showToast(
             'Téléchargement terminé',
