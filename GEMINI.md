@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.14.5] - 2026-08-16
+### Corrigé
+- **Nouvelle release** : Nouvelle tentative de publication de la release suite à l'échec de la précédente.
+
 ## [1.14.4] - 2026-08-15
 ### Ajouté
 - **Analyse de la vitesse et notifications** : Analyse automatique des lignes de logs de fin de téléchargement pour extraire la vitesse de téléchargement globale, et transmission de cette information dans la notification toast de fin de téléchargement sur l'interface utilisateur.
