@@ -57,7 +57,10 @@ jobs:
         run: echo "Running workflow of type ${{ github.event.inputs.type || 'CI' }}"
       
       - name: Run Tests
-        run: bun test ./tests/*.test.js --reporter=junit > test-results.xml || true
+        run: bun test ./tests/*.test.js --reporter=junit --reporter-outfile=test-results.xml || true
+      
+      - name: Convert JUnit to Jest JSON
+        run: node scripts/convert-junit-to-jest.js test-results.xml test-results.json
       
       - name: Report Failures
         if: always()
@@ -65,5 +68,5 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-          TEST_RESULTS_PATH: ../test-results.xml
+          TEST_RESULTS_PATH: ../test-results.json
         run: node scripts/report-test-failures.mjs
