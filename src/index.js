@@ -1597,19 +1597,31 @@ function createWindow() {
   });
 }
 
-// Start the application
-httpServer.listen(8001, function () {
-  log.info('Listening on port 8001!');
-  booted = true;
-  if (app.isReady()) {
-    createWindow();
-  }
-  
-  // Start background build process after a delay to ensure smooth startup
-  setTimeout(() => {
-    build().catch(err => log.error('Background build error:', err));
-  }, 5000);
-});
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on('second-instance', (event, commandLine, workingDirectory) => {
+    if (win) {
+      if (win.isMinimized()) win.restore();
+      win.focus();
+    }
+  });
+
+  // Start the application
+  httpServer.listen(8001, function () {
+    log.info('Listening on port 8001!');
+    booted = true;
+    if (app.isReady()) {
+      createWindow();
+    }
+    
+    // Start background build process after a delay to ensure smooth startup
+    setTimeout(() => {
+      build().catch(err => log.error('Background build error:', err));
+    }, 5000);
+  });
+}
 
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0 && booted) {
