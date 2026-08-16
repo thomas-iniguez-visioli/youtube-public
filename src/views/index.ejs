@@ -90,56 +90,97 @@
             </div>
         <% } %>
 
-        <% if (channel === "Mes Playlists") { %>
-            <div class="row mb-4">
-                <div class="col-md-4">
-                    <div class="card bg-dark text-white border-secondary">
-                        <div class="card-body">
-                            <h5 class="card-title">Créer une playlist</h5>
-                            <form action="/playlist/create" method="POST" class="d-flex">
-                                <input type="text" name="name" class="form-control form-control-sm bg-dark text-white border-secondary me-2" placeholder="Nom de la playlist" required>
-                                <button type="submit" class="btn btn-primary btn-sm">Créer</button>
-                            </form>
+        <% if (typeof channel === 'undefined' || !channel || channel === "Mes Playlists") { %>
+            <ul class="nav nav-tabs justify-content-center border-secondary mt-3 mb-4" id="mainTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link <%= (typeof channel === 'undefined' || !channel) ? 'active' : '' %> text-white" id="videos-tab" data-bs-toggle="tab" data-bs-target="#videos-pane" type="button" role="tab" aria-controls="videos-pane" aria-selected="<%= (typeof channel === 'undefined' || !channel) %>">🎥 Vidéos</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link <%= (channel === 'Mes Playlists') ? 'active' : '' %> text-white" id="playlists-tab" data-bs-toggle="tab" data-bs-target="#playlists-pane" type="button" role="tab" aria-controls="playlists-pane" aria-selected="<%= (channel === 'Mes Playlists') %>">📁 Playlists</button>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="mainTabContent">
+                <!-- Onglet Vidéos -->
+                <div class="tab-pane fade <%= (typeof channel === 'undefined' || !channel) ? 'show active' : '' %>" id="videos-pane" role="tabpanel" aria-labelledby="videos-tab" tabindex="0">
+                    <!-- Section Filtres Inline -->
+                    <div class="tag-filter-section">
+                        <div class="filter-chip active" onclick="filterByTag('all', this)">Tous</div>
+                        <div class="filter-chip text-warning border-warning" onclick="switchToPlaylistsTab(this)">📁 Playlists</div>
+                        <% if (typeof allTags !== 'undefined') { %>
+                            <% allTags.forEach(function(tag){ %>
+                                <div class="filter-chip" onclick="filterByTag('<%= tag.replace(/\\/g, "\\\\").replace(/'/g, "\\'") %>', this)"><%= tag %></div>
+                            <% }); %>
+                        <% } %>
+                        <% if (typeof allChannels !== 'undefined') { %>
+                            <% allChannels.forEach(function(uploader){ %>
+                                <div class="filter-chip" onclick="filterByChannel('<%= uploader.replace(/\\/g, "\\\\").replace(/'/g, "\\'") %>', this)"><%= uploader %></div>
+                            <% }); %>
+                        <% } %>
+                    </div>
+
+                    <div class="row" id="resultsList">
+                        <!-- Les vidéos seront chargées ici par JavaScript pour économiser la mémoire -->
+                    </div>
+                    <div class="text-center my-4" id="loadMoreContainer">
+                        <button id="loadMoreBtn" class="btn btn-outline-primary rounded-pill px-5">Charger plus de vidéos</button>
+                    </div>
+                </div>
+
+                <!-- Onglet Playlists -->
+                <div class="tab-pane fade <%= (channel === 'Mes Playlists') ? 'show active' : '' %>" id="playlists-pane" role="tabpanel" aria-labelledby="playlists-tab" tabindex="0">
+                    <div class="row mb-4 justify-content-center">
+                        <div class="col-md-6">
+                            <div class="card bg-dark text-white border-secondary">
+                                <div class="card-body">
+                                    <h5 class="card-title">Créer une playlist</h5>
+                                    <form action="/playlist/create" method="POST" class="d-flex">
+                                        <input type="text" name="name" class="form-control form-control-sm bg-dark text-white border-secondary me-2" placeholder="Nom de la playlist" required>
+                                        <button type="submit" class="btn btn-primary btn-sm px-4">Créer</button>
+                                    </form>
+                                </div>
+                            </div>
                         </div>
+                    </div>
+                    <div class="row">
+                        <% playlists.forEach(function(playlist) { %>
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-2 mb-4">
+                                <a href="/playlist?name=<%= encodeURIComponent(playlist.name) %>" class="text-decoration-none">
+                                    <div class="card bg-dark text-white border-secondary h-100 playlist-card-hover">
+                                        <div class="card-body d-flex flex-column justify-content-center align-items-center" style="height: 150px; background: #272727; border-radius: 8px;">
+                                            <h5 class="text-center text-truncate w-100"><%= playlist.name %></h5>
+                                            <span class="badge bg-secondary"><%= playlist.videoIds.length %> vidéos</span>
+                                        </div>
+                                    </div>
+                                </a>
+                            </div>
+                        <% }); %>
                     </div>
                 </div>
             </div>
-            <div class="row">
-                <% playlists.forEach(function(playlist) { %>
-                    <div class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-2 mb-4">
-                        <a href="/playlist?name=<%= encodeURIComponent(playlist.name) %>" class="text-decoration-none">
-                            <div class="card bg-dark text-white border-secondary h-100">
-                                <div class="card-body d-flex flex-column justify-content-center align-items-center" style="height: 150px; background: #272727; border-radius: 8px;">
-                                    <h5 class="text-center"><%= playlist.name %></h5>
-                                    <span class="badge bg-secondary"><%= playlist.videoIds.length %> vidéos</span>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-                <% }); %>
+        <% } else { %>
+            <!-- Section Filtres Inline -->
+            <div class="tag-filter-section">
+                <div class="filter-chip active" onclick="filterByTag('all', this)">Tous</div>
+                <% if (typeof allTags !== 'undefined') { %>
+                    <% allTags.forEach(function(tag){ %>
+                        <div class="filter-chip" onclick="filterByTag('<%= tag.replace(/\\/g, "\\\\").replace(/'/g, "\\'") %>', this)"><%= tag %></div>
+                    <% }); %>
+                <% } %>
+                <% if (typeof allChannels !== 'undefined') { %>
+                    <% allChannels.forEach(function(uploader){ %>
+                        <div class="filter-chip" onclick="filterByChannel('<%= uploader.replace(/\\/g, "\\\\").replace(/'/g, "\\'") %>', this)"><%= uploader %></div>
+                    <% }); %>
+                <% } %>
+            </div>
+
+            <div class="row" id="resultsList">
+                <!-- Les vidéos seront chargées ici par JavaScript pour économiser la mémoire -->
+            </div>
+            <div class="text-center my-4" id="loadMoreContainer">
+                <button id="loadMoreBtn" class="btn btn-outline-primary rounded-pill px-5">Charger plus de vidéos</button>
             </div>
         <% } %>
-        <!-- Section Filtres Inline -->
-        <div class="tag-filter-section">
-            <div class="filter-chip active" onclick="filterByTag('all', this)">Tous</div>
-            <% if (typeof allTags !== 'undefined') { %>
-                <% allTags.forEach(function(tag){ %>
-                    <div class="filter-chip" onclick="filterByTag('<%= tag.replace(/\\/g, "\\\\").replace(/'/g, "\\'") %>', this)"><%= tag %></div>
-                <% }); %>
-            <% } %>
-            <% if (typeof allChannels !== 'undefined') { %>
-                <% allChannels.forEach(function(uploader){ %>
-                    <div class="filter-chip" onclick="filterByChannel('<%= uploader.replace(/\\/g, "\\\\").replace(/'/g, "\\'") %>', this)"><%= uploader %></div>
-                <% }); %>
-            <% } %>
-        </div>
-
-        <div class="row" id="resultsList">
-            <!-- Les vidéos seront chargées ici par JavaScript pour économiser la mémoire -->
-        </div>
-        <div class="text-center my-4" id="loadMoreContainer">
-            <button id="loadMoreBtn" class="btn btn-outline-primary rounded-pill px-5">Charger plus de vidéos</button>
-        </div>
     </div>
 
     <!-- Bootstrap JS -->
@@ -329,6 +370,14 @@
             }
         });
 
+        function switchToPlaylistsTab(elem) {
+            const playlistsTabButton = document.getElementById('playlists-tab');
+            if (playlistsTabButton) {
+                const tab = new bootstrap.Tab(playlistsTabButton);
+                tab.show();
+            }
+        }
+        
         async function addAllToQueue() {
             const ids = allVideos.map(v => v.yid);
             if (ids.length === 0) return;

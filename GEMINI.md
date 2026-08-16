@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.14.6] - 2026-08-16
+### Ajouté
+- **Système d'onglets pour les playlists** : Ajout d'un système d'onglets (Vidéos / Playlists) sur la page d'accueil et d'un bouton de raccourci "Playlists" dans les puces de filtres pour basculer facilement entre la bibliothèque de vidéos et la grille de playlists.
+
 ## [1.14.5] - 2026-08-16
 ### Corrigé
 - **Nouvelle release** : Nouvelle tentative de publication de la release suite à l'échec de la précédente.
