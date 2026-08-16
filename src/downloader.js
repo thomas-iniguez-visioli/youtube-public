@@ -5,6 +5,11 @@ import zlib from 'zlib';
 import { pipeline } from 'stream/promises';
 import binval from "./binaryResolver.js";
 import AdmZip from 'adm-zip';
+import { Worker } from 'worker_threads';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 function getBrowserForCookies() {
   // Priorité Firefox, sinon Chrome
@@ -259,37 +264,60 @@ function compressVideo(ffmpegPath, inputPath, logger) {
 }
 
 async function gzipFile(filePath, logger) {
-  if (logger) logger.info(`Zipping file with adm-zip: ${filePath}`);
-  const zipPath = filePath + '.zip';
-  try {
-    const zip = new AdmZip();
-    zip.addLocalFile(filePath);
-    zip.writeZip(zipPath);
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-    }
-    if (logger) logger.info(`Zipped successfully: ${zipPath}`);
-  } catch (err) {
-    if (logger) logger.info(`Failed to zip file: ${err.message}`);
-    throw err;
-  }
+  return new Promise((resolve, reject) => {
+    if (logger) logger.info(`Zipping file with worker thread: ${filePath}`);
+    const zipPath = filePath + '.zip';
+    const workerPath = path.join(__dirname, 'compressWorker.js');
+    const worker = new Worker(workerPath, {
+      workerData: { action: 'zip', filePath, outputPath: zipPath }
+    });
+    worker.on('message', (message) => {
+      if (message.success) {
+        if (logger) logger.info(`Zipped successfully in worker: ${zipPath}`);
+        resolve();
+      } else {
+        if (logger) logger.info(`Failed to zip file in worker: ${message.error}`);
+        reject(new Error(message.error));
+      }
+    });
+    worker.on('error', (err) => {
+      if (logger) logger.info(`Worker zip error: ${err.message}`);
+      reject(err);
+    });
+    worker.on('exit', (code) => {
+      if (code !== 0) {
+        reject(new Error(`Worker stopped with exit code ${code}`));
+      }
+    });
+  });
 }
 
 async function gunzipFile(zipPath, outputPath, logger) {
-  if (logger) logger.info(`Unzipping file with adm-zip: ${zipPath} -> ${outputPath}`);
-  try {
-    const zip = new AdmZip(zipPath);
-    const zipEntries = zip.getEntries();
-    if (zipEntries.length > 0) {
-      const entry = zipEntries[0];
-      const buffer = zip.readFile(entry);
-      fs.writeFileSync(outputPath, buffer);
-    }
-    if (logger) logger.info(`Unzipped successfully to: ${outputPath}`);
-  } catch (err) {
-    if (logger) logger.info(`Failed to unzip file: ${err.message}`);
-    throw err;
-  }
+  return new Promise((resolve, reject) => {
+    if (logger) logger.info(`Unzipping file with worker thread: ${zipPath} -> ${outputPath}`);
+    const workerPath = path.join(__dirname, 'compressWorker.js');
+    const worker = new Worker(workerPath, {
+      workerData: { action: 'unzip', filePath: zipPath, outputPath }
+    });
+    worker.on('message', (message) => {
+      if (message.success) {
+        if (logger) logger.info(`Unzipped successfully in worker: ${outputPath}`);
+        resolve();
+      } else {
+        if (logger) logger.info(`Failed to unzip file in worker: ${message.error}`);
+        reject(new Error(message.error));
+      }
+    });
+    worker.on('error', (err) => {
+      if (logger) logger.info(`Worker unzip error: ${err.message}`);
+      reject(err);
+    });
+    worker.on('exit', (code) => {
+      if (code !== 0) {
+        reject(new Error(`Worker stopped with exit code ${code}`));
+      }
+    });
+  });
 }
 
 export {

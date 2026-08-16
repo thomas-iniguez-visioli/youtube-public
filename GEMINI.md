@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.14.7] - 2026-08-16
+### Corrigé
+- **Performances de démarrage et fluidité UI** : Migration de l'archivage et de la décompression ZIP vers un Worker Thread dédié en arrière-plan (`compressWorker.js`). Implémentation d'une indexation asynchrone (`readDatabaseAsync`) et optimisation avec un cache de `mtime` pour éviter les lectures de fichiers `.info.json` redondantes, résolvant les freezes "Ne répond pas" au boot de l'application.
+
 ## [1.14.6] - 2026-08-16
 ### Ajouté
 - **Système d'onglets pour les playlists** : Ajout d'un système d'onglets (Vidéos / Playlists) sur la page d'accueil et d'un bouton de raccourci "Playlists" dans les puces de filtres pour basculer facilement entre la bibliothèque de vidéos et la grille de playlists.

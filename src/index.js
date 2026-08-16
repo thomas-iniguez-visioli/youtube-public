@@ -120,11 +120,11 @@ const compressMissingVideosOnStartup = async () => {
 };
 
 // Deferred sync to avoid blocking startup
-setTimeout(() => {
+setTimeout(async () => {
   cleanupDecompressedFilesOnStartup();
-  db.readDatabase();
+  await db.readDatabaseAsync();
   db.save();
-  compressMissingVideosOnStartup();
+  await compressMissingVideosOnStartup();
 }, 1000);
 
 const web = express();

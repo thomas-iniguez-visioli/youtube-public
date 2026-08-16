@@ -24,6 +24,7 @@ export default class FileDatabase {
         this.queue = [];
         this.favorites = [];
         this.yidMap = new Map();
+        this._playlistFileMtimes = {};
         this.loadDatabase();
     }
 
@@ -174,6 +175,12 @@ export default class FileDatabase {
             if (item.endsWith(".info.json")) {
                 const fullPath = path.join(this.directoryPath, item);
                 try {
+                    const stats = fs.statSync(fullPath);
+                    const lastMtime = this._playlistFileMtimes[item];
+                    if (lastMtime === stats.mtimeMs) {
+                        return;
+                    }
+                    
                     const content = fs.readFileSync(fullPath, 'utf8');
                     const info = JSON.parse(content);
                     if (info && info._type === 'playlist' && info.title) {
@@ -187,6 +194,8 @@ export default class FileDatabase {
                                 }
                             });
                         }
+                        this._playlistFileMtimes[item] = stats.mtimeMs;
+                        modified = true;
                     }
                 } catch (e) {
                     // Ignorer
@@ -195,6 +204,146 @@ export default class FileDatabase {
         });
 
         // Cleanup: remove entries for files that no longer exist (either as .mp4 or .mp4.zip)
+        const fileSet = new Set(files);
+        const originalLength = this.database.length;
+        this.database = this.database.filter(entry => fileSet.has(entry.fileName) || fileSet.has(entry.fileName + '.zip'));
+        if (this.database.length !== originalLength) modified = true;
+
+        if (modified) {
+            this._buildIndex();
+            this.saveDatabase();
+        }
+    }
+
+    async readDatabaseAsync() {
+        if (!fs.existsSync(this.directoryPath)) {
+            console.warn(`Directory ${this.directoryPath} does not exist, skipping read.`);
+            return;
+        }
+
+        const files = await fs.promises.readdir(this.directoryPath);
+        const existingFiles = new Map(this.database.map(item => [item.fileName, item]));
+        let modified = false;
+
+        for (const item of files) {
+            const isGz = item.endsWith(".mp4.zip");
+            if (!item.endsWith(".mp4") && !isGz) continue;
+
+            const baseFileName = isGz ? item.slice(0, -4) : item;
+            const existingEntry = existingFiles.get(baseFileName);
+            const fullPath = path.join(this.directoryPath, item);
+            let stats;
+            try {
+                stats = await fs.promises.stat(fullPath);
+            } catch (e) {
+                continue;
+            }
+
+            if (existingEntry) {
+                if (existingEntry.isGz !== isGz) {
+                    existingEntry.isGz = isGz;
+                    modified = true;
+                }
+            }
+
+            if (!existingEntry || existingEntry.mtime !== stats.mtimeMs || existingEntry.fileUuid.includes(' ') || (existingEntry.yid && !existingEntry.fileUuid.includes(existingEntry.yid))) {
+                const idMatch = baseFileName.match(regex);
+                if (idMatch) {
+                    const videoId = idMatch[1];
+                    const infoPath = path.join(this.directoryPath, baseFileName.replace(".mp4", ".info.json"));
+                    let metadata = {
+                        uploader: 'Uploader inconnu',
+                        view_count: 0,
+                        like_count: 0,
+                        comment_count: 0,
+                        display_id: videoId
+                    };
+
+                    try {
+                        if (fs.existsSync(infoPath)) {
+                            const content = await fs.promises.readFile(infoPath, 'utf8');
+                            const info = JSON.parse(content);
+                            metadata = {
+                                uploader: info.uploader || 'Uploader inconnu',
+                                view_count: info.view_count || 0,
+                                like_count: info.like_count || 0,
+                                comment_count: info.comment_count || 0,
+                                display_id: info.display_id || videoId,
+                                channel_url: info.channel_url || info.uploader_url,
+                                playlist_title: info.playlist_title || info.playlist || null
+                            };
+                        }
+                    } catch (e) {
+                        console.error(`Error reading info file ${infoPath}:`, e);
+                    }
+
+                    const newEntry = {
+                        fileName: baseFileName,
+                        fileUuid: `https://www.youtube.com/watch?v=${videoId}`.replace(":", '_'),
+                        yid: metadata.display_id,
+                        mtime: stats.mtimeMs,
+                        isGz: isGz,
+                        tags: existingEntry ? existingEntry.tags : [],
+                        uploader: metadata.uploader,
+                        view_count: metadata.view_count,
+                        like_count: metadata.like_count,
+                        comment_count: metadata.comment_count,
+                        channel_url: metadata.channel_url,
+                        playlist_title: metadata.playlist_title,
+                        score: (metadata.view_count * 0.5) + (metadata.like_count * 0.3) + (metadata.comment_count * 0.2)
+                    };
+
+                    if (existingEntry) {
+                        Object.assign(existingEntry, newEntry);
+                    } else {
+                        this.database.push(newEntry);
+                    }
+                    
+                    if (metadata.uploader !== 'Uploader inconnu') {
+                        this.ensureChannelPlaylist(metadata.display_id, metadata.uploader);
+                    }
+
+                    if (metadata.playlist_title) {
+                        this.ensureYoutubePlaylist(metadata.display_id, metadata.playlist_title);
+                    }
+                    
+                    modified = true;
+                }
+            }
+        }
+
+        for (const item of files) {
+            if (item.endsWith(".info.json")) {
+                const fullPath = path.join(this.directoryPath, item);
+                try {
+                    const stats = await fs.promises.stat(fullPath);
+                    const lastMtime = this._playlistFileMtimes[item];
+                    if (lastMtime === stats.mtimeMs) {
+                        continue;
+                    }
+
+                    const content = await fs.promises.readFile(fullPath, 'utf8');
+                    const info = JSON.parse(content);
+                    if (info && info._type === 'playlist' && info.title) {
+                        const playlistName = `Playlist: ${info.title}`;
+                        this.createPlaylist(playlistName);
+                        
+                        if (Array.isArray(info.entries)) {
+                            info.entries.forEach(entry => {
+                                if (entry && entry.id) {
+                                    this.addVideoToPlaylist(playlistName, entry.id);
+                                }
+                            });
+                        }
+                        this._playlistFileMtimes[item] = stats.mtimeMs;
+                        modified = true;
+                    }
+                } catch (e) {
+                    // Ignore
+                }
+            }
+        }
+
         const fileSet = new Set(files);
         const originalLength = this.database.length;
         this.database = this.database.filter(entry => fileSet.has(entry.fileName) || fileSet.has(entry.fileName + '.zip'));
