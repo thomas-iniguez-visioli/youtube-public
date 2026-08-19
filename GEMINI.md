@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.14.21] - 2026-08-19
+### Changé
+- **Optimisation des performances de scan** : Refactorisation de la méthode d'indexation asynchrone `readDatabaseAsync()` pour exécuter les opérations de stats et de lecture des fichiers `.info.json` en parallèle via un mécanisme de pool à concurrence limitée (30 tâches simultanées max), accélérant considérablement le démarrage de l'application et la réindexation.
+
 ## [1.14.20] - 2026-08-19
 ### Ajouté
 - **Logos de chaînes dans la sidebar** : Intégration des logos de chaînes (14px) à côté du nom de l'uploader sur les cartes de suggestions (locales et en ligne) affichées dans la barre latérale de la page de visionnage.

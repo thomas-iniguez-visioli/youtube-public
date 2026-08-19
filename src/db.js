@@ -225,10 +225,32 @@ export default class FileDatabase {
         const existingFiles = new Map(this.database.map(item => [item.fileName, item]));
         let modified = false;
 
-        for (const item of files) {
+        // Filtrer les fichiers pertinents (.mp4 et .mp4.zip)
+        const relevantFiles = files.filter(item => {
             const isGz = item.endsWith(".mp4.zip");
-            if (!item.endsWith(".mp4") && !isGz) continue;
+            return item.endsWith(".mp4") || isGz;
+        });
 
+        // Limiter la concurrence pour éviter d'ouvrir trop de fichiers simultanément
+        const limitConcur = async (items, limit, fn) => {
+            const results = [];
+            const executing = [];
+            for (const item of items) {
+                const p = Promise.resolve().then(() => fn(item));
+                results.push(p);
+                if (limit <= items.length) {
+                    const e = p.then(() => executing.splice(executing.indexOf(e), 1));
+                    executing.push(e);
+                    if (executing.length >= limit) {
+                        await Promise.race(executing);
+                    }
+                }
+            }
+            return Promise.all(results);
+        };
+
+        const processVideoFile = async (item) => {
+            const isGz = item.endsWith(".mp4.zip");
             const baseFileName = isGz ? item.slice(0, -4) : item;
             const existingEntry = existingFiles.get(baseFileName);
             const fullPath = path.join(this.directoryPath, item);
@@ -236,13 +258,14 @@ export default class FileDatabase {
             try {
                 stats = await fs.promises.stat(fullPath);
             } catch (e) {
-                continue;
+                return;
             }
 
+            let entryModified = false;
             if (existingEntry) {
                 if (existingEntry.isGz !== isGz) {
                     existingEntry.isGz = isGz;
-                    modified = true;
+                    entryModified = true;
                 }
             }
 
@@ -298,7 +321,7 @@ export default class FileDatabase {
                     } else {
                         this.database.push(newEntry);
                     }
-                    
+
                     if (metadata.uploader !== 'Uploader inconnu') {
                         this.ensureChannelPlaylist(metadata.display_id, metadata.uploader);
                     }
@@ -306,43 +329,49 @@ export default class FileDatabase {
                     if (metadata.playlist_title) {
                         this.ensureYoutubePlaylist(metadata.display_id, metadata.playlist_title);
                     }
-                    
+
                     modified = true;
                 }
+            } else if (entryModified) {
+                modified = true;
             }
-        }
+        };
 
-        for (const item of files) {
-            if (item.endsWith(".info.json")) {
-                const fullPath = path.join(this.directoryPath, item);
-                try {
-                    const stats = await fs.promises.stat(fullPath);
-                    const lastMtime = this._playlistFileMtimes[item];
-                    if (lastMtime === stats.mtimeMs) {
-                        continue;
-                    }
+        await limitConcur(relevantFiles, 30, processVideoFile);
 
-                    const content = await fs.promises.readFile(fullPath, 'utf8');
-                    const info = JSON.parse(content);
-                    if (info && info._type === 'playlist' && info.title) {
-                        const playlistName = `Playlist: ${info.title}`;
-                        this.createPlaylist(playlistName);
-                        
-                        if (Array.isArray(info.entries)) {
-                            info.entries.forEach(entry => {
-                                if (entry && entry.id) {
-                                    this.addVideoToPlaylist(playlistName, entry.id);
-                                }
-                            });
-                        }
-                        this._playlistFileMtimes[item] = stats.mtimeMs;
-                        modified = true;
-                    }
-                } catch (e) {
-                    // Ignore
+        // Scanner également les fichiers JSON de métadonnées de playlists
+        const infoFiles = files.filter(item => item.endsWith(".info.json"));
+        const processInfoFile = async (item) => {
+            const fullPath = path.join(this.directoryPath, item);
+            try {
+                const stats = await fs.promises.stat(fullPath);
+                const lastMtime = this._playlistFileMtimes[item];
+                if (lastMtime === stats.mtimeMs) {
+                    return;
                 }
+
+                const content = await fs.promises.readFile(fullPath, 'utf8');
+                const info = JSON.parse(content);
+                if (info && info._type === 'playlist' && info.title) {
+                    const playlistName = `Playlist: ${info.title}`;
+                    this.createPlaylist(playlistName);
+
+                    if (Array.isArray(info.entries)) {
+                        info.entries.forEach(entry => {
+                            if (entry && entry.id) {
+                                this.addVideoToPlaylist(playlistName, entry.id);
+                            }
+                        });
+                    }
+                    this._playlistFileMtimes[item] = stats.mtimeMs;
+                    modified = true;
+                }
+            } catch (e) {
+                // Ignore
             }
-        }
+        };
+
+        await limitConcur(infoFiles, 30, processInfoFile);
 
         const fileSet = new Set(files);
         const originalLength = this.database.length;
