@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.14.22] - 2026-08-19
+### Changé
+- **Optimisation de la décompression ZIP** : Remplacement de la méthode asynchrone `zip.readFile()` d'adm-zip (qui lisait et stockait les fichiers vidéo entiers en mémoire vive sous forme de Buffer géant) par la méthode d'extraction directe par flux `zip.extractEntryTo()`, réduisant considérablement la consommation de mémoire RAM et accélérant le temps de décompression des vidéos temporaires.
+
 ## [1.14.21] - 2026-08-19
 ### Changé
 - **Optimisation des performances de scan** : Refactorisation de la méthode d'indexation asynchrone `readDatabaseAsync()` pour exécuter les opérations de stats et de lecture des fichiers `.info.json` en parallèle via un mécanisme de pool à concurrence limitée (30 tâches simultanées max), accélérant considérablement le démarrage de l'application et la réindexation.

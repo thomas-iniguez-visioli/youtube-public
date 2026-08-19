@@ -1,5 +1,6 @@
 import { parentPort, workerData } from 'worker_threads';
 import fs from 'fs';
+import path from 'path';
 import AdmZip from 'adm-zip';
 
 const { action, filePath, outputPath } = workerData;
@@ -18,8 +19,13 @@ try {
     const zipEntries = zip.getEntries();
     if (zipEntries.length > 0) {
       const entry = zipEntries[0];
-      const buffer = zip.readFile(entry);
-      fs.writeFileSync(outputPath, buffer);
+      const targetDir = path.dirname(outputPath);
+      zip.extractEntryTo(entry, targetDir, false, true);
+      
+      const extractedPath = path.join(targetDir, entry.entryName);
+      if (extractedPath !== outputPath && fs.existsSync(extractedPath)) {
+        fs.renameSync(extractedPath, outputPath);
+      }
     }
     parentPort.postMessage({ success: true });
   } else {
