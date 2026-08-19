@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.14.25] - 2026-08-19
+### Changé
+- **Démarrage d'Electron synchronisé** : Restructuration de la séquence de boot de l'application (`bootApp()`) pour exécuter et attendre la fin de la préparation des répertoires, du téléchargement des binaires (yt-dlp, FFmpeg), de la synchronisation de la base de données et du pré-téléchargement des logos de chaînes/miniatures avant de lancer le serveur HTTP et d'afficher la fenêtre Electron principale.
+
 ## [1.14.24] - 2026-08-19
 ### Ajouté
 - **Websocket de logs Frontend -> Backend** : Interception des fonctions `console.log`, `console.warn`, `console.error` et `console.info` du navigateur dans `renderer.js` ainsi que des exceptions JavaScript globales non gérées, et transmission via l'événement WebSocket `front-log` vers le processus Node.js pour un enregistrement unifié dans les logs de l'application.

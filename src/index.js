@@ -1898,19 +1898,32 @@ if (!gotTheLock) {
     }
   });
 
-  // Start the application
-  httpServer.listen(8001, function () {
-    log.info('Listening on port 8001!');
-    booted = true;
-    if (app.isReady()) {
-      createWindow();
+  // Séquence de démarrage complète : ne lancer l'interface et le serveur que quand tout est prêt
+  const bootApp = async () => {
+    try {
+      // 1. Préparer les répertoires et télécharger les binaires nécessaires
+      await build();
+      
+      // 2. Vérifier et télécharger les miniatures et logos de chaînes manquants
+      await downloadMissingThumbnails();
+      
+      // 3. Lire et indexer la base de données de vidéos de façon asynchrone et optimisée
+      await db.readDatabaseAsync();
+    } catch (err) {
+      log.error(`Erreur critique pendant l'initialisation de l'application : ${err.message}`);
     }
-    
-    // Start background build process after a delay to ensure smooth startup
-    setTimeout(() => {
-      build().catch(err => log.error('Background build error:', err));
-    }, 5000);
-  });
+
+    // 4. Démarrer le serveur HTTP
+    httpServer.listen(8001, function () {
+      log.info('Listening on port 8001!');
+      booted = true;
+      if (app.isReady() && BrowserWindow.getAllWindows().length === 0) {
+        createWindow();
+      }
+    });
+  };
+
+  bootApp();
 }
 
 app.on('activate', () => {
@@ -1920,7 +1933,7 @@ app.on('activate', () => {
 });
 
 app.on('ready', () => {
-  if (booted) {
+  if (booted && BrowserWindow.getAllWindows().length === 0) {
     createWindow();
   }
 });
