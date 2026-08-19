@@ -142,19 +142,48 @@
                             </div>
                         </div>
                     </div>
-                    <div class="row">
-                        <% playlists.forEach(function(playlist) { %>
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-2 mb-4">
-                                <a href="/playlist?name=<%= encodeURIComponent(playlist.name) %>" class="text-decoration-none">
-                                    <div class="card bg-dark text-white border-secondary h-100 playlist-card-hover">
-                                        <div class="card-body d-flex flex-column justify-content-center align-items-center" style="height: 150px; background: #272727; border-radius: 8px;">
-                                            <h5 class="text-center text-truncate w-100"><%= playlist.name %></h5>
-                                            <span class="badge bg-secondary"><%= playlist.videoIds.length %> vidéos</span>
+                    <!-- Section Vos Playlists -->
+                    <h4 class="text-white mb-3">📁 Vos Playlists</h4>
+                    <div class="row mb-4">
+                        <% const realPlaylists = playlists.filter(p => !p.name.startsWith('Channel: ')); %>
+                        <% if (realPlaylists.length === 0) { %>
+                            <div class="col-12 text-muted">Aucune playlist créée.</div>
+                        <% } else { %>
+                            <% realPlaylists.forEach(function(playlist) { %>
+                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-2 mb-4">
+                                    <a href="/playlist?name=<%= encodeURIComponent(playlist.name) %>" class="text-decoration-none">
+                                        <div class="card bg-dark text-white border-secondary h-100 playlist-card-hover">
+                                            <div class="card-body d-flex flex-column justify-content-center align-items-center" style="height: 150px; background: #272727; border-radius: 8px;">
+                                                <h5 class="text-center text-truncate w-100" title="<%= playlist.name.replace('Playlist: ', '') %>"><%= playlist.name.replace('Playlist: ', '') %></h5>
+                                                <span class="badge bg-secondary"><%= playlist.videoIds.length %> vidéos</span>
+                                            </div>
                                         </div>
-                                    </div>
-                                </a>
-                            </div>
-                        <% }); %>
+                                    </a>
+                                </div>
+                            <% }); %>
+                        <% } %>
+                    </div>
+
+                    <!-- Section Chaînes -->
+                    <h4 class="text-white mb-3">📺 Chaînes suivies</h4>
+                    <div class="row">
+                        <% const channelPlaylists = playlists.filter(p => p.name.startsWith('Channel: ')); %>
+                        <% if (channelPlaylists.length === 0) { %>
+                            <div class="col-12 text-muted">Aucune chaîne suivie.</div>
+                        <% } else { %>
+                            <% channelPlaylists.forEach(function(playlist) { %>
+                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-2 mb-4">
+                                    <a href="/playlist?name=<%= encodeURIComponent(playlist.name) %>" class="text-decoration-none">
+                                        <div class="card bg-dark text-white border-secondary h-100 playlist-card-hover">
+                                            <div class="card-body d-flex flex-column justify-content-center align-items-center" style="height: 150px; background: #272727; border-radius: 8px;">
+                                                <h5 class="text-center text-truncate w-100" title="<%= playlist.name.replace('Channel: ', '') %>"><%= playlist.name.replace('Channel: ', '') %></h5>
+                                                <span class="badge bg-secondary"><%= playlist.videoIds.length %> vidéos</span>
+                                            </div>
+                                        </div>
+                                    </a>
+                                </div>
+                            <% }); %>
+                        <% } %>
                     </div>
                 </div>
             </div>

@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.14.9] - 2026-08-19
+### Changé
+- **Séparation dans l'onglet Playlists** : Séparation visuelle claire dans l'onglet Playlists entre vos playlists personnalisées (dossier local/manuelles) et les chaînes suivies (uploaders). Nettoyage de l'affichage des titres de cartes pour masquer les préfixes techniques.
+
 ## [1.14.8] - 2026-08-16
 ### Ajouté
 - **Tests unitaires de scan de playlists** : Intégration de tests unitaires asynchrones dans `tests/playlist.test.js` pour valider le scan et l'importation de playlists via `readDatabaseAsync()`.
