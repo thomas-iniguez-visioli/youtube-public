@@ -149,30 +149,33 @@ if (typeof io !== 'undefined') {
         socket.emit('front-log', { level: 'error', message: `Unhandled Rejection: ${event.reason}` });
     });
 
-    // Create Progress Card dynamically
-    let progressContainer = document.getElementById('global-download-progress');
-    if (!progressContainer) {
-        progressContainer = document.createElement('div');
-        progressContainer.id = 'global-download-progress';
-        progressContainer.className = 'download-progress-container';
-        progressContainer.innerHTML = `
-            <div class="download-progress-card">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <span class="progress-title" style="font-size: 0.9rem; font-weight:600; color: #fff;">Téléchargement...</span>
-                    <span class="progress-meta text-muted" style="font-size: 0.8rem;">0%</span>
+    // Create Progress Card dynamically when DOM is fully loaded
+    let progressContainer = null;
+    document.addEventListener('DOMContentLoaded', () => {
+        progressContainer = document.getElementById('global-download-progress');
+        if (!progressContainer) {
+            progressContainer = document.createElement('div');
+            progressContainer.id = 'global-download-progress';
+            progressContainer.className = 'download-progress-container';
+            progressContainer.innerHTML = `
+                <div class="download-progress-card">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="progress-title" style="font-size: 0.9rem; font-weight:600; color: #fff;">Téléchargement...</span>
+                        <span class="progress-meta text-muted" style="font-size: 0.8rem;">0%</span>
+                    </div>
+                    <div class="progress" style="height: 6px; background-color: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%; background: linear-gradient(90deg, #3b82f6, #8b5cf6); transition: width 0.2s ease;"></div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-2" style="font-size: 0.75rem; color: #a1a1aa;">
+                        <span class="progress-speed">-- MB/s</span>
+                        <span class="progress-eta">ETA: --:--</span>
+                    </div>
                 </div>
-                <div class="progress" style="height: 6px; background-color: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">
-                    <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%; background: linear-gradient(90deg, #3b82f6, #8b5cf6); transition: width 0.2s ease;"></div>
-                </div>
-                <div class="d-flex justify-content-between align-items-center mt-2" style="font-size: 0.75rem; color: #a1a1aa;">
-                    <span class="progress-speed">-- MB/s</span>
-                    <span class="progress-eta">ETA: --:--</span>
-                </div>
-            </div>
-        `;
-        progressContainer.style.display = 'none';
-        document.body.appendChild(progressContainer);
-    }
+            `;
+            progressContainer.style.display = 'none';
+            document.body.appendChild(progressContainer);
+        }
+    });
 
     let downloadToastId = null;
 

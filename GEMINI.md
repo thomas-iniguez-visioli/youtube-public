@@ -1,5 +1,10 @@
 # Gemini CLI - Journal des modifications
 
+## [1.14.27] - 2026-08-19
+### Corrigé
+- **Résolution du crash appendChild (Issue #160)** : Enveloppement de la création de `progressContainer` dans un écouteur d'événement `DOMContentLoaded` dans `renderer.js`, résolvant l'erreur `Cannot read properties of null (reading 'appendChild')` survenant au démarrage lorsque le body du document n'était pas encore chargé.
+- **Ignorer la compression pour les fichiers > 2 Go (Issues #158, #159)** : Ajout d'une limite de taille de 2 Go dans `gzipFile()` dans `src/downloader.js`. Les fichiers vidéo de taille supérieure à 2 Go sont désormais conservés bruts sans tentative de compression ZIP (évitant de dépasser les limites de Buffer de Node.js).
+
 ## [1.14.26] - 2026-08-19
 ### Ajouté
 - **Nettoyage automatique des miniatures et logos orphelins (GC)** : Implémentation d'un ramasse-miettes (`cleanupOrphanedThumbnails()`) s'exécutant au démarrage et après la suppression d'une vidéo. Il identifie et supprime les fichiers miniatures (`${yid}.jpg`) et logos de chaînes (`channel_*.jpg`) orphelins (qui ne sont plus liés à aucune vidéo présente dans la base de données), libérant de l'espace disque.

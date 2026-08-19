@@ -264,6 +264,16 @@ function compressVideo(ffmpegPath, inputPath, logger) {
 }
 
 async function gzipFile(filePath, logger) {
+  try {
+    const stats = fs.statSync(filePath);
+    if (stats.size > 2 * 1024 * 1024 * 1024) {
+      if (logger) logger.warn(`La taille du fichier (${stats.size}) dépasse 2 Go. Compression ZIP ignorée.`);
+      return;
+    }
+  } catch (e) {
+    // Ignorer si le fichier n'existe pas ou erreur, le worker gérera l'erreur
+  }
+
   return new Promise((resolve, reject) => {
     if (logger) logger.info(`Zipping file with worker thread: ${filePath}`);
     const zipPath = filePath + '.zip';
