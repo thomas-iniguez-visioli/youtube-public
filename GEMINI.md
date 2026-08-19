@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.14.12] - 2026-08-19
+### Ajouté
+- **Avatar d'uploader sur les vidéos** : Intégration d'un petit macaron circulaire avec l'initiale de l'uploader devant son nom sur les cartes de vidéos de l'accueil et sur la page de visionnage pour harmoniser l'identité visuelle de la chaîne.
+
 ## [1.14.11] - 2026-08-19
 ### Ajouté
 - **Téléchargement automatique des miniatures** : Implémentation d'une routine en arrière-plan au démarrage et à la fin de chaque téléchargement pour vérifier et télécharger automatiquement les miniatures (`thumbnails`) manquantes afin de garantir leur disponibilité immédiate et hors ligne.
