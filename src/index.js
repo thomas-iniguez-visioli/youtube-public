@@ -169,12 +169,50 @@ const downloadImageWithRedirects = (imageUrl, cachePath, maxRedirects = 5) => {
   });
 };
 
+const cleanupOrphanedThumbnails = () => {
+  try {
+    const thumbCacheDir = path.join(app.getPath('userData'), 'thumbnails');
+    if (!fs.existsSync(thumbCacheDir)) return;
+    
+    const files = fs.readdirSync(thumbCacheDir);
+    const activeYids = new Set(db.database.map(v => v.yid).filter(Boolean));
+    const activeUploaders = new Set(db.database.map(v => v.uploader ? v.uploader.replace(/[^a-zA-Z0-9_\-]/g, '_') : '').filter(Boolean));
+    
+    let deletedCount = 0;
+    for (const file of files) {
+      if (file.endsWith('.jpg')) {
+        if (file.startsWith('channel_')) {
+          const uploaderSafe = file.substring(8, file.length - 4);
+          if (!activeUploaders.has(uploaderSafe)) {
+            fs.unlinkSync(path.join(thumbCacheDir, file));
+            deletedCount++;
+          }
+        } else {
+          const yid = file.substring(0, file.length - 4);
+          if (!activeYids.has(yid)) {
+            fs.unlinkSync(path.join(thumbCacheDir, file));
+            deletedCount++;
+          }
+        }
+      }
+    }
+    if (deletedCount > 0) {
+      log.info(`Nettoyage du cache : ${deletedCount} miniatures/logos orphelins supprimés.`);
+    }
+  } catch (err) {
+    log.error(`Erreur lors du nettoyage des miniatures orphelines : ${err.message}`);
+  }
+};
+
 const downloadMissingThumbnails = async () => {
   try {
     const thumbCacheDir = path.join(app.getPath('userData'), 'thumbnails');
     if (!fs.existsSync(thumbCacheDir)) {
       fs.mkdirSync(thumbCacheDir, { recursive: true });
     }
+    
+    // Nettoyer les miniatures/logos orphelins
+    cleanupOrphanedThumbnails();
     
     // Purger l'ancien cache des logos de chaînes pour forcer la mise à jour vers les vrais logos
     try {
@@ -1302,6 +1340,7 @@ web.get("/delete", function (req, res) {
   if (fs.existsSync(gzPath)) fs.rmSync(gzPath);
   db.removeFile(req.query.id);
   db.save();
+  cleanupOrphanedThumbnails();
   res.redirect("/");
 });
 

@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.14.26] - 2026-08-19
+### Ajouté
+- **Nettoyage automatique des miniatures et logos orphelins (GC)** : Implémentation d'un ramasse-miettes (`cleanupOrphanedThumbnails()`) s'exécutant au démarrage et après la suppression d'une vidéo. Il identifie et supprime les fichiers miniatures (`${yid}.jpg`) et logos de chaînes (`channel_*.jpg`) orphelins (qui ne sont plus liés à aucune vidéo présente dans la base de données), libérant de l'espace disque.
+
 ## [1.14.25] - 2026-08-19
 ### Changé
 - **Démarrage d'Electron synchronisé** : Restructuration de la séquence de boot de l'application (`bootApp()`) pour exécuter et attendre la fin de la préparation des répertoires, du téléchargement des binaires (yt-dlp, FFmpeg), de la synchronisation de la base de données et du pré-téléchargement des logos de chaînes/miniatures avant de lancer le serveur HTTP et d'afficher la fenêtre Electron principale.
