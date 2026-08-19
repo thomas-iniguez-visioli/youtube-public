@@ -1792,8 +1792,17 @@ web.get("/video", limiter, async function (req, res) {
     return res.status(416).send("Requested Range Not Satisfiable");
   }
 
-  const CHUNK_SIZE = start === 0 ? 1 * 10 ** 6 : 10 * 10 ** 6;
-  const end = !isNaN(clientEnd) ? Math.min(clientEnd, videoSize - 1) : Math.min(start + CHUNK_SIZE, videoSize - 1);
+  // Si la vidéo est complètement disponible sur le disque (non compressée ou déjà décompressée entièrement)
+  const isVideoFullyOnDisk = fs.existsSync(videoPath) && fs.statSync(videoPath).size === videoSize;
+
+  // Si elle est déjà sur le disque, on utilise de gros morceaux (10 Mo) pour limiter le nombre de requêtes.
+  // Sinon, on limite à 1 Mo max pour répondre instantanément pendant la décompression progressive.
+  const CHUNK_SIZE = isVideoFullyOnDisk ? (start === 0 ? 1 * 10 ** 6 : 10 * 10 ** 6) : (1 * 10 ** 6);
+  
+  let end = !isNaN(clientEnd) ? Math.min(clientEnd, videoSize - 1) : Math.min(start + CHUNK_SIZE, videoSize - 1);
+  if (end - start > CHUNK_SIZE) {
+    end = start + CHUNK_SIZE;
+  }
 
   // Si le fichier décompressé n'existe pas ou est incomplet, on s'assure que l'extraction tourne
   if (!fs.existsSync(videoPath) || fs.statSync(videoPath).size < end) {
@@ -1813,12 +1822,12 @@ web.get("/video", limiter, async function (req, res) {
         // Attendre que les octets requis soient écrits sur le disque
         let availableSize = 0;
         const startTime = Date.now();
-        while (availableSize <= end) {
+        while (availableSize < end) {
           if (!fs.existsSync(videoPath)) {
             await new Promise(resolve => setTimeout(resolve, 50));
           } else {
             availableSize = fs.statSync(videoPath).size;
-            if (availableSize <= end) {
+            if (availableSize < end) {
               if (!ongoingDecompressions.has(videoPath) && availableSize < end) {
                 return res.status(500).send("Échec de la décompression de la vidéo.");
               }

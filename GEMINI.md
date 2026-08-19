@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.14.29] - 2026-08-19
+### Changé
+- **Bridage dynamique de la taille des fragments (Range Requests)** : Optimisation de la taille maximale des fragments renvoyés par la route `/video`. Si la vidéo est en cours de décompression, la taille des fragments est bridée à 1 Mo maximum. Cela évite que le navigateur ne demande de trop gros morceaux (par ex. 100 Mo) d'un coup, ce qui forçait le serveur à attendre de longs moments de décompression avant de répondre, rendant le chargement de certaines vidéos très long.
+
 ## [1.14.28] - 2026-08-19
 ### Corrigé
 - **Superposition des barres de progression** : Suppression du toast de progression Bootstrap redondant (`downloadToastId`) lors du téléchargement d'une vidéo dans `renderer.js` afin d'éviter la superposition de deux barres de chargement à l'écran. Seule la barre globale et animée (`global-download-progress`) est conservée.
