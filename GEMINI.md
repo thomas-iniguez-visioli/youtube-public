@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.14.11] - 2026-08-19
+### Ajouté
+- **Téléchargement automatique des miniatures** : Implémentation d'une routine en arrière-plan au démarrage et à la fin de chaque téléchargement pour vérifier et télécharger automatiquement les miniatures (`thumbnails`) manquantes afin de garantir leur disponibilité immédiate et hors ligne.
+
 ## [1.14.10] - 2026-08-19
 ### Ajouté
 - **Logos de chaînes suivies** : Affichage d'un rendu visuel enrichi pour les chaînes suivies en utilisant le thumbnail de leur première vidéo comme bannière de fond et en ajoutant un macaron de logo circulaire contenant la première lettre de la chaîne pour simuler un avatar.

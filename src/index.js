@@ -119,12 +119,61 @@ const compressMissingVideosOnStartup = async () => {
   }
 };
 
+const downloadMissingThumbnails = async () => {
+  try {
+    const thumbCacheDir = path.join(app.getPath('userData'), 'thumbnails');
+    if (!fs.existsSync(thumbCacheDir)) {
+      fs.mkdirSync(thumbCacheDir, { recursive: true });
+    }
+    
+    log.info("Vérification et téléchargement des miniatures manquantes...");
+    let downloadedCount = 0;
+    
+    for (const entry of db.database) {
+      if (entry.yid) {
+        const cachePath = path.join(thumbCacheDir, `${entry.yid}.jpg`);
+        if (!fs.existsSync(cachePath)) {
+          const url = `https://img.youtube.com/vi/${entry.yid}/hqdefault.jpg`;
+          try {
+            await new Promise((resolve, reject) => {
+              https.get(url, (stream) => {
+                if (stream.statusCode !== 200) {
+                  return reject(new Error(`Status ${stream.statusCode}`));
+                }
+                const chunks = [];
+                stream.on('data', chunk => chunks.push(chunk));
+                stream.on('end', () => {
+                  const buf = Buffer.concat(chunks);
+                  fs.writeFileSync(cachePath, buf);
+                  downloadedCount++;
+                  resolve();
+                });
+                stream.on('error', reject);
+              }).on('error', reject);
+            });
+          } catch (e) {
+            log.warn(`Impossible de télécharger la miniature pour ${entry.yid}: ${e.message}`);
+          }
+        }
+      }
+    }
+    if (downloadedCount > 0) {
+      log.info(`${downloadedCount} miniatures manquantes ont été téléchargées.`);
+    } else {
+      log.info("Toutes les miniatures sont déjà en cache.");
+    }
+  } catch (err) {
+    log.error(`Erreur lors du téléchargement des miniatures manquantes : ${err.message}`);
+  }
+};
+
 // Deferred sync to avoid blocking startup
 setTimeout(async () => {
   cleanupDecompressedFilesOnStartup();
   await db.readDatabaseAsync();
   db.save();
   await compressMissingVideosOnStartup();
+  downloadMissingThumbnails();
 }, 1000);
 
 const web = express();
@@ -564,6 +613,7 @@ const downloadbacklog = (parameter) => {
           }
         }
         db.readDatabase(); // Final refresh
+        downloadMissingThumbnails();
         optimizeMemory();
         resolve(res);
       })
