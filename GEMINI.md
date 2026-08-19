@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.14.19] - 2026-08-19
+### Changé
+- **Agrandissement de la taille des icônes de chaînes** : Augmentation de la taille des macarons d'avatars de chaînes pour une meilleure visibilité. Passage de 14px à 24px sur les cartes vidéos de l'accueil, de 18px à 30px sur la page de lecture, et de 24px à 36px pour l'overlay des chaînes suivies.
+
 ## [1.14.18] - 2026-08-19
 ### Corrigé
 - **Erreur de syntaxe (route logo)** : Ajout du mot-clé `async` manquant sur la fonction de callback de la route `/channel-logo/:uploader`, résolvant l'erreur de build/démarrage `SyntaxError: Unexpected reserved word` due à l'utilisation de `await` dans un contexte non-async.
