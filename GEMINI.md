@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.14.16] - 2026-08-19
+### Ajouté
+- **Bouton de maintenance du cache des logos** : Intégration d'un bouton « 🧹 Purger le cache des icônes » dans l'onglet des Playlists. Il permet de vider instantanément le cache local des logos de chaînes afin de forcer leur retéléchargement en arrière-plan sans bloquer l'interface.
+
 ## [1.14.15] - 2026-08-19
 ### Corrigé
 - **Extraction des logos de chaînes** : Amélioration de la logique de récupération de l'image de profil des chaînes pour analyser également l'objet JSON `avatar` présent dans le HTML brut de YouTube (servant de fallback si les balises Open Graph standard manquent) et mise en place d'une purge automatique au démarrage pour remplacer les anciens fallbacks SVG par les vrais logos.

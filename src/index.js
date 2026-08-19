@@ -1359,6 +1359,28 @@ web.get("/history/clear", function (req, res) {
   res.redirect("/history");
 });
 
+web.get("/cache/clear-logos", function (req, res) {
+  try {
+    const thumbCacheDir = path.join(app.getPath('userData'), 'thumbnails');
+    if (fs.existsSync(thumbCacheDir)) {
+      const files = fs.readdirSync(thumbCacheDir);
+      let clearedCount = 0;
+      for (const file of files) {
+        if (file.startsWith('channel_') && file.endsWith('.jpg')) {
+          fs.unlinkSync(path.join(thumbCacheDir, file));
+          clearedCount++;
+        }
+      }
+      log.info(`Cache des logos de chaînes vidé : ${clearedCount} fichiers supprimés.`);
+    }
+    // Déclencher le retéléchargement en arrière-plan des logos
+    downloadMissingThumbnails();
+  } catch (err) {
+    log.error(`Erreur lors de la purge du cache des logos : ${err.message}`);
+  }
+  res.redirect("/?channel=Mes%20Playlists");
+});
+
 web.get("/patchnotes", function (req, res) {
   const geminiPath = path.join(__dirname, '../GEMINI.md');
   let mdContent = '';
