@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.14.17] - 2026-08-19
+### Corrigé
+- **Gestion des redirections HTTP (302)** : Implémentation d'une gestion récursive robuste des redirections HTTP (301, 302, 307, 308) lors de la récupération des pages de chaînes YouTube, résolvant le problème où les requêtes directes vers les URLs de chaînes renvoyaient des redirections non suivies (causant un repli systématique sur l'avatar par défaut).
+
 ## [1.14.16] - 2026-08-19
 ### Ajouté
 - **Bouton de maintenance du cache des logos** : Intégration d'un bouton « 🧹 Purger le cache des icônes » dans l'onglet des Playlists. Il permet de vider instantanément le cache local des logos de chaînes afin de forcer leur retéléchargement en arrière-plan sans bloquer l'interface.

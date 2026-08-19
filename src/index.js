@@ -119,6 +119,56 @@ const compressMissingVideosOnStartup = async () => {
   }
 };
 
+const fetchHtmlWithRedirects = (targetUrl, headers = {}, maxRedirects = 5) => {
+  return new Promise((resolve, reject) => {
+    if (maxRedirects <= 0) {
+      return reject(new Error("Too many redirects"));
+    }
+    https.get(targetUrl, { headers }, (res) => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        return fetchHtmlWithRedirects(res.headers.location, headers, maxRedirects - 1)
+          .then(resolve)
+          .catch(reject);
+      }
+      if (res.statusCode !== 200) {
+        return reject(new Error(`HTTP Status ${res.statusCode}`));
+      }
+      const chunks = [];
+      res.on('data', chunk => chunks.push(chunk));
+      res.on('end', () => {
+        resolve(Buffer.concat(chunks).toString('utf8'));
+      });
+      res.on('error', reject);
+    }).on('error', reject);
+  });
+};
+
+const downloadImageWithRedirects = (imageUrl, cachePath, maxRedirects = 5) => {
+  return new Promise((resolve, reject) => {
+    if (maxRedirects <= 0) {
+      return reject(new Error("Too many redirects"));
+    }
+    https.get(imageUrl, (res) => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        return downloadImageWithRedirects(res.headers.location, cachePath, maxRedirects - 1)
+          .then(resolve)
+          .catch(reject);
+      }
+      if (res.statusCode !== 200) {
+        return reject(new Error(`HTTP Status ${res.statusCode}`));
+      }
+      const chunks = [];
+      res.on('data', chunk => chunks.push(chunk));
+      res.on('end', () => {
+        const buf = Buffer.concat(chunks);
+        fs.writeFileSync(cachePath, buf);
+        resolve(buf);
+      });
+      res.on('error', reject);
+    }).on('error', reject);
+  });
+};
+
 const downloadMissingThumbnails = async () => {
   try {
     const thumbCacheDir = path.join(app.getPath('userData'), 'thumbnails');
@@ -186,53 +236,30 @@ const downloadMissingThumbnails = async () => {
         const video = db.database.find(v => v.uploader === channelName && v.channel_url);
         if (video && video.channel_url) {
           try {
-            await new Promise((resolve, reject) => {
-              https.get(video.channel_url, {
-                headers: {
-                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36'
-                }
-              }, (stream) => {
-                if (stream.statusCode !== 200) return reject(new Error(`Status ${stream.statusCode}`));
-                const chunks = [];
-                stream.on('data', chunk => chunks.push(chunk));
-                stream.on('end', () => {
-                  const html = Buffer.concat(chunks).toString('utf8');
-                  let avatarUrl;
-                  const matchOg = html.match(/<meta property="og:image" content="([^"]+)"/);
-                  if (matchOg && matchOg[1]) {
-                    avatarUrl = matchOg[1];
-                  } else {
-                    const matchAvatar = html.match(/"avatar":{"thumbnails":\[{"url":"([^"]+)"/);
-                    if (matchAvatar && matchAvatar[1]) {
-                      avatarUrl = matchAvatar[1];
-                    } else {
-                      const matchYt3 = html.match(/https:\/\/yt3\.googleusercontent\.com\/[a-zA-Z0-9_\-]+=s[0-9]+-c-k-c0x[0-9a-fA-F]+-no-rj/);
-                      if (matchYt3) {
-                        avatarUrl = matchYt3[0];
-                      }
-                    }
-                  }
-
-                  if (avatarUrl) {
-                    const cleanAvatarUrl = avatarUrl.replace(/&amp;/g, '&');
-                    https.get(cleanAvatarUrl, (imgStream) => {
-                      if (imgStream.statusCode !== 200) return reject(new Error("Img status error"));
-                      const imgChunks = [];
-                      imgStream.on('data', c => imgChunks.push(c));
-                      imgStream.on('end', () => {
-                        fs.writeFileSync(cachePath, Buffer.concat(imgChunks));
-                        downloadedLogos++;
-                        resolve();
-                      });
-                      imgStream.on('error', reject);
-                    }).on('error', reject);
-                  } else {
-                    resolve();
-                  }
-                });
-                stream.on('error', reject);
-              }).on('error', reject);
+            const html = await fetchHtmlWithRedirects(video.channel_url, {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36'
             });
+            let avatarUrl;
+            const matchOg = html.match(/<meta property="og:image" content="([^"]+)"/);
+            if (matchOg && matchOg[1]) {
+              avatarUrl = matchOg[1];
+            } else {
+              const matchAvatar = html.match(/"avatar":{"thumbnails":\[{"url":"([^"]+)"/);
+              if (matchAvatar && matchAvatar[1]) {
+                avatarUrl = matchAvatar[1];
+              } else {
+                const matchYt3 = html.match(/https:\/\/yt3\.googleusercontent\.com\/[a-zA-Z0-9_\-]+=s[0-9]+-c-k-c0x[0-9a-fA-F]+-no-rj/);
+                if (matchYt3) {
+                  avatarUrl = matchYt3[0];
+                }
+              }
+            }
+
+            if (avatarUrl) {
+              const cleanAvatarUrl = avatarUrl.replace(/&amp;/g, '&');
+              await downloadImageWithRedirects(cleanAvatarUrl, cachePath);
+              downloadedLogos++;
+            }
           } catch (e) {
             log.warn(`Impossible de télécharger l'avatar de la chaîne ${channelName} : ${e.message}`);
           }
@@ -1627,85 +1654,44 @@ web.get("/channel-logo/:uploader", function (req, res) {
     return res.send(svg);
   }
   
-  https.get(video.channel_url, {
-    headers: {
+  try {
+    const html = await fetchHtmlWithRedirects(video.channel_url, {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36'
+    });
+    let avatarUrl;
+    const matchOg = html.match(/<meta property="og:image" content="([^"]+)"/);
+    if (matchOg && matchOg[1]) {
+      avatarUrl = matchOg[1];
+    } else {
+      const matchAvatar = html.match(/"avatar":{"thumbnails":\[{"url":"([^"]+)"/);
+      if (matchAvatar && matchAvatar[1]) {
+        avatarUrl = matchAvatar[1];
+      } else {
+        const matchYt3 = html.match(/https:\/\/yt3\.googleusercontent\.com\/[a-zA-Z0-9_\-]+=s[0-9]+-c-k-c0x[0-9a-fA-F]+-no-rj/);
+        if (matchYt3) {
+          avatarUrl = matchYt3[0];
+        }
+      }
     }
-  }, (stream) => {
-    if (stream.statusCode !== 200) {
+
+    if (avatarUrl) {
+      const cleanAvatarUrl = avatarUrl.replace(/&amp;/g, '&');
+      const imgBuf = await downloadImageWithRedirects(cleanAvatarUrl, cachePath);
+      res.setHeader("Content-Type", "image/jpeg");
+      return res.send(imgBuf);
+    } else {
       const initial = uploader.substring(0, 1).toUpperCase();
       const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><circle cx="50" cy="50" r="50" fill="#343a40"/><text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="50" font-weight="bold" fill="#fff">${initial}</text></svg>`;
       res.setHeader("Content-Type", "image/svg+xml");
       return res.send(svg);
     }
-    const chunks = [];
-    stream.on('data', chunk => chunks.push(chunk));
-    stream.on('end', () => {
-      const html = Buffer.concat(chunks).toString('utf8');
-      let avatarUrl;
-      const matchOg = html.match(/<meta property="og:image" content="([^"]+)"/);
-      if (matchOg && matchOg[1]) {
-        avatarUrl = matchOg[1];
-      } else {
-        const matchAvatar = html.match(/"avatar":{"thumbnails":\[{"url":"([^"]+)"/);
-        if (matchAvatar && matchAvatar[1]) {
-          avatarUrl = matchAvatar[1];
-        } else {
-          const matchYt3 = html.match(/https:\/\/yt3\.googleusercontent\.com\/[a-zA-Z0-9_\-]+=s[0-9]+-c-k-c0x[0-9a-fA-F]+-no-rj/);
-          if (matchYt3) {
-            avatarUrl = matchYt3[0];
-          }
-        }
-      }
-
-      if (avatarUrl) {
-        const cleanAvatarUrl = avatarUrl.replace(/&amp;/g, '&');
-        https.get(cleanAvatarUrl, (imgStream) => {
-          if (imgStream.statusCode !== 200) {
-            const initial = uploader.substring(0, 1).toUpperCase();
-            const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><circle cx="50" cy="50" r="50" fill="#343a40"/><text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="50" font-weight="bold" fill="#fff">${initial}</text></svg>`;
-            res.setHeader("Content-Type", "image/svg+xml");
-            return res.send(svg);
-          }
-          const imgChunks = [];
-          imgStream.on('data', c => imgChunks.push(c));
-          imgStream.on('end', () => {
-            const imgBuf = Buffer.concat(imgChunks);
-            fs.writeFileSync(cachePath, imgBuf);
-            res.setHeader("Content-Type", "image/jpeg");
-            res.send(imgBuf);
-          });
-          imgStream.on('error', () => {
-            const initial = uploader.substring(0, 1).toUpperCase();
-            const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><circle cx="50" cy="50" r="50" fill="#343a40"/><text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="50" font-weight="bold" fill="#fff">${initial}</text></svg>`;
-            res.setHeader("Content-Type", "image/svg+xml");
-            res.send(svg);
-          });
-        }).on('error', () => {
-          const initial = uploader.substring(0, 1).toUpperCase();
-          const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><circle cx="50" cy="50" r="50" fill="#343a40"/><text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="50" font-weight="bold" fill="#fff">${initial}</text></svg>`;
-          res.setHeader("Content-Type", "image/svg+xml");
-          res.send(svg);
-        });
-      } else {
-        const initial = uploader.substring(0, 1).toUpperCase();
-        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><circle cx="50" cy="50" r="50" fill="#343a40"/><text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="50" font-weight="bold" fill="#fff">${initial}</text></svg>`;
-        res.setHeader("Content-Type", "image/svg+xml");
-        res.send(svg);
-      }
-    });
-    stream.on('error', () => {
-      const initial = uploader.substring(0, 1).toUpperCase();
-      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><circle cx="50" cy="50" r="50" fill="#343a40"/><text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="50" font-weight="bold" fill="#fff">${initial}</text></svg>`;
-      res.setHeader("Content-Type", "image/svg+xml");
-      res.send(svg);
-    });
-  }).on('error', () => {
+  } catch (err) {
+    log.warn(`Échec de récupération de logo de chaîne pour ${uploader} : ${err.message}`);
     const initial = uploader.substring(0, 1).toUpperCase();
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><circle cx="50" cy="50" r="50" fill="#343a40"/><text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="50" font-weight="bold" fill="#fff">${initial}</text></svg>`;
     res.setHeader("Content-Type", "image/svg+xml");
-    res.send(svg);
-  });
+    return res.send(svg);
+  }
 });
 
 const decompressedFiles = new Map();
