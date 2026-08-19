@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.14.28] - 2026-08-19
+### Corrigé
+- **Superposition des barres de progression** : Suppression du toast de progression Bootstrap redondant (`downloadToastId`) lors du téléchargement d'une vidéo dans `renderer.js` afin d'éviter la superposition de deux barres de chargement à l'écran. Seule la barre globale et animée (`global-download-progress`) est conservée.
+
 ## [1.14.27] - 2026-08-19
 ### Corrigé
 - **Résolution du crash appendChild (Issue #160)** : Enveloppement de la création de `progressContainer` dans un écouteur d'événement `DOMContentLoaded` dans `renderer.js`, résolvant l'erreur `Cannot read properties of null (reading 'appendChild')` survenant au démarrage lorsque le body du document n'était pas encore chargé.
