@@ -72,9 +72,7 @@
                 
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <div class="video-meta">
-                        <div style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); width: 18px; height: 18px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: bold; color: #fff; font-size: 0.65rem; margin-right: 6px; vertical-align: middle;">
-                            <%= (typeof videodata !== 'undefined' && videodata.uploader) ? videodata.uploader.substring(0, 1).toUpperCase() : '?' %>
-                        </div>
+                        <img src="/channel-logo/<%= (typeof videodata !== 'undefined' && videodata.uploader) ? encodeURIComponent(videodata.uploader) : '' %>" alt="Logo" style="width: 18px; height: 18px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(255,255,255,0.2); margin-right: 6px; vertical-align: middle;">
                         <strong><a href="/channel?name=<%= (typeof videodata !== 'undefined' && videodata.uploader) ? encodeURIComponent(videodata.uploader) : '' %>" style="color: #ffffff; text-decoration: none; vertical-align: middle;"><%= (typeof videodata !== 'undefined' && videodata.uploader) ? videodata.uploader : 'Uploader inconnu' %></a></strong> • <%= (typeof videodata !== 'undefined' && videodata.view_count) ? videodata.view_count.toLocaleString() + ' vues' : '' %>
                     </div>
                     <div class="d-flex align-items-center">

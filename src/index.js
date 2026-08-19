@@ -162,8 +162,63 @@ const downloadMissingThumbnails = async () => {
     } else {
       log.info("Toutes les miniatures sont déjà en cache.");
     }
+
+    // Pré-téléchargement des logos des chaînes
+    log.info("Vérification et téléchargement des logos de chaînes...");
+    const channels = [...new Set(db.database.map(v => v.uploader).filter(Boolean))];
+    let downloadedLogos = 0;
+    for (const channelName of channels) {
+      const safeUploader = channelName.replace(/[^a-zA-Z0-9_\-]/g, '_');
+      const cachePath = path.join(thumbCacheDir, `channel_${safeUploader}.jpg`);
+      if (!fs.existsSync(cachePath)) {
+        const video = db.database.find(v => v.uploader === channelName && v.channel_url);
+        if (video && video.channel_url) {
+          try {
+            await new Promise((resolve, reject) => {
+              https.get(video.channel_url, {
+                headers: {
+                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36'
+                }
+              }, (stream) => {
+                if (stream.statusCode !== 200) return reject(new Error(`Status ${stream.statusCode}`));
+                const chunks = [];
+                stream.on('data', chunk => chunks.push(chunk));
+                stream.on('end', () => {
+                  const html = Buffer.concat(chunks).toString('utf8');
+                  const match = html.match(/<meta property="og:image" content="([^"]+)"/);
+                  if (match && match[1]) {
+                    const avatarUrl = match[1].replace(/&amp;/g, '&');
+                    https.get(avatarUrl, (imgStream) => {
+                      if (imgStream.statusCode !== 200) return reject(new Error("Img status error"));
+                      const imgChunks = [];
+                      imgStream.on('data', c => imgChunks.push(c));
+                      imgStream.on('end', () => {
+                        fs.writeFileSync(cachePath, Buffer.concat(imgChunks));
+                        downloadedLogos++;
+                        resolve();
+                      });
+                      imgStream.on('error', reject);
+                    }).on('error', reject);
+                  } else {
+                    resolve();
+                  }
+                });
+                stream.on('error', reject);
+              }).on('error', reject);
+            });
+          } catch (e) {
+            log.warn(`Impossible de télécharger l'avatar de la chaîne ${channelName} : ${e.message}`);
+          }
+        }
+      }
+    }
+    if (downloadedLogos > 0) {
+      log.info(`${downloadedLogos} logos de chaînes ont été téléchargés.`);
+    } else {
+      log.info("Tous les logos de chaînes sont déjà en cache.");
+    }
   } catch (err) {
-    log.error(`Erreur lors du téléchargement des miniatures manquantes : ${err.message}`);
+    log.error(`Erreur lors du téléchargement des miniatures/logos manquants : ${err.message}`);
   }
 };
 
@@ -1499,6 +1554,94 @@ web.get("/thumbnail/:id", function (req, res) {
     });
     stream.on('error', () => res.status(500).send("Error"));
   }).on('error', () => res.status(500).send("Error"));
+});
+
+web.get("/channel-logo/:uploader", function (req, res) {
+  const uploader = req.params.uploader;
+  if (!uploader) return res.status(400).send("Invalid uploader");
+  
+  // Nettoyer le nom d'uploader pour le nom de fichier
+  const safeUploader = uploader.replace(/[^a-zA-Z0-9_\-]/g, '_');
+  const cachePath = path.join(thumbCacheDir, `channel_${safeUploader}.jpg`);
+  
+  if (fs.existsSync(cachePath)) {
+    res.setHeader("Content-Type", "image/jpeg");
+    return res.send(fs.readFileSync(cachePath));
+  }
+  
+  // Chercher une vidéo de cet uploader dans la DB pour avoir son channel_url
+  const video = db.database.find(v => v.uploader === uploader && v.channel_url);
+  if (!video || !video.channel_url) {
+    const initial = uploader.substring(0, 1).toUpperCase();
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><circle cx="50" cy="50" r="50" fill="#343a40"/><text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="50" font-weight="bold" fill="#fff">${initial}</text></svg>`;
+    res.setHeader("Content-Type", "image/svg+xml");
+    return res.send(svg);
+  }
+  
+  https.get(video.channel_url, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36'
+    }
+  }, (stream) => {
+    if (stream.statusCode !== 200) {
+      const initial = uploader.substring(0, 1).toUpperCase();
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><circle cx="50" cy="50" r="50" fill="#343a40"/><text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="50" font-weight="bold" fill="#fff">${initial}</text></svg>`;
+      res.setHeader("Content-Type", "image/svg+xml");
+      return res.send(svg);
+    }
+    const chunks = [];
+    stream.on('data', chunk => chunks.push(chunk));
+    stream.on('end', () => {
+      const html = Buffer.concat(chunks).toString('utf8');
+      const match = html.match(/<meta property="og:image" content="([^"]+)"/);
+      if (match && match[1]) {
+        const avatarUrl = match[1].replace(/&amp;/g, '&');
+        https.get(avatarUrl, (imgStream) => {
+          if (imgStream.statusCode !== 200) {
+            const initial = uploader.substring(0, 1).toUpperCase();
+            const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><circle cx="50" cy="50" r="50" fill="#343a40"/><text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="50" font-weight="bold" fill="#fff">${initial}</text></svg>`;
+            res.setHeader("Content-Type", "image/svg+xml");
+            return res.send(svg);
+          }
+          const imgChunks = [];
+          imgStream.on('data', c => imgChunks.push(c));
+          imgStream.on('end', () => {
+            const imgBuf = Buffer.concat(imgChunks);
+            fs.writeFileSync(cachePath, imgBuf);
+            res.setHeader("Content-Type", "image/jpeg");
+            res.send(imgBuf);
+          });
+          imgStream.on('error', () => {
+            const initial = uploader.substring(0, 1).toUpperCase();
+            const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><circle cx="50" cy="50" r="50" fill="#343a40"/><text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="50" font-weight="bold" fill="#fff">${initial}</text></svg>`;
+            res.setHeader("Content-Type", "image/svg+xml");
+            res.send(svg);
+          });
+        }).on('error', () => {
+          const initial = uploader.substring(0, 1).toUpperCase();
+          const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><circle cx="50" cy="50" r="50" fill="#343a40"/><text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="50" font-weight="bold" fill="#fff">${initial}</text></svg>`;
+          res.setHeader("Content-Type", "image/svg+xml");
+          res.send(svg);
+        });
+      } else {
+        const initial = uploader.substring(0, 1).toUpperCase();
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><circle cx="50" cy="50" r="50" fill="#343a40"/><text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="50" font-weight="bold" fill="#fff">${initial}</text></svg>`;
+        res.setHeader("Content-Type", "image/svg+xml");
+        res.send(svg);
+      }
+    });
+    stream.on('error', () => {
+      const initial = uploader.substring(0, 1).toUpperCase();
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><circle cx="50" cy="50" r="50" fill="#343a40"/><text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="50" font-weight="bold" fill="#fff">${initial}</text></svg>`;
+      res.setHeader("Content-Type", "image/svg+xml");
+      res.send(svg);
+    });
+  }).on('error', () => {
+    const initial = uploader.substring(0, 1).toUpperCase();
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><circle cx="50" cy="50" r="50" fill="#343a40"/><text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="50" font-weight="bold" fill="#fff">${initial}</text></svg>`;
+    res.setHeader("Content-Type", "image/svg+xml");
+    res.send(svg);
+  });
 });
 
 const decompressedFiles = new Map();
