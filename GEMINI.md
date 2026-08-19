@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.14.18] - 2026-08-19
+### Corrigé
+- **Erreur de syntaxe (route logo)** : Ajout du mot-clé `async` manquant sur la fonction de callback de la route `/channel-logo/:uploader`, résolvant l'erreur de build/démarrage `SyntaxError: Unexpected reserved word` due à l'utilisation de `await` dans un contexte non-async.
+
 ## [1.14.17] - 2026-08-19
 ### Corrigé
 - **Gestion des redirections HTTP (302)** : Implémentation d'une gestion récursive robuste des redirections HTTP (301, 302, 307, 308) lors de la récupération des pages de chaînes YouTube, résolvant le problème où les requêtes directes vers les URLs de chaînes renvoyaient des redirections non suivies (causant un repli systématique sur l'avatar par défaut).

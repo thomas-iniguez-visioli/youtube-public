@@ -1632,7 +1632,7 @@ web.get("/thumbnail/:id", function (req, res) {
   }).on('error', () => res.status(500).send("Error"));
 });
 
-web.get("/channel-logo/:uploader", function (req, res) {
+web.get("/channel-logo/:uploader", async function (req, res) {
   const uploader = req.params.uploader;
   if (!uploader) return res.status(400).send("Invalid uploader");
   
