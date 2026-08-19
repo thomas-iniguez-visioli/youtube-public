@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.14.23] - 2026-08-19
+### Changé
+- **Streaming instantané des vidéos compressées** : Modification de la route `/video` pour lire la taille globale de la vidéo directement depuis le header du ZIP (instantané), lancer la décompression asynchrone en tâche de fond et servir immédiatement les premiers fragments dès qu'ils sont extraits sur le disque, rendant le lancement de la vidéo instantané sans attendre l'extraction complète.
+
 ## [1.14.22] - 2026-08-19
 ### Changé
 - **Optimisation de la décompression ZIP** : Remplacement de la méthode asynchrone `zip.readFile()` d'adm-zip (qui lisait et stockait les fichiers vidéo entiers en mémoire vive sous forme de Buffer géant) par la méthode d'extraction directe par flux `zip.extractEntryTo()`, réduisant considérablement la consommation de mémoire RAM et accélérant le temps de décompression des vidéos temporaires.

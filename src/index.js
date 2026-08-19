@@ -1711,34 +1711,26 @@ web.get("/video", limiter, async function (req, res) {
 
   const gzPath = videoPath + '.zip';
 
-  // Si le fichier décompressé n'existe pas, on tente de le décompresser depuis son archive .zip
-  if (!fs.existsSync(videoPath)) {
-    if (fs.existsSync(gzPath)) {
-      try {
-        if (ongoingDecompressions.has(videoPath)) {
-          // Attendre la décompression en cours
-          await ongoingDecompressions.get(videoPath);
-        } else {
-          // Lancer la décompression
-          const decompressPromise = gunzipFile(gzPath, videoPath);
-          ongoingDecompressions.set(videoPath, decompressPromise);
-          await decompressPromise;
-          ongoingDecompressions.delete(videoPath);
-        }
-      } catch (err) {
-        log.error(`Erreur de décompression temporaire de ${fileName}: ${err.message}`);
-        ongoingDecompressions.delete(videoPath);
-        return res.status(500).send("Erreur lors de la décompression de la vidéo");
+  // Récupérer la taille de la vidéo (physique ou dans l'archive zip) pour le calcul de range
+  let videoSize;
+  if (fs.existsSync(videoPath)) {
+    videoSize = fs.statSync(videoPath).size;
+  } else if (fs.existsSync(gzPath)) {
+    try {
+      const AdmZip = (await import('adm-zip')).default;
+      const zip = new AdmZip(gzPath);
+      const zipEntries = zip.getEntries();
+      if (zipEntries.length > 0) {
+        videoSize = zipEntries[0].header.size;
       }
-    } else {
-      return res.status(404).send("File not found on disk");
+    } catch (e) {
+      log.error(`Impossible de lire la taille du fichier dans le zip : ${e.message}`);
     }
   }
+  if (!videoSize) {
+    return res.status(500).send("Taille de vidéo inconnue.");
+  }
 
-  // Mettre à jour le timestamp de dernier accès pour éviter le nettoyage automatique
-  decompressedFiles.set(videoPath, Date.now());
-
-  const videoSize = fs.statSync(videoPath).size;
   const parts = range.replace(/bytes=/, "").split("-");
   const start = parseInt(parts[0], 10);
   const endPart = parts[1];
@@ -1749,10 +1741,53 @@ web.get("/video", limiter, async function (req, res) {
     return res.status(416).send("Requested Range Not Satisfiable");
   }
 
-  // Use a smaller chunk size (1MB) at the beginning for fast startup and metadata reading,
-  // and larger chunks (10MB) for continuous playback.
   const CHUNK_SIZE = start === 0 ? 1 * 10 ** 6 : 10 * 10 ** 6;
   const end = !isNaN(clientEnd) ? Math.min(clientEnd, videoSize - 1) : Math.min(start + CHUNK_SIZE, videoSize - 1);
+
+  // Si le fichier décompressé n'existe pas ou est incomplet, on s'assure que l'extraction tourne
+  if (!fs.existsSync(videoPath) || fs.statSync(videoPath).size < end) {
+    if (fs.existsSync(gzPath)) {
+      try {
+        if (!ongoingDecompressions.has(videoPath)) {
+          const decompressPromise = gunzipFile(gzPath, videoPath);
+          ongoingDecompressions.set(videoPath, decompressPromise);
+          decompressPromise.then(() => {
+            ongoingDecompressions.delete(videoPath);
+          }).catch((err) => {
+            ongoingDecompressions.delete(videoPath);
+            log.error(`Erreur de décompression en tâche de fond : ${err.message}`);
+          });
+        }
+
+        // Attendre que les octets requis soient écrits sur le disque
+        let availableSize = 0;
+        const startTime = Date.now();
+        while (availableSize <= end) {
+          if (!fs.existsSync(videoPath)) {
+            await new Promise(resolve => setTimeout(resolve, 50));
+          } else {
+            availableSize = fs.statSync(videoPath).size;
+            if (availableSize <= end) {
+              if (!ongoingDecompressions.has(videoPath) && availableSize < end) {
+                return res.status(500).send("Échec de la décompression de la vidéo.");
+              }
+              await new Promise(resolve => setTimeout(resolve, 50));
+            }
+          }
+          if (Date.now() - startTime > 30000) { // 30 secondes max
+            return res.status(500).send("Timeout de chargement de la vidéo.");
+          }
+        }
+      } catch (err) {
+        log.error(`Erreur lors de la décompression asynchrone de ${fileName} : ${err.message}`);
+        return res.status(500).send("Erreur lors de la décompression de la vidéo");
+      }
+    } else {
+      return res.status(404).send("Vidéo introuvable sur le disque.");
+    }
+  }
+
+
 
   res.writeHead(206, {
     "Content-Range": `bytes ${start}-${end}/${videoSize}`,
