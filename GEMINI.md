@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.14.10] - 2026-08-19
+### Ajouté
+- **Logos de chaînes suivies** : Affichage d'un rendu visuel enrichi pour les chaînes suivies en utilisant le thumbnail de leur première vidéo comme bannière de fond et en ajoutant un macaron de logo circulaire contenant la première lettre de la chaîne pour simuler un avatar.
+
 ## [1.14.9] - 2026-08-19
 ### Changé
 - **Séparation dans l'onglet Playlists** : Séparation visuelle claire dans l'onglet Playlists entre vos playlists personnalisées (dossier local/manuelles) et les chaînes suivies (uploaders). Nettoyage de l'affichage des titres de cartes pour masquer les préfixes techniques.
