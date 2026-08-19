@@ -623,6 +623,18 @@ log.hooks.push((message) => {
   return message;
 });
 
+io.on('connection', (socket) => {
+  socket.on('front-log', (data) => {
+    const level = data.level || 'info';
+    const message = data.message || '';
+    if (log[level]) {
+      log[level](`[FRONT] ${message}`);
+    } else {
+      log.info(`[FRONT] ${message}`);
+    }
+  });
+});
+
 const downloadbacklog = (parameter) => {
   return downloadQueue.add(() => new Promise((resolve, reject) => {
     fs.appendFileSync(path.join(app.getPath('userData'), 'historic.txt'), `${parameter}\n`);

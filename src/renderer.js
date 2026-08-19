@@ -119,6 +119,36 @@ if (typeof io !== 'undefined') {
     const socket = io();
     socket.on('error-notification', (data) => showToast('Erreur', data.message, 'error'));
 
+    // Transférer les logs et erreurs du front vers le back via WebSocket
+    const originalLog = console.log;
+    const originalWarn = console.warn;
+    const originalError = console.error;
+    const originalInfo = console.info;
+
+    console.log = (...args) => {
+        originalLog.apply(console, args);
+        socket.emit('front-log', { level: 'info', message: args.map(String).join(' ') });
+    };
+    console.warn = (...args) => {
+        originalWarn.apply(console, args);
+        socket.emit('front-log', { level: 'warn', message: args.map(String).join(' ') });
+    };
+    console.error = (...args) => {
+        originalError.apply(console, args);
+        socket.emit('front-log', { level: 'error', message: args.map(String).join(' ') });
+    };
+    console.info = (...args) => {
+        originalInfo.apply(console, args);
+        socket.emit('front-log', { level: 'info', message: args.map(String).join(' ') });
+    };
+
+    window.addEventListener('error', (event) => {
+        socket.emit('front-log', { level: 'error', message: `Uncaught Error: ${event.message} at ${event.filename}:${event.lineno}:${event.colno}` });
+    });
+    window.addEventListener('unhandledrejection', (event) => {
+        socket.emit('front-log', { level: 'error', message: `Unhandled Rejection: ${event.reason}` });
+    });
+
     // Create Progress Card dynamically
     let progressContainer = document.getElementById('global-download-progress');
     if (!progressContainer) {

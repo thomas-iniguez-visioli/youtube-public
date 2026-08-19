@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.14.24] - 2026-08-19
+### Ajouté
+- **Websocket de logs Frontend -> Backend** : Interception des fonctions `console.log`, `console.warn`, `console.error` et `console.info` du navigateur dans `renderer.js` ainsi que des exceptions JavaScript globales non gérées, et transmission via l'événement WebSocket `front-log` vers le processus Node.js pour un enregistrement unifié dans les logs de l'application.
+
 ## [1.14.23] - 2026-08-19
 ### Changé
 - **Streaming instantané des vidéos compressées** : Modification de la route `/video` pour lire la taille globale de la vidéo directement depuis le header du ZIP (instantané), lancer la décompression asynchrone en tâche de fond et servir immédiatement les premiers fragments dès qu'ils sont extraits sur le disque, rendant le lancement de la vidéo instantané sans attendre l'extraction complète.
