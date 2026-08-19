@@ -178,7 +178,7 @@
                                             <div class="video-thumb-container" style="position: relative; height: 120px; overflow: hidden; background: #272727;">
                                                 <% if (playlist.videoIds.length > 0) { %>
                                                     <img src="/thumbnail/<%= playlist.videoIds[0] %>" class="video-thumbnail" alt="Logo Chaîne" style="height: 100%; width: 100%; object-fit: cover; filter: brightness(0.75);">
-                                                    <div style="position: absolute; bottom: 8px; left: 8px; background: rgba(0, 0, 0, 0.6); padding: 4px 8px; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 1px solid rgba(255, 255, 255, 0.2); font-size: 0.85rem;">
+                                                    <div style="position: absolute; bottom: 8px; left: 8px; background: rgba(0, 0, 0, 0.6); padding: 4px 8px; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 1px solid rgba(255, 255, 255, 0.2); font-size: 0.75rem;">
                                                         <%= playlist.name.replace('Channel: ', '').substring(0, 1).toUpperCase() %>
                                                     </div>
                                                 <% } else { %>
@@ -290,7 +290,7 @@
                                 <div class="video-meta">
                                     ${result.uploader ? `
                                         <div class="mb-1 d-flex align-items-center gap-1">
-                                            <div style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); width: 18px; height: 18px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: bold; color: #fff;">
+                                            <div style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); width: 14px; height: 14px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.55rem; font-weight: bold; color: #fff;">
                                                 ${result.uploader.substring(0, 1).toUpperCase()}
                                             </div>
                                             <a href="/channel?name=${encodeURIComponent(result.uploader)}" onclick="event.stopPropagation();" style="color: #aaaaaa; text-decoration: none; font-size: 0.85rem;">

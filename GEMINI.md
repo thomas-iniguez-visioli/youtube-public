@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.14.13] - 2026-08-19
+### Changé
+- **Redimensionnement des logos de chaînes** : Réduction de la taille des macarons d'avatars de chaînes sur les cartes vidéos (14px) et sur la page de lecture (18px) pour un rendu visuel plus fin, plus compact et mieux intégré à l'interface globale.
+
 ## [1.14.12] - 2026-08-19
 ### Ajouté
 - **Avatar d'uploader sur les vidéos** : Intégration d'un petit macaron circulaire avec l'initiale de l'uploader devant son nom sur les cartes de vidéos de l'accueil et sur la page de visionnage pour harmoniser l'identité visuelle de la chaîne.
