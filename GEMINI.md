@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.14.8] - 2026-08-16
+### Ajouté
+- **Tests unitaires de scan de playlists** : Intégration de tests unitaires asynchrones dans `tests/playlist.test.js` pour valider le scan et l'importation de playlists via `readDatabaseAsync()`.
+
 ## [1.14.7] - 2026-08-16
 ### Corrigé
 - **Performances de démarrage et fluidité UI** : Migration de l'archivage et de la décompression ZIP vers un Worker Thread dédié en arrière-plan (`compressWorker.js`). Implémentation d'une indexation asynchrone (`readDatabaseAsync`) et optimisation avec un cache de `mtime` pour éviter les lectures de fichiers `.info.json` redondantes, résolvant les freezes "Ne répond pas" au boot de l'application.

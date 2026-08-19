@@ -26,5 +26,12 @@ try {
     parentPort.postMessage({ success: false, error: `Action inconnue : ${action}` });
   }
 } catch (err) {
+  if (action === 'zip' && outputPath && fs.existsSync(outputPath)) {
+    try {
+      fs.unlinkSync(outputPath);
+    } catch (e) {
+      // Ignorer
+    }
+  }
   parentPort.postMessage({ success: false, error: err.message });
 }

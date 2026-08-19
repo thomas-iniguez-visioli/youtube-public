@@ -271,22 +271,31 @@ async function gzipFile(filePath, logger) {
     const worker = new Worker(workerPath, {
       workerData: { action: 'zip', filePath, outputPath: zipPath }
     });
+    const cleanupAndReject = (err) => {
+      try {
+        if (fs.existsSync(zipPath)) {
+          fs.unlinkSync(zipPath);
+        }
+      } catch (e) {}
+      reject(err);
+    };
+
     worker.on('message', (message) => {
       if (message.success) {
         if (logger) logger.info(`Zipped successfully in worker: ${zipPath}`);
         resolve();
       } else {
         if (logger) logger.info(`Failed to zip file in worker: ${message.error}`);
-        reject(new Error(message.error));
+        cleanupAndReject(new Error(message.error));
       }
     });
     worker.on('error', (err) => {
       if (logger) logger.info(`Worker zip error: ${err.message}`);
-      reject(err);
+      cleanupAndReject(err);
     });
     worker.on('exit', (code) => {
       if (code !== 0) {
-        reject(new Error(`Worker stopped with exit code ${code}`));
+        cleanupAndReject(new Error(`Worker stopped with exit code ${code}`));
       }
     });
   });

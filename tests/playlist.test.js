@@ -85,4 +85,26 @@ describe("Playlist System", () => {
 
         fs.unlinkSync(playlistInfoPath);
     });
+
+    test("should scan and import playlist info.json files during readDatabaseAsync", async () => {
+        const playlistInfoPath = path.join(tempDir, "CCRVEVO--CCRVEVO - AsyncVideos [playlist_id2].info.json");
+        const playlistData = {
+            _type: "playlist",
+            title: "CCRVEVO - AsyncVideos",
+            entries: [
+                { id: "id1" },
+                { id: "id2" }
+            ]
+        };
+        fs.writeFileSync(playlistInfoPath, JSON.stringify(playlistData));
+
+        await db.readDatabaseAsync();
+        
+        const playlist = db.getPlaylist("Playlist: CCRVEVO - AsyncVideos");
+        assert.ok(playlist, "Playlist should be detected and created asynchronously");
+        assert.ok(playlist.videoIds.includes("id1"), "id1 should be in the playlist");
+        assert.ok(playlist.videoIds.includes("id2"), "id2 should be in the playlist");
+
+        fs.unlinkSync(playlistInfoPath);
+    });
 });
