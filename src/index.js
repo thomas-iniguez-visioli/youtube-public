@@ -126,6 +126,18 @@ const downloadMissingThumbnails = async () => {
       fs.mkdirSync(thumbCacheDir, { recursive: true });
     }
     
+    // Purger l'ancien cache des logos de chaînes pour forcer la mise à jour vers les vrais logos
+    try {
+      const files = fs.readdirSync(thumbCacheDir);
+      for (const file of files) {
+        if (file.startsWith('channel_') && file.endsWith('.jpg')) {
+          fs.unlinkSync(path.join(thumbCacheDir, file));
+        }
+      }
+    } catch (e) {
+      log.warn(`Échec du nettoyage de l'ancien cache des logos : ${e.message}`);
+    }
+    
     log.info("Vérification et téléchargement des miniatures manquantes...");
     let downloadedCount = 0;
     
@@ -185,10 +197,25 @@ const downloadMissingThumbnails = async () => {
                 stream.on('data', chunk => chunks.push(chunk));
                 stream.on('end', () => {
                   const html = Buffer.concat(chunks).toString('utf8');
-                  const match = html.match(/<meta property="og:image" content="([^"]+)"/);
-                  if (match && match[1]) {
-                    const avatarUrl = match[1].replace(/&amp;/g, '&');
-                    https.get(avatarUrl, (imgStream) => {
+                  let avatarUrl;
+                  const matchOg = html.match(/<meta property="og:image" content="([^"]+)"/);
+                  if (matchOg && matchOg[1]) {
+                    avatarUrl = matchOg[1];
+                  } else {
+                    const matchAvatar = html.match(/"avatar":{"thumbnails":\[{"url":"([^"]+)"/);
+                    if (matchAvatar && matchAvatar[1]) {
+                      avatarUrl = matchAvatar[1];
+                    } else {
+                      const matchYt3 = html.match(/https:\/\/yt3\.googleusercontent\.com\/[a-zA-Z0-9_\-]+=s[0-9]+-c-k-c0x[0-9a-fA-F]+-no-rj/);
+                      if (matchYt3) {
+                        avatarUrl = matchYt3[0];
+                      }
+                    }
+                  }
+
+                  if (avatarUrl) {
+                    const cleanAvatarUrl = avatarUrl.replace(/&amp;/g, '&');
+                    https.get(cleanAvatarUrl, (imgStream) => {
                       if (imgStream.statusCode !== 200) return reject(new Error("Img status error"));
                       const imgChunks = [];
                       imgStream.on('data', c => imgChunks.push(c));
@@ -1593,10 +1620,25 @@ web.get("/channel-logo/:uploader", function (req, res) {
     stream.on('data', chunk => chunks.push(chunk));
     stream.on('end', () => {
       const html = Buffer.concat(chunks).toString('utf8');
-      const match = html.match(/<meta property="og:image" content="([^"]+)"/);
-      if (match && match[1]) {
-        const avatarUrl = match[1].replace(/&amp;/g, '&');
-        https.get(avatarUrl, (imgStream) => {
+      let avatarUrl;
+      const matchOg = html.match(/<meta property="og:image" content="([^"]+)"/);
+      if (matchOg && matchOg[1]) {
+        avatarUrl = matchOg[1];
+      } else {
+        const matchAvatar = html.match(/"avatar":{"thumbnails":\[{"url":"([^"]+)"/);
+        if (matchAvatar && matchAvatar[1]) {
+          avatarUrl = matchAvatar[1];
+        } else {
+          const matchYt3 = html.match(/https:\/\/yt3\.googleusercontent\.com\/[a-zA-Z0-9_\-]+=s[0-9]+-c-k-c0x[0-9a-fA-F]+-no-rj/);
+          if (matchYt3) {
+            avatarUrl = matchYt3[0];
+          }
+        }
+      }
+
+      if (avatarUrl) {
+        const cleanAvatarUrl = avatarUrl.replace(/&amp;/g, '&');
+        https.get(cleanAvatarUrl, (imgStream) => {
           if (imgStream.statusCode !== 200) {
             const initial = uploader.substring(0, 1).toUpperCase();
             const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><circle cx="50" cy="50" r="50" fill="#343a40"/><text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="50" font-weight="bold" fill="#fff">${initial}</text></svg>`;

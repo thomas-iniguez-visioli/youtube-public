@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.14.15] - 2026-08-19
+### Corrigé
+- **Extraction des logos de chaînes** : Amélioration de la logique de récupération de l'image de profil des chaînes pour analyser également l'objet JSON `avatar` présent dans le HTML brut de YouTube (servant de fallback si les balises Open Graph standard manquent) et mise en place d'une purge automatique au démarrage pour remplacer les anciens fallbacks SVG par les vrais logos.
+
 ## [1.14.14] - 2026-08-19
 ### Ajouté
 - **Vrais logos de chaînes YouTube** : Remplacement des avatars de lettres par les véritables images de profils (logos) des chaînes YouTube. Implémentation d'une nouvelle route `/channel-logo/:uploader` extrayant dynamiquement l'URL de l'avatar via les métadonnées Open Graph de la page de la chaîne, avec mise en cache locale et fallback SVG élégant.
