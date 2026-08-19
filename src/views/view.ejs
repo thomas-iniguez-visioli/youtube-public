@@ -161,7 +161,14 @@
                             <img src="/thumbnail/<%= v.yid %>" loading="lazy" class="suggestion-thumb" alt="<%= v.fileName %>">
                             <div class="suggestion-info" style="min-width: 0;">
                                 <span class="suggestion-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;" title="<%= v.fileName %>"><%= v.fileName %></span>
-                                <span class="suggestion-channel">Voir la vidéo</span>
+                                <span class="suggestion-channel" style="font-size: 0.75rem; color: #aaaaaa; display: flex; align-items: center; gap: 6px; margin-top: 2px;">
+                                    <% if (v.uploader) { %>
+                                        <img src="/channel-logo/<%= encodeURIComponent(v.uploader) %>" alt="Logo" style="width: 14px; height: 14px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(255,255,255,0.2);">
+                                        <%= v.uploader %>
+                                    <% } else { %>
+                                        Bibliothèque
+                                    <% } %>
+                                </span>
                             </div>
                         </a>
                         <button onclick="addToQueue('<%= v.yid %>')" class="btn btn-outline-success btn-sm ms-2" title="Ajouter à la file">
@@ -324,7 +331,10 @@
                         </div>
                         <div class="suggestion-info" style="min-width: 0;">
                             <span class="suggestion-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;" title="${escapeHTML(v.title)}">${escapeHTML(v.title)}</span>
-                            <span class="suggestion-channel" style="font-size: 0.75rem; color: #aaaaaa;">${escapeHTML(v.uploader || v.channel || 'YouTube')}</span>
+                            <span class="suggestion-channel" style="font-size: 0.75rem; color: #aaaaaa; display: flex; align-items: center; gap: 6px; margin-top: 2px;">
+                                <img src="/channel-logo/${encodeURIComponent(v.uploader || v.channel || 'YouTube')}" alt="Logo" style="width: 14px; height: 14px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(255,255,255,0.2);">
+                                ${escapeHTML(v.uploader || v.channel || 'YouTube')}
+                            </span>
                         </div>
                     </a>
                     <button class="btn btn-outline-success btn-sm ms-2" title="Télécharger">

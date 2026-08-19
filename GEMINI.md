@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.14.20] - 2026-08-19
+### Ajouté
+- **Logos de chaînes dans la sidebar** : Intégration des logos de chaînes (14px) à côté du nom de l'uploader sur les cartes de suggestions (locales et en ligne) affichées dans la barre latérale de la page de visionnage.
+
 ## [1.14.19] - 2026-08-19
 ### Changé
 - **Agrandissement de la taille des icônes de chaînes** : Augmentation de la taille des macarons d'avatars de chaînes pour une meilleure visibilité. Passage de 14px à 24px sur les cartes vidéos de l'accueil, de 18px à 30px sur la page de lecture, et de 24px à 36px pour l'overlay des chaînes suivies.
