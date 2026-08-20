@@ -325,8 +325,8 @@ setTimeout(async () => {
 }, 1000);
 
 const web = express();
-log.transports.file.level = 'debug';
-log.transports.console.level = 'debug';
+log.transports.file.level = 'silly';
+log.transports.console.level = 'silly';
 log.transports.file.file = path.join(app.getPath('userData'), 'log', 'app.log');
 
 /**
@@ -860,6 +860,18 @@ web.use((err, req, res, next) => {
 web.use(express.json());
 web.use(express.urlencoded({ extended: false }));
 web.use(limiter);
+
+// Middleware de logging HTTP détaillé pour Winston / electron-log
+web.use((req, res, next) => {
+  log.info(`[HTTP] ${req.method} ${req.url} - IP: ${req.ip}`);
+  if (req.query && Object.keys(req.query).length > 0) {
+    log.debug(`[HTTP Query] ${JSON.stringify(req.query)}`);
+  }
+  if (req.body && Object.keys(req.body).length > 0) {
+    log.debug(`[HTTP Body] ${JSON.stringify(req.body)}`);
+  }
+  next();
+});
 
 web.set('view engine', 'ejs');
 web.set('views', path.join(app.getPath('userData'), 'views'));

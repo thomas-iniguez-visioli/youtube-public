@@ -1,5 +1,12 @@
 # Gemini CLI - Journal des modifications
 
+## [1.14.40] - 2026-08-20
+### Ajouté
+- **Système de log enrichi** :
+  - Passage des logs `electron-log` du niveau `debug` au niveau maximum `silly` pour obtenir toutes les traces possibles en développement et production.
+  - Implémentation d'un middleware Express de logging HTTP détaillé, enregistrant chaque méthode, URL, paramètres de requête (`req.query`) et payload (`req.body`) reçus.
+  - Migration de toutes les alertes et traces de la base de données (`src/db.js`) vers `electron-log`, fournissant un suivi verbeux complet sur le chargement, la sauvegarde et le scan asynchrone des répertoires de stockage.
+
 ## [1.14.39] - 2026-08-20
 ### Corrigé
 - **Gestion propre de l'annulation** : Introduction d'un flag `isDownloadCancelled` sur le processus principal Express. Lors d'une interruption manuelle par le bouton « Couper », la promesse de téléchargement `downloadbacklog` se résout proprement avec `{ cancelled: true }` au lieu de lever un échec de type erreur système, empêchant ainsi les mécanismes d'auto-retry du backlog de réinsérer l'URL ou de retenter le téléchargement en boucle.

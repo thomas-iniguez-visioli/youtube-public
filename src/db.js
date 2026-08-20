@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { createRequire } from 'module';
+import log from 'electron-log';
 
 const require = createRequire(import.meta.url);
 
@@ -74,7 +75,7 @@ export default class FileDatabase {
 
     readDatabase() {
         if (!fs.existsSync(this.directoryPath)) {
-            console.warn(`Directory ${this.directoryPath} does not exist, skipping read.`);
+            log.warn(`[DB] Le répertoire ${this.directoryPath} n'existe pas, lecture ignorée.`);
             return;
         }
 
@@ -217,7 +218,7 @@ export default class FileDatabase {
 
     async readDatabaseAsync() {
         if (!fs.existsSync(this.directoryPath)) {
-            console.warn(`Directory ${this.directoryPath} does not exist, skipping read.`);
+            log.warn(`[DB] Le répertoire ${this.directoryPath} n'existe pas, lecture asynchrone ignorée.`);
             return;
         }
 
@@ -297,7 +298,7 @@ export default class FileDatabase {
                             };
                         }
                     } catch (e) {
-                        console.error(`Error reading info file ${infoPath}:`, e);
+                        log.error(`[DB] Erreur lors de la lecture du fichier info JSON ${infoPath} : ${e.message}`, e);
                     }
 
                     const newEntry = {
@@ -394,6 +395,7 @@ export default class FileDatabase {
             fs.mkdirSync(dir, { recursive: true });
         }
         try {
+            log.info(`[DB] Sauvegarde de la base de données (${this.database.length} vidéos, ${this.playlists.length} playlists, ${this.history.length} historiques, ${this.queue.length} en file d'attente)`);
             fs.writeFileSync(databaseFilePath, JSON.stringify({
                 database: this.database,
                 history: this.history,
@@ -401,17 +403,20 @@ export default class FileDatabase {
                 queue: this.queue,
                 favorites: this.favorites
             }));
+            log.debug("[DB] Sauvegarde réussie dans " + databaseFilePath);
         } catch (e) {
-            console.error("Failed to save database:", e);
+            log.error(`[DB] Échec de la sauvegarde de la base de données: ${e.message}`, e);
         }
     }
 
     loadDatabase() {
+        log.info("[DB] Chargement de la base de données depuis " + databaseFilePath);
         if (fs.existsSync(databaseFilePath)) {
             try {
                 const content = fs.readFileSync(databaseFilePath, 'utf8');
                 if (!content) {
                     this.database = [];
+                    log.warn("[DB] Le fichier de base de données est vide.");
                     return;
                 }
                 const data = JSON.parse(content);
@@ -420,14 +425,17 @@ export default class FileDatabase {
                 this.playlists = Array.isArray(data.playlists) ? data.playlists : [];
                 this.queue = Array.isArray(data.queue) ? data.queue : [];
                 this.favorites = Array.isArray(data.favorites) ? data.favorites : [];
+                log.info(`[DB] Base de données chargée avec succès. Entrées indexées : ${this.database.length} vidéos, ${this.playlists.length} playlists.`);
             } catch (error) {
-                console.error("Failed to parse database file:", error);
+                log.error(`[DB] Échec de la lecture de la base de données: ${error.message}`, error);
                 this.database = [];
                 this.history = [];
                 this.playlists = [];
                 this.queue = [];
                 this.favorites = [];
             }
+        } else {
+            log.warn("[DB] Aucun fichier de base de données existant trouvé. Initialisation à vide.");
         }
         this._buildIndex();
     }
