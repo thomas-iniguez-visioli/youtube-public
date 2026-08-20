@@ -169,6 +169,7 @@ if (typeof io !== 'undefined') {
                     <div class="d-flex justify-content-between align-items-center mt-2" style="font-size: 0.75rem; color: #a1a1aa;">
                         <span class="progress-speed">-- MB/s</span>
                         <span class="progress-eta">ETA: --:--</span>
+                        <button class="btn btn-sm btn-danger py-0 px-2 cancel-download-btn" style="font-size: 0.7rem; border-radius: 4px; border: none; background-color: #ef4444; color: #fff;">Couper</button>
                     </div>
                 </div>
             `;
@@ -186,6 +187,29 @@ if (typeof io !== 'undefined') {
             const barEl = progressContainer.querySelector('.progress-bar');
             const speedEl = progressContainer.querySelector('.progress-speed');
             const etaEl = progressContainer.querySelector('.progress-eta');
+
+            const cancelBtn = progressContainer.querySelector('.cancel-download-btn');
+            if (cancelBtn && !cancelBtn.dataset.hasListener) {
+                cancelBtn.dataset.hasListener = "true";
+                cancelBtn.addEventListener('click', () => {
+                    cancelBtn.disabled = true;
+                    cancelBtn.textContent = 'Coupe...';
+                    fetch('/download/cancel', { method: 'POST' })
+                        .then(res => res.json())
+                        .then(res => {
+                            cancelBtn.disabled = false;
+                            cancelBtn.textContent = 'Couper';
+                            if (res.success) {
+                                progressContainer.style.display = 'none';
+                            }
+                        })
+                        .catch(err => {
+                            cancelBtn.disabled = false;
+                            cancelBtn.textContent = 'Couper';
+                            console.error("Erreur d'annulation:", err);
+                        });
+                });
+            }
 
             let displayName = "Téléchargement...";
             if (data.parameter && data.parameter.includes('watch?v=')) {

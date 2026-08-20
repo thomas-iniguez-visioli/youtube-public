@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.14.36] - 2026-08-20
+### Ajouté
+- **Bouton « Couper le téléchargement »** : Implémentation d'une fonctionnalité d'annulation des téléchargements en cours. Ajout d'une route API `POST /download/cancel` terminant proprement le sous-processus `yt-dlp` en cours d'exécution via le signal `SIGKILL`. Intégration d'un bouton interactif « Couper » sur le widget de progression de l'interface utilisateur pour déclencher cette action d'une seule traite.
+
 ## [1.14.35] - 2026-08-20
 ### Sécurisé
 - **Résolution des alertes CodeQL restantes (Issues XSS, Path Traversal, SSRF et ReDoS)** :

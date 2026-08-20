@@ -674,6 +674,8 @@ io.on('connection', (socket) => {
   });
 });
 
+let currentDownloadProcess = null;
+
 const downloadbacklog = (parameter) => {
   return downloadQueue.add(() => new Promise((resolve, reject) => {
     fs.appendFileSync(path.join(app.getPath('userData'), 'historic.txt'), `${parameter}\n`);
@@ -755,8 +757,11 @@ const downloadbacklog = (parameter) => {
           speed: progress.speed
         });
       }
+    }, (proc) => {
+      currentDownloadProcess = proc;
     })
       .then(async (res) => {
+        currentDownloadProcess = null;
         if (downloadedFilePath && fs.existsSync(downloadedFilePath)) {
           try {
             if (io) {
@@ -778,6 +783,7 @@ const downloadbacklog = (parameter) => {
         resolve(res);
       })
       .catch((err) => {
+        currentDownloadProcess = null;
         optimizeMemory();
         reject(err);
       });
@@ -1174,6 +1180,31 @@ web.get("/queue/remove", function (req, res) {
 web.get("/queue/clear", function (req, res) {
   db.clearQueue();
   res.redirect("/queue");
+});
+
+web.post("/download/cancel", function (req, res) {
+  if (currentDownloadProcess) {
+    try {
+      currentDownloadProcess.kill('SIGKILL');
+      currentDownloadProcess = null;
+      isDownloading = false;
+      log.info("Téléchargement annulé par l'utilisateur.");
+      if (io) {
+        io.emit('download-progress', {
+          parameter: '',
+          percent: 0,
+          eta: 'Téléchargement annulé',
+          speed: ''
+        });
+      }
+      return res.json({ success: true, message: "Téléchargement coupé avec succès." });
+    } catch (e) {
+      log.error(`Erreur lors de l'annulation du téléchargement : ${e.message}`);
+      return res.status(500).json({ success: false, message: e.message });
+    }
+  } else {
+    return res.json({ success: false, message: "Aucun téléchargement en cours." });
+  }
 });
 
 web.get("/watch", function (req, res) {

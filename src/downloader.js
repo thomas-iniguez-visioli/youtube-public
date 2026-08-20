@@ -43,7 +43,7 @@ function createDownloadArgs(parameter, ffmpegDir, storagePath, outputFileFormat,
   return args;
 }
 
-function runDownload(ytdlpPath, args, logger, onVideoFinished, onProgress) {
+function runDownload(ytdlpPath, args, logger, onVideoFinished, onProgress, onProcessCreated) {
   return new Promise((resolve, reject) => {
     // Quote all arguments to handle spaces
     const quotedArgs = args.map((arg) => {
@@ -63,6 +63,7 @@ function runDownload(ytdlpPath, args, logger, onVideoFinished, onProgress) {
     }
 
     const childProcess = child.spawn(ytdlpPath, args, { env });
+    if (onProcessCreated) onProcessCreated(childProcess);
 
     childProcess.on('error', (err) => {
       if (logger) logger.info(`Erreur de spawn yt-dlp: ${err.message}`);
