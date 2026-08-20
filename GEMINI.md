@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.14.33] - 2026-08-20
+### Corrigé
+- **Résolution du crash de notification au boot (Issue #161)** : Correction de l'envoi de la notification native de démarrage dans `src/index.js`. L'appel attend désormais que l'événement `ready` d'Electron soit déclenché (`app.isReady()`) pour instancier la `Notification`, évitant ainsi le crash `Cannot create Notification before app is ready` au boot de l'application.
+
 ## [1.14.32] - 2026-08-20
 ### Changé
 - **Optimisation de la mémoire vive (RAM)** : 

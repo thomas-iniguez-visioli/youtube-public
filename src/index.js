@@ -1944,12 +1944,20 @@ if (!gotTheLock) {
 
   // Séquence de démarrage complète : ne lancer l'interface et le serveur que quand tout est prêt
   const bootApp = async () => {
-    // Envoyer une notification native pour annoncer le début du lancement
-    if (Notification.isSupported()) {
-      new Notification({
-        title: 'YouTube Local',
-        body: 'Préparation et synchronisation de l\'application...'
-      }).show();
+    // Envoyer une notification native pour annoncer le début du lancement dès que l'application est prête
+    const showBootNotification = () => {
+      if (Notification.isSupported()) {
+        new Notification({
+          title: 'YouTube Local',
+          body: 'Préparation et synchronisation de l\'application...'
+        }).show();
+      }
+    };
+
+    if (app.isReady()) {
+      showBootNotification();
+    } else {
+      app.once('ready', showBootNotification);
     }
 
     try {
