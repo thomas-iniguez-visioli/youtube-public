@@ -831,6 +831,7 @@ web.use((err, req, res, next) => {
 
 web.use(express.json());
 web.use(express.urlencoded({ extended: false }));
+web.use(limiter);
 
 web.set('view engine', 'ejs');
 web.set('views', path.join(app.getPath('userData'), 'views'));

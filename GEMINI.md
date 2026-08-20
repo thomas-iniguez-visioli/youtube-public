@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.14.34] - 2026-08-20
+### Sécurisé
+- **Résolution de l'alerte CodeQL (Issue #71 - Missing rate limiting)** : Application globale du middleware `express-rate-limit` sur l'ensemble de l'instance d'API Express (`web.use(limiter)`) dans `src/index.js`. Cela protège l'intégralité des routes et l'accès au système de fichiers (notamment les polices, thumbnails, etc.) contre les attaques DoS, éliminant ainsi l'avertissement de sécurité de CodeQL.
+
 ## [1.14.33] - 2026-08-20
 ### Corrigé
 - **Résolution du crash de notification au boot (Issue #161)** : Correction de l'envoi de la notification native de démarrage dans `src/index.js`. L'appel attend désormais que l'événement `ready` d'Electron soit déclenché (`app.isReady()`) pour instancier la `Notification`, évitant ainsi le crash `Cannot create Notification before app is ready` au boot de l'application.
