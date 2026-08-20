@@ -161,7 +161,8 @@ const downloadImageWithRedirects = (imageUrl, cachePath, maxRedirects = 5) => {
       res.on('data', chunk => chunks.push(chunk));
       res.on('end', () => {
         const buf = Buffer.concat(chunks);
-        fs.writeFileSync(cachePath, buf);
+        const safePath = path.join(thumbCacheDir, path.basename(cachePath));
+        fs.writeFileSync(safePath, buf);
         resolve(buf);
       });
       res.on('error', reject);
@@ -1361,7 +1362,7 @@ web.get("/api/related", async function (req, res) {
     return res.json([]);
   }
   try {
-    let cleanTitle = title.replace(/\.mp4$/i, '').replace(/\s*\[[^\]]+\]$/, '').trim();
+    let cleanTitle = title.replace(/\.mp4$/i, '').replace(/\s*\[[a-zA-Z0-9_\-]{11}\]$/, '').trim();
     const query = uploader ? `${cleanTitle} ${uploader}` : cleanTitle;
     const cacheKey = `related:${query}`;
     
@@ -1387,7 +1388,7 @@ web.get("/api/remixes", async function (req, res) {
     return res.json([]);
   }
   try {
-    let cleanTitle = title.replace(/\.mp4$/i, '').replace(/\s*\[[^\]]+\]$/, '').trim();
+    let cleanTitle = title.replace(/\.mp4$/i, '').replace(/\s*\[[a-zA-Z0-9_\-]{11}\]$/, '').trim();
     const query = `${cleanTitle} remix`;
     const cacheKey = `remixes:${query}`;
     
@@ -1654,16 +1655,23 @@ web.get("/favicon.ico", function (req, res) {
   serveStaticFile(req, res, "./src/client-dist/favicon.ico", "./client-dist/favicon.ico", "image/x-icon");
 });
 web.get("/fonts/:file", function (req, res) {
-  const file = req.params.file.replace(/[^a-zA-Z0-9._\-]/g, '');
+  const file = path.basename(req.params.file.replace(/[^a-zA-Z0-9._\-]/g, ''));
   serveStaticFile(req, res, `./src/client-dist/${file}`, `./client-dist/${file}`, "font/woff2");
 });
 const thumbCacheDir = path.join(app.getPath('userData'), 'thumbnails');
 if (!fs.existsSync(thumbCacheDir)) fs.mkdirSync(thumbCacheDir, { recursive: true });
 
 web.get("/thumbnail/:id", function (req, res) {
-  const id = req.params.id.replace(/[^a-zA-Z0-9_\-]/g, '');
+  const id = path.basename(req.params.id.replace(/[^a-zA-Z0-9_\-]/g, ''));
   if (!id) return res.status(400).send("Invalid id");
-  const cachePath = path.join(thumbCacheDir, `${id}.jpg`);
+  
+  // Validation stricte du format d'ID YouTube (11 caractères alphanumériques/tirets) pour empêcher les redirections ou SSRF
+  const ytIdRegex = /^[a-zA-Z0-9_\-]{11}$/;
+  if (!ytIdRegex.test(id)) {
+    return res.status(400).send("Invalid YouTube ID format");
+  }
+
+  const cachePath = path.join(thumbCacheDir, path.basename(`${id}.jpg`));
   if (fs.existsSync(cachePath)) {
     return res.sendFile(cachePath);
   }
@@ -1688,7 +1696,7 @@ web.get("/channel-logo/:uploader", async function (req, res) {
   
   // Nettoyer le nom d'uploader pour le nom de fichier
   const safeUploader = uploader.replace(/[^a-zA-Z0-9_\-]/g, '_');
-  const cachePath = path.join(thumbCacheDir, `channel_${safeUploader}.jpg`);
+  const cachePath = path.join(thumbCacheDir, path.basename(`channel_${safeUploader}.jpg`));
   
   if (fs.existsSync(cachePath)) {
     return res.sendFile(cachePath);
@@ -1697,7 +1705,7 @@ web.get("/channel-logo/:uploader", async function (req, res) {
   // Chercher une vidéo de cet uploader dans la DB pour avoir son channel_url
   const video = db.database.find(v => v.uploader === uploader && v.channel_url);
   if (!video || !video.channel_url) {
-    const initial = uploader.substring(0, 1).toUpperCase();
+    const initial = escapeHtml(uploader.substring(0, 1).toUpperCase());
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><circle cx="50" cy="50" r="50" fill="#343a40"/><text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="50" font-weight="bold" fill="#fff">${initial}</text></svg>`;
     res.setHeader("Content-Type", "image/svg+xml");
     return res.send(svg);
@@ -1729,14 +1737,14 @@ web.get("/channel-logo/:uploader", async function (req, res) {
       res.setHeader("Content-Type", "image/jpeg");
       return res.send(imgBuf);
     } else {
-      const initial = uploader.substring(0, 1).toUpperCase();
+      const initial = escapeHtml(uploader.substring(0, 1).toUpperCase());
       const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><circle cx="50" cy="50" r="50" fill="#343a40"/><text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="50" font-weight="bold" fill="#fff">${initial}</text></svg>`;
       res.setHeader("Content-Type", "image/svg+xml");
       return res.send(svg);
     }
   } catch (err) {
     log.warn(`Échec de récupération de logo de chaîne pour ${uploader} : ${err.message}`);
-    const initial = uploader.substring(0, 1).toUpperCase();
+    const initial = escapeHtml(uploader.substring(0, 1).toUpperCase());
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><circle cx="50" cy="50" r="50" fill="#343a40"/><text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="50" font-weight="bold" fill="#fff">${initial}</text></svg>`;
     res.setHeader("Content-Type", "image/svg+xml");
     return res.send(svg);

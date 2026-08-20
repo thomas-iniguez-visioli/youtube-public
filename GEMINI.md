@@ -1,5 +1,13 @@
 # Gemini CLI - Journal des modifications
 
+## [1.14.35] - 2026-08-20
+### Sécurisé
+- **Résolution des alertes CodeQL restantes (Issues XSS, Path Traversal, SSRF et ReDoS)** :
+  - **Reflected XSS** : Échappement des caractères spéciaux avec `escapeHtml` sur la génération de l'avatar SVG dynamique dans `/channel-logo/:uploader` pour empêcher toute injection HTML.
+  - **Path Traversal (Path Injection)** : Assainissement strict avec `path.basename` des paramètres d'URL (`id`, `uploader`, `file`) utilisés pour construire des chemins réseau ou des fichiers de cache.
+  - **SSRF (Request Forgery)** : Ajout d'une validation regex stricte (`/^[a-zA-Z0-9_\-]{11}$/`) du format de l'ID vidéo YouTube dans `/thumbnail/:id` avant d'émettre des requêtes externes sortantes.
+  - **ReDoS (Polynomial Backtracking)** : Remplacement de l'expression régulière de nettoyage de l'ID vidéo à la fin des titres par une regex stricte de longueur fixe sans quantificateur ouvert pour empêcher le backtracking catastrophique.
+
 ## [1.14.34] - 2026-08-20
 ### Sécurisé
 - **Résolution de l'alerte CodeQL (Issue #71 - Missing rate limiting)** : Application globale du middleware `express-rate-limit` sur l'ensemble de l'instance d'API Express (`web.use(limiter)`) dans `src/index.js`. Cela protège l'intégralité des routes et l'accès au système de fichiers (notamment les polices, thumbnails, etc.) contre les attaques DoS, éliminant ainsi l'avertissement de sécurité de CodeQL.
