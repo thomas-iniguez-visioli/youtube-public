@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.14.31] - 2026-08-20
+### Corrigé
+- **Résolution d'une fuite de mémoire (Memory Leak dans le GC)** : Correction du Garbage Collector de nettoyage des fichiers décompressés (`decompressedFiles`) dans `src/index.js`. L'utilisation d'un bloc `finally` garantit désormais que la clé du fichier est systématiquement supprimée de la Map de cache, même si la suppression physique du fichier `.mp4` sur le disque échoue (fichier verrouillé ou déjà supprimé) ou si le fichier `.zip` correspondant est manquant.
+
 ## [1.14.30] - 2026-08-20
 ### Ajouté
 - **Notification native de démarrage (Electron)** : Envoi d'une notification Windows/OS native via l'API `Notification` d'Electron dès le lancement de la séquence de boot asynchrone (`bootApp()`), afin d'informer l'utilisateur que l'initialisation et la préparation de l'application ont commencé.

@@ -1876,13 +1876,12 @@ setInterval(() => {
           if (fs.existsSync(gzPath)) {
             fs.unlinkSync(filePath);
             log.info(`Nettoyage temporaire réussi de la vidéo : ${path.basename(filePath)}`);
-            decompressedFiles.delete(filePath);
           }
-        } else {
-          decompressedFiles.delete(filePath);
         }
       } catch (err) {
         log.error(`Erreur de suppression du fichier temporaire décompressé ${filePath}: ${err.message}`);
+      } finally {
+        decompressedFiles.delete(filePath);
       }
     }
   }
