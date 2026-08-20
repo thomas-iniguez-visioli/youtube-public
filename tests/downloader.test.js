@@ -44,3 +44,27 @@ test('compressVideo should reject on invalid ffmpeg binary', async (t) => {
     /Binaire ffmpeg introuvable/
   );
 });
+
+test('runDownload should call onProcessCreated and support process termination', async (t) => {
+  const { runDownload } = await import('../src/downloader.js');
+  const dummyCmd = process.platform === 'win32' ? 'ping' : 'sleep';
+  const dummyArgs = process.platform === 'win32' ? ['127.0.0.1', '-n', '5'] : ['5'];
+  
+  let spawnedProc = null;
+  const promise = runDownload(dummyCmd, dummyArgs, null, null, null, (proc) => {
+    spawnedProc = proc;
+  });
+  
+  await new Promise(resolve => setTimeout(resolve, 200));
+  
+  assert.ok(spawnedProc !== null, 'Spawned process should be returned via callback');
+  assert.ok(spawnedProc.pid > 0, 'Spawned process should have a valid PID');
+  
+  spawnedProc.kill('SIGKILL');
+  
+  try {
+    await promise;
+  } catch (err) {
+    assert.ok(err);
+  }
+});

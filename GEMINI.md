@@ -1,5 +1,11 @@
 # Gemini CLI - Journal des modifications
 
+## [1.14.37] - 2026-08-20
+### Changé
+- **Barre de progression en haut** : Déplacement du widget de progression de téléchargement (`.download-progress-container`) vers le haut de l'écran (passage de `bottom: 24px` à `top: 24px` dans `style.css`) pour une meilleure visibilité.
+### Ajouté
+- **Tests d'annulation de téléchargement** : Intégration d'un nouveau test unitaire asynchrone dans `tests/downloader.test.js` qui valide le callback `onProcessCreated` de `runDownload()` et l'arrêt correct d'un processus en cours via un signal d'interruption.
+
 ## [1.14.36] - 2026-08-20
 ### Ajouté
 - **Bouton « Couper le téléchargement »** : Implémentation d'une fonctionnalité d'annulation des téléchargements en cours. Ajout d'une route API `POST /download/cancel` terminant proprement le sous-processus `yt-dlp` en cours d'exécution via le signal `SIGKILL`. Intégration d'un bouton interactif « Couper » sur le widget de progression de l'interface utilisateur pour déclencher cette action d'une seule traite.
