@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.14.30] - 2026-08-20
+### Ajouté
+- **Notification native de démarrage (Electron)** : Envoi d'une notification Windows/OS native via l'API `Notification` d'Electron dès le lancement de la séquence de boot asynchrone (`bootApp()`), afin d'informer l'utilisateur que l'initialisation et la préparation de l'application ont commencé.
+
 ## [1.14.29] - 2026-08-19
 ### Changé
 - **Bridage dynamique de la taille des fragments (Range Requests)** : Optimisation de la taille maximale des fragments renvoyés par la route `/video`. Si la vidéo est en cours de décompression, la taille des fragments est bridée à 1 Mo maximum. Cela évite que le navigateur ne demande de trop gros morceaux (par ex. 100 Mo) d'un coup, ce qui forçait le serveur à attendre de longs moments de décompression avant de répondre, rendant le chargement de certaines vidéos très long.

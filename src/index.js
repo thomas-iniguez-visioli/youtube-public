@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, Menu, session } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, Menu, session, Notification } from 'electron';
 import binaryResolver from './binaryResolver.js';
 import { createRequire } from 'module';
 import cors from 'cors';
@@ -1948,6 +1948,14 @@ if (!gotTheLock) {
 
   // Séquence de démarrage complète : ne lancer l'interface et le serveur que quand tout est prêt
   const bootApp = async () => {
+    // Envoyer une notification native pour annoncer le début du lancement
+    if (Notification.isSupported()) {
+      new Notification({
+        title: 'YouTube Local',
+        body: 'Préparation et synchronisation de l\'application...'
+      }).show();
+    }
+
     try {
       // 1. Préparer les répertoires et télécharger les binaires nécessaires
       await build();
