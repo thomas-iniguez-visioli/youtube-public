@@ -513,12 +513,12 @@ const checkAndInstallUpdate = () => {
   if (updatePending) {
     const isVideoPlaying = (Date.now() - lastVideoRequestTime) < 30000; // Video playing if requested in last 30s
     if (!isVideoPlaying) {
-      sendStatusToWindow('System idle, restarting to install update...');
+      sendStatusToWindow('Système inactif, redémarrage pour installer la mise à jour...');
       setTimeout(() => {
         autoUpdater.quitAndInstall();
       }, 3000);
     } else {
-      sendStatusToWindow('Update deferred: video is currently playing.');
+      sendStatusToWindow('Mise à jour différée : une vidéo est en cours de lecture.');
       setTimeout(checkAndInstallUpdate, 15000); // Check again in 15 seconds
     }
   }
@@ -536,8 +536,8 @@ const initAutoUpdater = () => {
   })
 }
 
-// Consolidate periodic check
-setInterval(initAutoUpdater, 120000);
+// Consolidate periodic check to once every hour to prevent GitHub rate-limiting
+setInterval(initAutoUpdater, 3600000);
 // Run first check deferred
 setTimeout(initAutoUpdater, 5000);
 
@@ -548,30 +548,43 @@ function extractUrls(text) {
 let win;
 function sendStatusToWindow(text) {
   log.info(text);
+  if (io) {
+    io.emit('update-status', { message: text });
+  }
 }
 autoUpdater.on('checking-for-update', () => {
-  sendStatusToWindow('Checking for update...');
+  sendStatusToWindow('Recherche de mises à jour...');
 })
 autoUpdater.on('update-available', (info) => {
-  sendStatusToWindow('Update available.');
+  sendStatusToWindow(`Mise à jour disponible : version ${info.version}`);
+  if (io) {
+    io.emit('update-available', info);
+  }
 })
 autoUpdater.on('update-not-available', (info) => {
-  sendStatusToWindow('Update not available.');
+  sendStatusToWindow('Aucune mise à jour disponible.');
 })
 autoUpdater.on('error', (err) => {
-  sendStatusToWindow('Error in auto-updater. ' + err);
+  sendStatusToWindow('Erreur du service de mise à jour.');
   log.error(err);
 })
 autoUpdater.on('download-progress', (progressObj) => {
-  let log_message = "Download speed: " + progressObj.bytesPerSecond;
-  log_message = log_message + ' - Downloaded ' + progressObj.percent + '%';
-  log_message = log_message + ' (' + progressObj.transferred + "/" + progressObj.total + ')';
- 
-  sendStatusToWindow(log_message);
+  let percentStr = progressObj.percent ? Math.round(progressObj.percent) : 0;
+  if (io) {
+    io.emit('update-download-progress', {
+      percent: percentStr,
+      bytesPerSecond: progressObj.bytesPerSecond,
+      transferred: progressObj.transferred,
+      total: progressObj.total
+    });
+  }
 })
 autoUpdater.on('update-downloaded', (info) => {
-  sendStatusToWindow('Update downloaded. Waiting for video to finish to install...');
+  sendStatusToWindow('Mise à jour téléchargée. Prête à être installée.');
   updatePending = true;
+  if (io) {
+    io.emit('update-downloaded', info);
+  }
   checkAndInstallUpdate();
 });
 
@@ -1204,6 +1217,20 @@ web.post("/download/cancel", function (req, res) {
     }
   } else {
     return res.json({ success: false, message: "Aucun téléchargement en cours." });
+  }
+});
+
+web.post("/updater/check", function (req, res) {
+  initAutoUpdater();
+  res.json({ success: true, message: "Recherche de mise à jour lancée." });
+});
+
+web.post("/updater/install", function (req, res) {
+  if (updatePending) {
+    autoUpdater.quitAndInstall();
+    res.json({ success: true, message: "Redémarrage et installation de la mise à jour..." });
+  } else {
+    res.status(400).json({ success: false, message: "Aucune mise à jour disponible ou prête." });
   }
 });
 

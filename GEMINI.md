@@ -1,5 +1,12 @@
 # Gemini CLI - Journal des modifications
 
+## [1.14.38] - 2026-08-20
+### Changé
+- **Système de mise à jour optimisé** :
+  - Ajustement de l'intervalle de vérification automatique de `autoUpdater` de 2 minutes à 1 heure pour éviter le spam réseau et le bannissement par quota d'API GitHub.
+  - Implémentation d'événements WebSocket en direct via Socket.io (`update-status`, `update-download-progress`, etc.) pour propager en temps réel l'état des téléchargements et des installations vers l'interface.
+  - Ajout de routes API dédiées `POST /updater/check` et `POST /updater/install` permettant de forcer la vérification et l'application manuelle des nouvelles versions.
+
 ## [1.14.37] - 2026-08-20
 ### Changé
 - **Barre de progression en haut** : Déplacement du widget de progression de téléchargement (`.download-progress-container`) vers le haut de l'écran (passage de `bottom: 24px` à `top: 24px` dans `style.css`) pour une meilleure visibilité.
