@@ -144,9 +144,10 @@
                         <div class="col-md-5">
                             <div class="card bg-dark text-white border-secondary h-100">
                                 <div class="card-body d-flex flex-column justify-content-between">
-                                    <h5 class="card-title">Maintenance du cache</h5>
-                                    <div class="d-flex">
-                                        <a href="/cache/clear-logos" class="btn btn-outline-danger btn-sm w-100" onclick="return confirm('Vider le cache des logos de chaînes ? Ils seront retéléchargés automatiquement au besoin.')">🧹 Purger le cache des icônes</a>
+                                    <h5 class="card-title">Maintenance & Mises à jour</h5>
+                                    <div class="d-flex gap-2">
+                                        <a href="/cache/clear-logos" class="btn btn-outline-danger btn-sm w-50" onclick="return confirm('Vider le cache des logos de chaînes ? Ils seront retéléchargés automatiquement au besoin.')">🧹 Purger les logos</a>
+                                        <button id="check-update-btn" class="btn btn-outline-primary btn-sm w-50">🔄 Chercher mise à jour</button>
                                     </div>
                                 </div>
                             </div>

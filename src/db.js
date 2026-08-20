@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { createRequire } from 'module';
-import log from 'electron-log';
+import log from './logger.js';
 
 const require = createRequire(import.meta.url);
 

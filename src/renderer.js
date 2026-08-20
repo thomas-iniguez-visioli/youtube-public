@@ -251,6 +251,69 @@ if (typeof io !== 'undefined') {
         }
     });
 
+    // Écouteur pour le bouton de recherche de mise à jour manuelle
+    document.addEventListener('DOMContentLoaded', () => {
+        const checkUpdateBtn = document.getElementById('check-update-btn');
+        if (checkUpdateBtn) {
+            checkUpdateBtn.addEventListener('click', () => {
+                checkUpdateBtn.disabled = true;
+                checkUpdateBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Recherche...';
+                fetch('/updater/check', { method: 'POST' })
+                    .then(res => res.json())
+                    .then(data => {
+                        showToast('Mise à jour', data.message || 'Vérification en cours...', 'info');
+                        setTimeout(() => {
+                            checkUpdateBtn.disabled = false;
+                            checkUpdateBtn.textContent = '🔄 Chercher mise à jour';
+                        }, 3000);
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        showToast('Erreur', 'Impossible de lancer la recherche de mise à jour.', 'danger');
+                        checkUpdateBtn.disabled = false;
+                        checkUpdateBtn.textContent = '🔄 Chercher mise à jour';
+                    });
+            });
+        }
+    });
+
+    // Événements d'auto-updater via WebSocket
+    socket.on('update-status', (data) => {
+        showToast('Mise à jour', data.message, 'info');
+    });
+
+    socket.on('update-available', (info) => {
+        showToast('Mise à jour disponible', `La version ${info.version} est disponible et va être téléchargée en arrière-plan.`, 'primary');
+    });
+
+    socket.on('update-download-progress', (data) => {
+        // Envoi optionnel d'un petit log ou toast si nécessaire
+    });
+
+    socket.on('update-downloaded', (info) => {
+        showToast(
+            'Mise à jour prête',
+            `La version ${info.version} a été téléchargée avec succès.`,
+            'success',
+            { url: '#', text: 'Installer et redémarrer' }
+        );
+        
+        // Attacher le redémarrage sur le bouton du toast s'il est cliqué
+        setTimeout(() => {
+            const toasts = document.querySelectorAll('.toast');
+            toasts.forEach(toast => {
+                const actionBtn = toast.querySelector('.btn-primary');
+                if (actionBtn && actionBtn.textContent === 'Installer et redémarrer') {
+                    actionBtn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        fetch('/updater/install', { method: 'POST' })
+                            .catch(err => console.error("Erreur d'installation:", err));
+                    });
+                }
+            });
+        }, 500);
+    });
+
     socket.on('chat message', (msg) => {
         const consoleLogs = document.getElementById('consoleLogs');
         const downloadConsole = document.getElementById('downloadConsole');

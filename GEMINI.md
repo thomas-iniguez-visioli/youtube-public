@@ -1,5 +1,11 @@
 # Gemini CLI - Journal des modifications
 
+## [1.14.41] - 2026-08-20
+### Ajouté
+- **Bouton de recherche manuelle de mise à jour** : Ajout d'un bouton « 🔄 Chercher mise à jour » dans l'onglet Playlists de l'interface client, permettant de déclencher manuellement la recherche de mises à jour via l'API, avec retours visuels sous forme de Toasts descriptifs ("Recherche en cours", "Mise à jour disponible", etc.).
+### Changé
+- **Logger centralisé** : Migration de la configuration globale d'electron-log vers un module unique `src/logger.js`, importé ensuite par les processus principaux (`index.js`, `db.js`), ce qui évite les duplications et harmonise la structure de logs de l'application.
+
 ## [1.14.40] - 2026-08-20
 ### Ajouté
 - **Système de log enrichi** :

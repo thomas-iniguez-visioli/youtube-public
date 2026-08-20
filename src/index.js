@@ -15,7 +15,7 @@ import FileDatabase from './db.js';
 import { SuggestionCache } from './suggestionCache.js';
 const suggestionCache = new SuggestionCache();
 import child from 'child_process';
-import log from 'electron-log';
+import log from './logger.js';
 import morgan from 'morgan';
 import { Server as SocketServer } from 'socket.io';
 import { createServer } from 'http';
@@ -325,9 +325,6 @@ setTimeout(async () => {
 }, 1000);
 
 const web = express();
-log.transports.file.level = 'silly';
-log.transports.console.level = 'silly';
-log.transports.file.file = path.join(app.getPath('userData'), 'log', 'app.log');
 
 /**
  * Optimisation de la mémoire et nettoyage du cache
