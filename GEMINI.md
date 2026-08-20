@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.14.39] - 2026-08-20
+### Corrigé
+- **Gestion propre de l'annulation** : Introduction d'un flag `isDownloadCancelled` sur le processus principal Express. Lors d'une interruption manuelle par le bouton « Couper », la promesse de téléchargement `downloadbacklog` se résout proprement avec `{ cancelled: true }` au lieu de lever un échec de type erreur système, empêchant ainsi les mécanismes d'auto-retry du backlog de réinsérer l'URL ou de retenter le téléchargement en boucle.
+
 ## [1.14.38] - 2026-08-20
 ### Changé
 - **Système de mise à jour optimisé** :

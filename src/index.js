@@ -688,6 +688,7 @@ io.on('connection', (socket) => {
 });
 
 let currentDownloadProcess = null;
+let isDownloadCancelled = false;
 
 const downloadbacklog = (parameter) => {
   return downloadQueue.add(() => new Promise((resolve, reject) => {
@@ -775,6 +776,7 @@ const downloadbacklog = (parameter) => {
     })
       .then(async (res) => {
         currentDownloadProcess = null;
+        isDownloadCancelled = false; // Reset security
         if (downloadedFilePath && fs.existsSync(downloadedFilePath)) {
           try {
             if (io) {
@@ -798,7 +800,13 @@ const downloadbacklog = (parameter) => {
       .catch((err) => {
         currentDownloadProcess = null;
         optimizeMemory();
-        reject(err);
+        if (isDownloadCancelled) {
+          isDownloadCancelled = false;
+          log.info("Téléchargement annulé volontairement, promesse résolue proprement.");
+          resolve({ cancelled: true });
+        } else {
+          reject(err);
+        }
       });
   }));
 };
@@ -1198,6 +1206,7 @@ web.get("/queue/clear", function (req, res) {
 web.post("/download/cancel", function (req, res) {
   if (currentDownloadProcess) {
     try {
+      isDownloadCancelled = true;
       currentDownloadProcess.kill('SIGKILL');
       currentDownloadProcess = null;
       isDownloading = false;
