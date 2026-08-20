@@ -7,8 +7,11 @@ export class SuggestionCache {
 
   get(key) {
     const cached = this.cache.get(key);
-    if (cached && (Date.now() - cached.timestamp < this.ttl)) {
-      return cached.data;
+    if (cached) {
+      if (Date.now() - cached.timestamp < this.ttl) {
+        return cached.data;
+      }
+      this.cache.delete(key);
     }
     return null;
   }

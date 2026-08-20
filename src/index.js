@@ -1607,17 +1607,16 @@ web.get("/playlist/delete", function (req, res) {
 
 
 function serveStaticFile(req, res, relPath, localRelPath, contentType) {
-  if (contentType) res.setHeader("Content-Type", contentType);
   let filePath = path.join(app.getPath('userData'), relPath);
   if (!fs.existsSync(filePath)) {
     filePath = path.join(__dirname, localRelPath);
   }
-  try {
-    res.statusCode = 200;
-    res.send(fs.readFileSync(filePath));
-  } catch (e) {
-    res.status(404).send("File not found");
-  }
+  if (contentType) res.setHeader("Content-Type", contentType);
+  res.sendFile(filePath, (err) => {
+    if (err && !res.headersSent) {
+      res.status(404).send("File not found");
+    }
+  });
 }
 
 web.get("/style.css", function (req, res) {
@@ -1665,8 +1664,7 @@ web.get("/thumbnail/:id", function (req, res) {
   if (!id) return res.status(400).send("Invalid id");
   const cachePath = path.join(thumbCacheDir, `${id}.jpg`);
   if (fs.existsSync(cachePath)) {
-    res.setHeader("Content-Type", "image/jpeg");
-    return res.send(fs.readFileSync(cachePath));
+    return res.sendFile(cachePath);
   }
   const url = `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
   https.get(url, (stream) => {
@@ -1692,8 +1690,7 @@ web.get("/channel-logo/:uploader", async function (req, res) {
   const cachePath = path.join(thumbCacheDir, `channel_${safeUploader}.jpg`);
   
   if (fs.existsSync(cachePath)) {
-    res.setHeader("Content-Type", "image/jpeg");
-    return res.send(fs.readFileSync(cachePath));
+    return res.sendFile(cachePath);
   }
   
   // Chercher une vidéo de cet uploader dans la DB pour avoir son channel_url

@@ -1,5 +1,11 @@
 # Gemini CLI - Journal des modifications
 
+## [1.14.32] - 2026-08-20
+### Changé
+- **Optimisation de la mémoire vive (RAM)** : 
+  - Remplacement de l'utilisation de `fs.readFileSync` par `res.sendFile` pour le service des fichiers statiques de l'application et les routes `/thumbnail/:id` et `/channel-logo/:uploader` dans `src/index.js`, ce qui évite de charger l'entièreté des images et scripts en mémoire vive sous forme de Buffers Node.js lors de requêtes massives de la galerie.
+  - Purgation active des entrées de suggestions expirées du cache de suggestions (`SuggestionCache`) lors d'un accès par clé dans `src/suggestionCache.js`, évitant l'accumulation en RAM de données de suggestions volumineuses obsolètes.
+
 ## [1.14.31] - 2026-08-20
 ### Corrigé
 - **Résolution d'une fuite de mémoire (Memory Leak dans le GC)** : Correction du Garbage Collector de nettoyage des fichiers décompressés (`decompressedFiles`) dans `src/index.js`. L'utilisation d'un bloc `finally` garantit désormais que la clé du fichier est systématiquement supprimée de la Map de cache, même si la suppression physique du fichier `.mp4` sur le disque échoue (fichier verrouillé ou déjà supprimé) ou si le fichier `.zip` correspondant est manquant.
