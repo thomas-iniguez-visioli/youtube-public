@@ -442,8 +442,13 @@ const videoFolder = config.storagePath;
 let dbWatchTimeout;
 if (fs.existsSync(videoFolder)) {
   fs.watch(videoFolder, (eventType, filename) => {
-    // On réagit aux changements sur les fichiers .mp4 ou les métadonnées .json
-    if (filename && (filename.endsWith('.mp4') || filename.endsWith('.json'))) {
+    const isTemp = filename && (
+      filename.includes('.temp') || 
+      filename.includes('.part') || 
+      filename.includes('.ytdl') || 
+      /\.f\d+\.mp4$/.test(filename)
+    );
+    if (filename && !isTemp && (filename.endsWith('.mp4') || filename.endsWith('.json'))) {
       clearTimeout(dbWatchTimeout);
       dbWatchTimeout = setTimeout(async () => {
         log.info(`Modification détectée dans le dossier vidéo : ${filename}. Mise à jour de la base de données...`);

@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.14.46] - 2026-08-21
+### Sécurisé
+- **Ignorer les fichiers temporaires de téléchargement** : Exclusion systématique des fichiers partiels et temporaires générés par `yt-dlp` (contenant `.temp`, `.part`, `.ytdl` ou des suffixes de flux séparés comme `.f137.mp4`) lors des rafraîchissements automatiques de la base de données (déclenchés par le watcher de dossiers `fs.watch`) et pendant les scans d'indexation (`readDatabase()` et `readDatabaseAsync()`), évitant les surcharges inutiles et les écritures invalides en base de données.
+
 ## [1.14.45] - 2026-08-21
 ### Changé
 - **Indexation asynchrone globale (Résolution des freezes)** : Remplacement de tous les appels restants de `db.readDatabase()` synchrone par la version asynchrone `db.readDatabaseAsync()` (dans le watcher de dossiers, dans le cycle de vie du téléchargement du backlog et lors du changement de répertoire dans l'UI). Cela évite le blocage (freeze) du thread principal d'Electron lors des scans et rafraîchissements de la base de données de vidéos volumineuses.

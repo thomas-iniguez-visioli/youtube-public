@@ -84,6 +84,8 @@ export default class FileDatabase {
         let modified = false;
 
         files.forEach((item) => {
+            const isTemp = item.includes('.temp') || item.includes('.part') || item.includes('.ytdl') || /\.f\d+\.mp4$/.test(item);
+            if (isTemp) return;
             const isGz = item.endsWith(".mp4.zip");
             if (!item.endsWith(".mp4") && !isGz) return;
 
@@ -235,8 +237,10 @@ export default class FileDatabase {
         const existingFiles = new Map(this.database.map(item => [item.fileName, item]));
         let modified = false;
 
-        // Filtrer les fichiers pertinents (.mp4 et .mp4.zip)
+        // Filtrer les fichiers pertinents (.mp4 et .mp4.zip) en ignorant les temporaires
         const relevantFiles = files.filter(item => {
+            const isTemp = item.includes('.temp') || item.includes('.part') || item.includes('.ytdl') || /\.f\d+\.mp4$/.test(item);
+            if (isTemp) return false;
             const isGz = item.endsWith(".mp4.zip");
             return item.endsWith(".mp4") || isGz;
         });
