@@ -31,6 +31,7 @@ function createDownloadArgs(parameter, ffmpegDir, storagePath, outputFileFormat,
     '-f', 'bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4] / bv*+ba/b',
     '--write-playlist-metafiles',
     '--parse-metadata', 'playlist_title:.+ - (?P<folder_name>Videos|Shorts|Live)$',
+    '--postprocessor-args', 'ffmpeg:-preset superfast',
     '-o', path.join(storagePath, outputFileFormat),
     parameter
   ];

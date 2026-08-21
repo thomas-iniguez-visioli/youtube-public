@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.14.47] - 2026-08-21
+### Optimisé
+- **Vitesse de traitement FFmpeg accrue** : Passage de l'argument `--postprocessor-args "ffmpeg:-preset superfast"` à `yt-dlp` lors de la construction des paramètres de téléchargement. Cela force FFmpeg à utiliser le preset `superfast` de `libx264` lors des étapes de fusion ou de transcodage de formats incompatibles (ex. WebM vers MP4), réduisant drastiquement le temps de post-traitement pour les vidéos volumineuses.
+
 ## [1.14.46] - 2026-08-21
 ### Sécurisé
 - **Ignorer les fichiers temporaires de téléchargement** : Exclusion systématique des fichiers partiels et temporaires générés par `yt-dlp` (contenant `.temp`, `.part`, `.ytdl` ou des suffixes de flux séparés comme `.f137.mp4`) lors des rafraîchissements automatiques de la base de données (déclenchés par le watcher de dossiers `fs.watch`) et pendant les scans d'indexation (`readDatabase()` et `readDatabaseAsync()`), évitant les surcharges inutiles et les écritures invalides en base de données.
