@@ -96,6 +96,10 @@ async function toggleFavorite(videoId, btn) {
 
 // --- Channel download ---
 function downloadChannel(url) {
+    if (!url || url === 'null' || url === 'undefined') {
+        showToast('Erreur', 'Impossible de télécharger la chaîne : URL non disponible.', 'error');
+        return;
+    }
     if (window.electronAPI && window.electronAPI.setTitle) {
         window.electronAPI.setTitle(url);
         showToast('Téléchargement', 'Téléchargement de la chaîne lancé !', 'primary');

@@ -651,6 +651,10 @@ loadBacklog();
 let isDownloading = false;
 
 const download = (url) => {
+  if (!url || typeof url !== 'string' || url.trim() === '' || url === 'null' || url === 'undefined') {
+    log.warn(`Ignoré : tentative de téléchargement d'une URL invalide ou vide : ${url}`);
+    return;
+  }
   if (!backlog.includes(url)) {
     backlog.push(url);
     saveBacklog();

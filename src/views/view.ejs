@@ -88,8 +88,17 @@
                                 📺 Voir la chaîne
                             </a>
                         <% } %>
-                        <% if (typeof videodata !== 'undefined' && (videodata.channel_url || videodata.uploader_url)) { %>
-                            <button class="btn btn-outline-primary btn-sm me-2" onclick="downloadChannel(<%- JSON.stringify(videodata.channel_url || videodata.uploader_url) %>)">
+                        <% 
+                        let targetChannelUrl = null;
+                        if (typeof videodata !== 'undefined') {
+                            if (typeof videodata.channel_url === 'string' && videodata.channel_url.startsWith('http')) {
+                                targetChannelUrl = videodata.channel_url;
+                            } else if (typeof videodata.uploader_url === 'string' && videodata.uploader_url.startsWith('http')) {
+                                targetChannelUrl = videodata.uploader_url;
+                            }
+                        }
+                        if (targetChannelUrl) { %>
+                            <button class="btn btn-outline-primary btn-sm me-2" onclick="downloadChannel(<%- JSON.stringify(targetChannelUrl) %>)">
                                 📥 Télécharger la chaîne
                             </button>
                         <% } %>

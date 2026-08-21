@@ -71,8 +71,8 @@
         <% if (typeof channel !== 'undefined' && channel) { %>
             <div class="d-flex align-items-center mb-4 mt-3">
                 <h2 class="text-white"><%= channel %></h2>
-                <% if (typeof channelUrl !== 'undefined' && channelUrl) { %>
-                    <button class="btn btn-primary btn-sm ms-3" onclick="downloadChannel(<%- JSON.stringify(channelUrl || '').replace(/\"/g, '&quot;') %>)">Télécharger la chaîne</button>
+                <% if (typeof channelUrl === 'string' && channelUrl.startsWith('http')) { %>
+                    <button class="btn btn-primary btn-sm ms-3" onclick="downloadChannel(<%- JSON.stringify(channelUrl).replace(/\"/g, '&quot;') %>)">Télécharger la chaîne</button>
                 <% } %>
                 <% if (channel !== "Ma File d'attente" && channel !== "Mes Playlists" && channel !== "Mes Favoris" && channel !== "Historique" && !channel.startsWith('Playlist : ')) { %>
                     <button class="btn btn-success btn-sm ms-3" onclick="addAllToQueue()">Ajouter toute la chaîne à la file d'attente</button>
