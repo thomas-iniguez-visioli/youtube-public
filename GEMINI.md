@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.14.45] - 2026-08-21
+### Changé
+- **Indexation asynchrone globale (Résolution des freezes)** : Remplacement de tous les appels restants de `db.readDatabase()` synchrone par la version asynchrone `db.readDatabaseAsync()` (dans le watcher de dossiers, dans le cycle de vie du téléchargement du backlog et lors du changement de répertoire dans l'UI). Cela évite le blocage (freeze) du thread principal d'Electron lors des scans et rafraîchissements de la base de données de vidéos volumineuses.
+
 ## [1.14.44] - 2026-08-21
 ### Corrigé
 - **Nettoyage des playlists orphelines/vides** : Suppression automatique des playlists n'ayant plus de vidéos associées lors d'une suppression de vidéo (`removeFile()`), ainsi que le filtrage des ID de vidéos inexistantes et la suppression des playlists devenues vides lors de l'indexation et du scan de la base de données (`readDatabase()` et `readDatabaseAsync()`).

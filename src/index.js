@@ -445,9 +445,9 @@ if (fs.existsSync(videoFolder)) {
     // On réagit aux changements sur les fichiers .mp4 ou les métadonnées .json
     if (filename && (filename.endsWith('.mp4') || filename.endsWith('.json'))) {
       clearTimeout(dbWatchTimeout);
-      dbWatchTimeout = setTimeout(() => {
+      dbWatchTimeout = setTimeout(async () => {
         log.info(`Modification détectée dans le dossier vidéo : ${filename}. Mise à jour de la base de données...`);
-        db.readDatabase();
+        await db.readDatabaseAsync();
         db.save();
         // Optionnel : notifier l'UI si nécessaire
         if (typeof io !== 'undefined') {
@@ -728,9 +728,9 @@ const downloadbacklog = (parameter) => {
           notifiedVideos.add(videoId);
           
           // Small delay to let the filesystem/DB catch up
-          setTimeout(() => {
-            db.readDatabase();
-            const video = db.getFile(videoId);
+           setTimeout(async () => {
+             await db.readDatabaseAsync();
+             const video = db.getFile(videoId);
             
             // Analyser la vitesse finale depuis le fichier de log
             let finalSpeed = lastSpeed || 'inconnue';
@@ -793,7 +793,7 @@ const downloadbacklog = (parameter) => {
             log.error(`Échec d'archivage de la vidéo : ${compressErr.message}`);
           }
         }
-        db.readDatabase(); // Final refresh
+        await db.readDatabaseAsync(); // Final refresh
         downloadMissingThumbnails();
         optimizeMemory();
         resolve(res);
@@ -822,8 +822,8 @@ const downloaddata = (parameter) => {
   const args = createMetadataArgs(parameter, ffmpegDir, config.storagePath, config.outputFileFormat, denoPath);
   
   runDownload(ytdlpPath, args, { info: (msg) => log.info(`Metadata Update: ${msg}`) })
-    .then(() => {
-      db.readDatabase();
+    .then(async () => {
+      await db.readDatabaseAsync();
       db.save();
     })
     .catch(err => log.warn(`Erreur mise à jour métadonnées : ${err.message}`));
@@ -2012,7 +2012,7 @@ function createWindow() {
       const configPath = path.join(app.getPath('userData'), 'config.json');
       fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
       db.directoryPath = newPath;
-      db.readDatabase();
+      await db.readDatabaseAsync();
       base = newPath;
       log.info(`Dossier de téléchargement mis à jour et scan relancé : ${newPath}`);
       return newPath;
