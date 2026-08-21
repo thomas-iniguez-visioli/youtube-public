@@ -14,6 +14,8 @@ describe("Playlist System", () => {
     before(() => {
         if (fs.existsSync(dbPath)) fs.unlinkSync(dbPath);
         if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir);
+        fs.writeFileSync(path.join(tempDir, "vid1 [id1].mp4"), "");
+        fs.writeFileSync(path.join(tempDir, "vid2 [id2].mp4"), "");
         db = new FileDatabase(tempDir);
         // Mock some videos
         db.database = [

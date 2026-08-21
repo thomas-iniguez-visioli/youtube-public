@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.14.44] - 2026-08-21
+### Corrigé
+- **Nettoyage des playlists orphelines/vides** : Suppression automatique des playlists n'ayant plus de vidéos associées lors d'une suppression de vidéo (`removeFile()`), ainsi que le filtrage des ID de vidéos inexistantes et la suppression des playlists devenues vides lors de l'indexation et du scan de la base de données (`readDatabase()` et `readDatabaseAsync()`).
+
 ## [1.14.43] - 2026-08-21
 ### Ajouté
 - **Lien de parrainage/sponsors** : Ajout du lien GitHub Sponsors dans la configuration de financement `.github/FUNDING.yml` et ajout d'une section dédiée dans le fichier `README.md` pour permettre aux utilisateurs de soutenir financièrement le projet.

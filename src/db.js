@@ -210,6 +210,15 @@ export default class FileDatabase {
         this.database = this.database.filter(entry => fileSet.has(entry.fileName) || fileSet.has(entry.fileName + '.zip'));
         if (this.database.length !== originalLength) modified = true;
 
+        // Cleanup empty playlists and deleted videos from playlists
+        const activeYids = new Set(this.database.map(v => v.yid));
+        const originalPlaylistsLength = this.playlists.length;
+        this.playlists.forEach(p => {
+            p.videoIds = p.videoIds.filter(id => activeYids.has(id));
+        });
+        this.playlists = this.playlists.filter(p => p.videoIds.length > 0);
+        if (this.playlists.length !== originalPlaylistsLength) modified = true;
+
         if (modified) {
             this._buildIndex();
             this.saveDatabase();
@@ -378,6 +387,15 @@ export default class FileDatabase {
         const originalLength = this.database.length;
         this.database = this.database.filter(entry => fileSet.has(entry.fileName) || fileSet.has(entry.fileName + '.zip'));
         if (this.database.length !== originalLength) modified = true;
+
+        // Cleanup empty playlists and deleted videos from playlists
+        const activeYids = new Set(this.database.map(v => v.yid));
+        const originalPlaylistsLength = this.playlists.length;
+        this.playlists.forEach(p => {
+            p.videoIds = p.videoIds.filter(id => activeYids.has(id));
+        });
+        this.playlists = this.playlists.filter(p => p.videoIds.length > 0);
+        if (this.playlists.length !== originalPlaylistsLength) modified = true;
 
         if (modified) {
             this._buildIndex();
@@ -556,6 +574,7 @@ export default class FileDatabase {
         this.playlists.forEach(p => {
             p.videoIds = p.videoIds.filter(id => id !== yid);
         });
+        this.playlists = this.playlists.filter(p => p.videoIds.length > 0);
         this.saveDatabase();
     }
 
