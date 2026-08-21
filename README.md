@@ -50,3 +50,7 @@ bun start
 ## Contributing
 
 Feel free to submit issues or pull requests for improvements or bug fixes.
+
+## Sponsors
+
+Si vous appréciez ce projet et souhaitez soutenir son développement, vous pouvez faire un don via [GitHub Sponsors](https://github.com/sponsors/alphaleadership). Merci pour votre soutien !

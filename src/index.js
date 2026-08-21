@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, Menu, session, Notification } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, Menu, session, Notification, shell } from 'electron';
 import binaryResolver from './binaryResolver.js';
 import { createRequire } from 'module';
 import cors from 'cors';
@@ -1987,6 +1987,13 @@ function createWindow() {
   });
   
   win = mainWindow;
+  
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (url.startsWith('http:') || url.startsWith('https:')) {
+      shell.openExternal(url);
+    }
+    return { action: 'deny' };
+  });
   ipcMain.on('execute-command', (e, arg) => {
     const parameter = arg;
     log.info(arg);

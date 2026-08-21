@@ -1,0 +1,165 @@
+{
+  "numFailedTests": 0,
+  "testResults": [
+    {
+      "name": "tests\\cache.test.js",
+      "assertionResults": [
+        {
+          "fullName": "should return null for cache miss",
+          "status": "passed",
+          "failureMessages": []
+        },
+        {
+          "fullName": "should set and get cache hit before TTL expiration",
+          "status": "passed",
+          "failureMessages": []
+        },
+        {
+          "fullName": "should expire cache after TTL size limit",
+          "status": "passed",
+          "failureMessages": []
+        },
+        {
+          "fullName": "unknown",
+          "status": "passed",
+          "failureMessages": []
+        },
+        {
+          "fullName": "should not have race conditions on concurrent async reads and writes",
+          "status": "passed",
+          "failureMessages": []
+        }
+      ]
+    },
+    {
+      "name": "tests\\db.test.js",
+      "assertionResults": [
+        {
+          "fullName": "FileDatabase should parse filenames correctly",
+          "status": "passed",
+          "failureMessages": []
+        }
+      ]
+    },
+    {
+      "name": "tests\\downloader.test.js",
+      "assertionResults": [
+        {
+          "fullName": "createDownloadArgs should generate correct arguments",
+          "status": "passed",
+          "failureMessages": []
+        },
+        {
+          "fullName": "createMetadataArgs should generate correct arguments",
+          "status": "passed",
+          "failureMessages": []
+        },
+        {
+          "fullName": "fetchSuggestions should reject on invalid ytdlp binary",
+          "status": "passed",
+          "failureMessages": []
+        },
+        {
+          "fullName": "compressVideo should reject on invalid ffmpeg binary",
+          "status": "passed",
+          "failureMessages": []
+        }
+      ]
+    },
+    {
+      "name": "tests\\edge_cases.test.js",
+      "assertionResults": [
+        {
+          "fullName": "Edge cases - FileDatabase with empty or invalid states",
+          "status": "passed",
+          "failureMessages": []
+        },
+        {
+          "fullName": "Edge cases - adm-zip wrapper errors",
+          "status": "passed",
+          "failureMessages": []
+        },
+        {
+          "fullName": "EJS compilation - all templates compile without syntax errors",
+          "status": "passed",
+          "failureMessages": []
+        }
+      ]
+    },
+    {
+      "name": "tests\\history.test.js",
+      "assertionResults": [
+        {
+          "fullName": "FileDatabase should manage history correctly",
+          "status": "passed",
+          "failureMessages": []
+        }
+      ]
+    },
+    {
+      "name": "tests\\playlist.test.js",
+      "assertionResults": [
+        {
+          "fullName": "should create a playlist",
+          "status": "passed",
+          "failureMessages": []
+        },
+        {
+          "fullName": "should not create duplicate playlist",
+          "status": "passed",
+          "failureMessages": []
+        },
+        {
+          "fullName": "should add video to playlist",
+          "status": "passed",
+          "failureMessages": []
+        },
+        {
+          "fullName": "should remove video from playlist",
+          "status": "passed",
+          "failureMessages": []
+        },
+        {
+          "fullName": "should delete playlist",
+          "status": "passed",
+          "failureMessages": []
+        },
+        {
+          "fullName": "should automatically ensure a YouTube playlist when read",
+          "status": "passed",
+          "failureMessages": []
+        },
+        {
+          "fullName": "should scan and import playlist info.json files during readDatabase",
+          "status": "passed",
+          "failureMessages": []
+        }
+      ]
+    },
+    {
+      "name": "tests\\queue.test.js",
+      "assertionResults": [
+        {
+          "fullName": "Download queue should process items one by one",
+          "status": "passed",
+          "failureMessages": []
+        }
+      ]
+    },
+    {
+      "name": "tests\\updater.test.js",
+      "assertionResults": [
+        {
+          "fullName": "updateFile should handle non-existent URLs",
+          "status": "passed",
+          "failureMessages": []
+        },
+        {
+          "fullName": "updateFile should correctly rename temp file on success",
+          "status": "passed",
+          "failureMessages": []
+        }
+      ]
+    }
+  ]
+}

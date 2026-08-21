@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="bun test" tests="24" assertions="0" failures="0" skipped="0" time="0.8975191">
+  <testsuite name="tests\cache.test.js" file="tests\cache.test.js" tests="5" assertions="0" failures="0" skipped="0" time="0.03" hostname="">
+    <testcase name="should return null for cache miss" classname="" time="0.002383" file="tests\cache.test.js" line="5" assertions="0" />
+    <testcase name="should set and get cache hit before TTL expiration" classname="" time="0.00041" file="tests\cache.test.js" line="11" assertions="0" />
+    <testcase name="should expire cache after TTL size limit" classname="" time="0.000377" file="tests\cache.test.js" line="20" assertions="0" />
+    <testcase name="should handle heavy stress test of read/write operations" classname="" time="0.007532" file="tests\cache.test.js" line="36" assertions="0" />
+    <testcase name="should not have race conditions on concurrent async reads and writes" classname="" time="0.021634" file="tests\cache.test.js" line="53" assertions="0" />
+  </testsuite>
+  <testsuite name="tests\db.test.js" file="tests\db.test.js" tests="1" assertions="0" failures="0" skipped="0" time="0.04" hostname="">
+    <testcase name="FileDatabase should parse filenames correctly" classname="" time="0.04003" file="tests\db.test.js" line="7" assertions="0" />
+  </testsuite>
+  <testsuite name="tests\downloader.test.js" file="tests\downloader.test.js" tests="4" assertions="0" failures="0" skipped="0" time="0.001" hostname="">
+    <testcase name="createDownloadArgs should generate correct arguments" classname="" time="0.00058" file="tests\downloader.test.js" line="6" assertions="0" />
+    <testcase name="createMetadataArgs should generate correct arguments" classname="" time="0.000232" file="tests\downloader.test.js" line="20" assertions="0" />
+    <testcase name="fetchSuggestions should reject on invalid ytdlp binary" classname="" time="0.001472" file="tests\downloader.test.js" line="34" assertions="0" />
+    <testcase name="compressVideo should reject on invalid ffmpeg binary" classname="" time="0.000485" file="tests\downloader.test.js" line="41" assertions="0" />
+  </testsuite>
+  <testsuite name="tests\edge_cases.test.js" file="tests\edge_cases.test.js" tests="3" assertions="0" failures="0" skipped="0" time="0.049" hostname="">
+    <testcase name="Edge cases - FileDatabase with empty or invalid states" classname="" time="0.004628" file="tests\edge_cases.test.js" line="9" assertions="0" />
+    <testcase name="Edge cases - adm-zip wrapper errors" classname="" time="0.035473" file="tests\edge_cases.test.js" line="30" assertions="0" />
+    <testcase name="EJS compilation - all templates compile without syntax errors" classname="" time="0.010395" file="tests\edge_cases.test.js" line="69" assertions="0" />
+  </testsuite>
+  <testsuite name="tests\history.test.js" file="tests\history.test.js" tests="1" assertions="0" failures="0" skipped="0" time="0.067" hostname="">
+    <testcase name="FileDatabase should manage history correctly" classname="" time="0.067598" file="tests\history.test.js" line="15" assertions="0" />
+  </testsuite>
+  <testsuite name="tests\playlist.test.js" file="tests\playlist.test.js" tests="7" assertions="0" failures="0" skipped="0" time="0" hostname="">
+    <testsuite name="Playlist System" file="tests\playlist.test.js" line="8" tests="7" assertions="0" failures="0" skipped="0" time="0.021" hostname="">
+      <testcase name="should create a playlist" classname="Playlist System" time="0.000963" file="tests\playlist.test.js" line="31" assertions="0" />
+      <testcase name="should not create duplicate playlist" classname="Playlist System" time="0.000141" file="tests\playlist.test.js" line="38" assertions="0" />
+      <testcase name="should add video to playlist" classname="Playlist System" time="0.00075" file="tests\playlist.test.js" line="44" assertions="0" />
+      <testcase name="should remove video from playlist" classname="Playlist System" time="0.002016" file="tests\playlist.test.js" line="50" assertions="0" />
+      <testcase name="should delete playlist" classname="Playlist System" time="0.001489" file="tests\playlist.test.js" line="55" assertions="0" />
+      <testcase name="should automatically ensure a YouTube playlist when read" classname="Playlist System" time="0.001765" file="tests\playlist.test.js" line="60" assertions="0" />
+      <testcase name="should scan and import playlist info.json files during readDatabase" classname="Playlist System" time="0.017889" file="tests\playlist.test.js" line="67" assertions="0" />
+    </testsuite>
+  </testsuite>
+  <testsuite name="tests\queue.test.js" file="tests\queue.test.js" tests="1" assertions="0" failures="0" skipped="0" time="0.117" hostname="">
+    <testcase name="Download queue should process items one by one" classname="" time="0.117478" file="tests\queue.test.js" line="34" assertions="0" />
+  </testsuite>
+  <testsuite name="tests\updater.test.js" file="tests\updater.test.js" tests="2" assertions="0" failures="0" skipped="0" time="0.338" hostname="">
+    <testcase name="updateFile should handle non-existent URLs" classname="" time="0.041205" file="tests\updater.test.js" line="7" assertions="0" />
+    <testcase name="updateFile should correctly rename temp file on success" classname="" time="0.297895" file="tests\updater.test.js" line="22" assertions="0" />
+  </testsuite>
+</testsuites>

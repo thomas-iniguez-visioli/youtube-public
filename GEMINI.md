@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.14.43] - 2026-08-21
+### Ajouté
+- **Lien de parrainage/sponsors** : Ajout du lien GitHub Sponsors dans la configuration de financement `.github/FUNDING.yml` et ajout d'une section dédiée dans le fichier `README.md` pour permettre aux utilisateurs de soutenir financièrement le projet.
+
 ## [1.14.42] - 2026-08-21
 ### Corrigé
 - **Sécurisation du téléchargement de chaînes** : Ajout d'une validation stricte des URLs de chaînes et d'uploaders (vérification du protocole http/https) dans les templates `index.ejs`, `view.ejs` ainsi que dans le contrôleur `download` du backend et le script `renderer.js`. Cela évite l'envoi de chaînes de caractères vides, nulles ou invalides (comme la chaîne `"null"` ou `"undefined"`) à `yt-dlp`, empêchant ainsi les crashs silencieux et les rejets système lors du clic sur le bouton de téléchargement de chaîne.
