@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain, dialog, Menu, session, Notification, shell } from 'electron';
 import binaryResolver from './binaryResolver.js';
 import { createRequire } from 'module';
+import AdmZip from 'adm-zip';
 import cors from 'cors';
 import express from 'express';
 import RateLimit from 'express-rate-limit';
@@ -1859,7 +1860,6 @@ web.get("/video", limiter, async function (req, res) {
     videoSize = fs.statSync(videoPath).size;
   } else if (fs.existsSync(gzPath)) {
     try {
-      const AdmZip = (await import('adm-zip')).default;
       const zip = new AdmZip(gzPath);
       const zipEntries = zip.getEntries();
       if (zipEntries.length > 0) {

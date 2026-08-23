@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.15.0] - 2026-08-23
+### Optimisé
+- **Importation statique globale d'AdmZip** : Remplacement de l'import dynamique de la bibliothèque `adm-zip` dans la route de streaming `/video` par un import statique global au démarrage de l'application. Cela évite le surcoût de l'évaluation dynamique de l'import asynchrone lors de chaque requête de fragment (Range Request) émise par le lecteur vidéo du navigateur.
+
 ## [1.14.51] - 2026-08-23
 ### Corrigé
 - **Silence sur les limites de compression** : Retrait du message d'avertissement de log `logger.warn` lorsque la taille d'un fichier dépasse 2 Go et que la compression ZIP est ainsi ignorée, rendant le traitement silencieux pour ces gros fichiers.
