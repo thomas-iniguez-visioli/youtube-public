@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.14.51] - 2026-08-23
+### Corrigé
+- **Silence sur les limites de compression** : Retrait du message d'avertissement de log `logger.warn` lorsque la taille d'un fichier dépasse 2 Go et que la compression ZIP est ainsi ignorée, rendant le traitement silencieux pour ces gros fichiers.
+
 ## [1.14.50] - 2026-08-23
 ### Corrigé
 - **Redirection automatique du Splash Screen** : Ajout d'un mécanisme de polling intelligent en JavaScript dans `loading.html`. La page interroge en arrière-plan le port d'Express (`http://localhost:8001/`) et effectue une redirection automatique instantanée dès que le serveur web backend est opérationnel.

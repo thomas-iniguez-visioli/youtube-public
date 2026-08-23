@@ -269,7 +269,6 @@ async function gzipFile(filePath, logger) {
   try {
     const stats = fs.statSync(filePath);
     if (stats.size > 2 * 1024 * 1024 * 1024) {
-      if (logger) logger.warn(`La taille du fichier (${stats.size}) dépasse 2 Go. Compression ZIP ignorée.`);
       return;
     }
   } catch (e) {
