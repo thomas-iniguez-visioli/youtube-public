@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.14.50] - 2026-08-23
+### Corrigé
+- **Redirection automatique du Splash Screen** : Ajout d'un mécanisme de polling intelligent en JavaScript dans `loading.html`. La page interroge en arrière-plan le port d'Express (`http://localhost:8001/`) et effectue une redirection automatique instantanée dès que le serveur web backend est opérationnel.
+
 ## [1.14.49] - 2026-08-23
 ### Optimisé
 - **Vérification non bloquante des miniatures au démarrage** : Déplacement de la routine `downloadMissingThumbnails()` en dehors de la séquence de boot principale d'Electron. Elle est désormais exécutée de manière asynchrone et non bloquante en tâche de fond une fois que le serveur Express a démarré, accélérant considérablement le temps d'apparition de l'interface utilisateur.

@@ -44,5 +44,21 @@
     <div class="spinner"></div>
     <h2>Préparation de votre bibliothèque</h2>
     <p>Synchronisation de la base de données et des miniatures en cours...</p>
+
+    <script>
+        const targetUrl = "http://localhost:8001/";
+        async function checkServer() {
+            try {
+                const res = await fetch(targetUrl, { mode: 'no-cors' });
+                // Si la requête réussit (même sans cors ou avec erreur opaque, le serveur répond)
+                window.location.href = targetUrl;
+            } catch (e) {
+                // Le serveur n'est pas encore prêt, on réessaie dans 500ms
+                setTimeout(checkServer, 500);
+            }
+        }
+        // Commencer à vérifier après un petit délai de 500ms
+        setTimeout(checkServer, 500);
+    </script>
 </body>
 </html>
