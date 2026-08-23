@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.14.48] - 2026-08-23
+### Optimisé
+- **Lancement instantané de l'interface GUI (Splash Screen)** : Création de la fenêtre Electron immédiatement au démarrage de l'application sans attendre l'initialisation asynchrone des binaires, miniatures et base de données. Ajout d'une page de chargement locale temporaire `loading.html` affichée instantanément, puis redirection automatique vers l'interface Express dès que le serveur est prêt.
+
 ## [1.14.47] - 2026-08-21
 ### Optimisé
 - **Vitesse de traitement FFmpeg accrue** : Passage de l'argument `--postprocessor-args "ffmpeg:-preset superfast"` à `yt-dlp` lors de la construction des paramètres de téléchargement. Cela force FFmpeg à utiliser le preset `superfast` de `libx264` lors des étapes de fusion ou de transcodage de formats incompatibles (ex. WebM vers MP4), réduisant drastiquement le temps de post-traitement pour les vidéos volumineuses.

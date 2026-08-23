@@ -2025,7 +2025,11 @@ function createWindow() {
     return null;
   });
 
-  mainWindow.loadURL("http://localhost:8001");
+  if (booted) {
+    mainWindow.loadURL("http://localhost:8001");
+  } else {
+    mainWindow.loadFile(path.join(__dirname, 'views', 'loading.html'));
+  }
 
   mainWindow.on('closed', () => {
    win = null;
@@ -2057,8 +2061,12 @@ if (!gotTheLock) {
 
     if (app.isReady()) {
       showBootNotification();
+      createWindow();
     } else {
-      app.once('ready', showBootNotification);
+      app.once('ready', () => {
+        showBootNotification();
+        createWindow();
+      });
     }
 
     try {
@@ -2078,7 +2086,9 @@ if (!gotTheLock) {
     httpServer.listen(8001, function () {
       log.info('Listening on port 8001!');
       booted = true;
-      if (app.isReady() && BrowserWindow.getAllWindows().length === 0) {
+      if (win) {
+        win.loadURL("http://localhost:8001");
+      } else if (app.isReady() && BrowserWindow.getAllWindows().length === 0) {
         createWindow();
       }
     });
