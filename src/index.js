@@ -2073,10 +2073,7 @@ if (!gotTheLock) {
       // 1. Préparer les répertoires et télécharger les binaires nécessaires
       await build();
       
-      // 2. Vérifier et télécharger les miniatures et logos de chaînes manquants
-      await downloadMissingThumbnails();
-      
-      // 3. Lire et indexer la base de données de vidéos de façon asynchrone et optimisée
+      // 2. Lire et indexer la base de données de vidéos de façon asynchrone et optimisée
       await db.readDatabaseAsync();
     } catch (err) {
       log.error(`Erreur critique pendant l'initialisation de l'application : ${err.message}`);
@@ -2091,6 +2088,8 @@ if (!gotTheLock) {
       } else if (app.isReady() && BrowserWindow.getAllWindows().length === 0) {
         createWindow();
       }
+      // Téléchargement des miniatures et logos manquants en arrière-plan (non prioritaire)
+      downloadMissingThumbnails().catch(err => log.error(`Erreur de téléchargement des miniatures en arrière-plan : ${err.message}`));
     });
   };
 

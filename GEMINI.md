@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.14.49] - 2026-08-23
+### Optimisé
+- **Vérification non bloquante des miniatures au démarrage** : Déplacement de la routine `downloadMissingThumbnails()` en dehors de la séquence de boot principale d'Electron. Elle est désormais exécutée de manière asynchrone et non bloquante en tâche de fond une fois que le serveur Express a démarré, accélérant considérablement le temps d'apparition de l'interface utilisateur.
+
 ## [1.14.48] - 2026-08-23
 ### Optimisé
 - **Lancement instantané de l'interface GUI (Splash Screen)** : Création de la fenêtre Electron immédiatement au démarrage de l'application sans attendre l'initialisation asynchrone des binaires, miniatures et base de données. Ajout d'une page de chargement locale temporaire `loading.html` affichée instantanément, puis redirection automatique vers l'interface Express dès que le serveur est prêt.
