@@ -43,14 +43,32 @@
 <body>
     <div class="spinner"></div>
     <h2>Préparation de votre bibliothèque</h2>
-    <p id="status-text">Préparation de l'application...</p>
+    <div id="status-container" style="text-align: left; width: 80%; max-width: 450px; margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;"></div>
 
     <script>
         const targetUrl = "http://localhost:8001/";
         
         if (window.electronAPI && window.electronAPI.onBootStatus) {
             window.electronAPI.onBootStatus((status) => {
-                document.getElementById('status-text').textContent = status;
+                const container = document.getElementById('status-container');
+                
+                // Marquer l'étape précédente comme terminée
+                const activeStep = container.querySelector('.step-active');
+                if (activeStep) {
+                    activeStep.classList.remove('step-active');
+                    activeStep.style.color = '#28a745'; // Vert bootstrap
+                    activeStep.innerHTML = '✓ ' + activeStep.textContent.replace('➜ ', '').replace('...', '') + ' <span style="font-size:0.75rem; color:#888;">(Terminé)</span>';
+                }
+                
+                // Créer et ajouter la nouvelle étape active
+                const newStep = document.createElement('div');
+                newStep.className = 'step-active';
+                newStep.style.margin = '6px 0';
+                newStep.style.fontSize = '0.9rem';
+                newStep.style.color = '#ff0000'; // Rouge pour l'étape en cours
+                newStep.style.transition = 'color 0.3s ease';
+                newStep.innerHTML = '➜ ' + status + '...';
+                container.appendChild(newStep);
             });
         }
 

@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.15.1] - 2026-08-23
+### Ajouté
+- **Historique et liste des étapes du boot** : Passage en mode d'ajout de statuts dans `loading.html` pour conserver l'historique visuel des étapes passées, en marquant chaque tâche terminée par une coche verte pour une meilleure clarté du cycle de boot.
+
 ## [1.15.0] - 2026-08-23
 ### Optimisé
 - **Importation statique globale d'AdmZip** : Remplacement de l'import dynamique de la bibliothèque `adm-zip` dans la route de streaming `/video` par un import statique global au démarrage de l'application. Cela évite le surcoût de l'évaluation dynamique de l'import asynchrone lors de chaque requête de fragment (Range Request) émise par le lecteur vidéo du navigateur.
