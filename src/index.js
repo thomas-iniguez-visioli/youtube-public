@@ -549,6 +549,14 @@ function extractUrls(text) {
   return text.match(urlRegex) || [];
 }
 let win;
+let currentBootStatus = "Préparation de l'application...";
+const updateBootStatus = (status) => {
+  currentBootStatus = status;
+  log.info(`[Boot Status] ${status}`);
+  if (win && win.webContents) {
+    win.webContents.send('boot-status', status);
+  }
+};
 function sendStatusToWindow(text) {
   log.info(text);
   if (io) {
@@ -2031,6 +2039,12 @@ function createWindow() {
     mainWindow.loadFile(path.join(__dirname, 'views', 'loading.html'));
   }
 
+  mainWindow.webContents.on('dom-ready', () => {
+    if (currentBootStatus && win && win.webContents) {
+      win.webContents.send('boot-status', currentBootStatus);
+    }
+  });
+
   mainWindow.on('closed', () => {
    win = null;
   });
@@ -2071,15 +2085,18 @@ if (!gotTheLock) {
 
     try {
       // 1. Préparer les répertoires et télécharger les binaires nécessaires
+      updateBootStatus("Vérification des dépendances et téléchargement des binaires...");
       await build();
       
       // 2. Lire et indexer la base de données de vidéos de façon asynchrone et optimisée
+      updateBootStatus("Indexation et chargement de la base de données vidéo...");
       await db.readDatabaseAsync();
     } catch (err) {
       log.error(`Erreur critique pendant l'initialisation de l'application : ${err.message}`);
     }
 
     // 4. Démarrer le serveur HTTP
+    updateBootStatus("Démarrage du serveur d'application...");
     httpServer.listen(8001, function () {
       log.info('Listening on port 8001!');
       booted = true;

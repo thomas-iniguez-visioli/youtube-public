@@ -43,10 +43,17 @@
 <body>
     <div class="spinner"></div>
     <h2>Préparation de votre bibliothèque</h2>
-    <p>Synchronisation de la base de données et des miniatures en cours...</p>
+    <p id="status-text">Préparation de l'application...</p>
 
     <script>
         const targetUrl = "http://localhost:8001/";
+        
+        if (window.electronAPI && window.electronAPI.onBootStatus) {
+            window.electronAPI.onBootStatus((status) => {
+                document.getElementById('status-text').textContent = status;
+            });
+        }
+
         async function checkServer() {
             try {
                 const res = await fetch(targetUrl, { mode: 'no-cors' });
