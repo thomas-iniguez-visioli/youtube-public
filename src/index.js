@@ -1857,19 +1857,24 @@ web.get("/video", limiter, async function (req, res) {
 
   // Récupérer la taille de la vidéo (physique ou dans l'archive zip) pour le calcul de range
   let videoSize;
-  if (fs.existsSync(videoPath)) {
-    videoSize = fs.statSync(videoPath).size;
-  } else if (fs.existsSync(gzPath)) {
-    try {
-      const zip = new AdmZip(gzPath);
-      const zipEntries = zip.getEntries();
-      if (zipEntries.length > 0) {
-        videoSize = zipEntries[0].header.size;
+  try {
+    const s = await fs.promises.stat(videoPath);
+    videoSize = s.size;
+  } catch (e) {
+    const zipExists = await fs.promises.access(gzPath).then(() => true).catch(() => false);
+    if (zipExists) {
+      try {
+        const zip = new AdmZip(gzPath);
+        const zipEntries = zip.getEntries();
+        if (zipEntries.length > 0) {
+          videoSize = zipEntries[0].header.size;
+        }
+      } catch (zipErr) {
+        log.error(`Impossible de lire la taille du fichier dans le zip : ${zipErr.message}`);
       }
-    } catch (e) {
-      log.error(`Impossible de lire la taille du fichier dans le zip : ${e.message}`);
     }
   }
+
   if (!videoSize) {
     return res.status(500).send("Taille de vidéo inconnue.");
   }
@@ -1884,8 +1889,12 @@ web.get("/video", limiter, async function (req, res) {
     return res.status(416).send("Requested Range Not Satisfiable");
   }
 
-  // Si la vidéo est complètement disponible sur le disque (non compressée ou déjà décompressée entièrement)
-  const isVideoFullyOnDisk = fs.existsSync(videoPath) && fs.statSync(videoPath).size === videoSize;
+  // Vérifier asynchronement si la vidéo est complètement décompressée sur le disque
+  let isVideoFullyOnDisk = false;
+  try {
+    const s = await fs.promises.stat(videoPath);
+    isVideoFullyOnDisk = s.size === videoSize;
+  } catch (e) {}
 
   // Si elle est déjà sur le disque, on utilise de gros morceaux (10 Mo) pour limiter le nombre de requêtes.
   // Sinon, on limite à 1 Mo max pour répondre instantanément pendant la décompression progressive.
@@ -1896,9 +1905,17 @@ web.get("/video", limiter, async function (req, res) {
     end = start + CHUNK_SIZE;
   }
 
+  // Vérifier la taille actuelle de la vidéo décompressée de manière asynchrone
+  let currentSize = 0;
+  try {
+    const s = await fs.promises.stat(videoPath);
+    currentSize = s.size;
+  } catch (e) {}
+
   // Si le fichier décompressé n'existe pas ou est incomplet, on s'assure que l'extraction tourne
-  if (!fs.existsSync(videoPath) || fs.statSync(videoPath).size < end) {
-    if (fs.existsSync(gzPath)) {
+  if (currentSize < end) {
+    const zipExists = await fs.promises.access(gzPath).then(() => true).catch(() => false);
+    if (zipExists) {
       try {
         if (!ongoingDecompressions.has(videoPath)) {
           const decompressPromise = gunzipFile(gzPath, videoPath);
@@ -1911,20 +1928,18 @@ web.get("/video", limiter, async function (req, res) {
           });
         }
 
-        // Attendre que les octets requis soient écrits sur le disque
-        let availableSize = 0;
+        // Attendre que les octets requis soient écrits sur le disque (attente asynchrone et douce de 100ms)
         const startTime = Date.now();
-        while (availableSize < end) {
-          if (!fs.existsSync(videoPath)) {
-            await new Promise(resolve => setTimeout(resolve, 50));
-          } else {
-            availableSize = fs.statSync(videoPath).size;
-            if (availableSize < end) {
-              if (!ongoingDecompressions.has(videoPath) && availableSize < end) {
-                return res.status(500).send("Échec de la décompression de la vidéo.");
-              }
-              await new Promise(resolve => setTimeout(resolve, 50));
-            }
+        while (currentSize < end) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+          try {
+            const s = await fs.promises.stat(videoPath);
+            currentSize = s.size;
+          } catch (e) {
+            currentSize = 0;
+          }
+          if (!ongoingDecompressions.has(videoPath) && currentSize < end) {
+            return res.status(500).send("Échec de la décompression de la vidéo.");
           }
           if (Date.now() - startTime > 30000) { // 30 secondes max
             return res.status(500).send("Timeout de chargement de la vidéo.");

@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.15.3] - 2026-08-24
+### Optimisé
+- **Streaming vidéo 100% asynchrone (Anti-Freeze)** : Remplacement de l'ensemble des appels synchrones de système de fichiers (`fs.existsSync` et `fs.statSync`) par leurs équivalents asynchrones basés sur des promesses (`fs.promises.access` et `fs.promises.stat`) dans la route `/video`. De plus, la boucle d'attente d'écriture des morceaux décompressés a été adoucie à 100 ms d'intervalle, libérant complètement le thread principal de Node.js d'I/O disques bloquantes.
+
 ## [1.15.2] - 2026-08-24
 ### Corrigé
 - **Suppression du double scan et des blocages de boot** : Retrait de l'initialisation parallèle redondante `setTimeout` à la racine de `index.js` qui lançait des scans de base de données asynchrones concurrents et de lourdes tâches de compression dès la première seconde. Ces routines (nettoyage et compression au démarrage) sont désormais décalées de manière sécurisée et non bloquante 3 secondes après le lancement complet du serveur Express.
