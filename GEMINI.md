@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.15.2] - 2026-08-24
+### Corrigé
+- **Suppression du double scan et des blocages de boot** : Retrait de l'initialisation parallèle redondante `setTimeout` à la racine de `index.js` qui lançait des scans de base de données asynchrones concurrents et de lourdes tâches de compression dès la première seconde. Ces routines (nettoyage et compression au démarrage) sont désormais décalées de manière sécurisée et non bloquante 3 secondes après le lancement complet du serveur Express.
+
 ## [1.15.1] - 2026-08-23
 ### Ajouté
 - **Historique et liste des étapes du boot** : Passage en mode d'ajout de statuts dans `loading.html` pour conserver l'historique visuel des étapes passées, en marquant chaque tâche terminée par une coche verte pour une meilleure clarté du cycle de boot.

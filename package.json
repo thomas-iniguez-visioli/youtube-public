@@ -1,6 +1,6 @@
 {
   "name": "youtube",
-  "version": "1.15.1",
+  "version": "1.15.2",
   "type": "module",
   "description": "youtube local",
   "main": "src/index.js",
@@ -31,7 +31,7 @@
   },
   "devDependencies": {
     "electron": "^43.4.0",
-    "electron-builder": "^25.1.8",
+    "electron-builder": "^26.15.3",
     "typescript": "^5.0.0"
   },
   "keywords": [

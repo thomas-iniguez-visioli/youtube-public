@@ -316,14 +316,7 @@ const downloadMissingThumbnails = async () => {
   }
 };
 
-// Deferred sync to avoid blocking startup
-setTimeout(async () => {
-  cleanupDecompressedFilesOnStartup();
-  await db.readDatabaseAsync();
-  db.save();
-  await compressMissingVideosOnStartup();
-  downloadMissingThumbnails();
-}, 1000);
+
 
 const web = express();
 
@@ -2107,6 +2100,16 @@ if (!gotTheLock) {
       }
       // Téléchargement des miniatures et logos manquants en arrière-plan (non prioritaire)
       downloadMissingThumbnails().catch(err => log.error(`Erreur de téléchargement des miniatures en arrière-plan : ${err.message}`));
+      
+      // Tâches de maintenance lourdes différées pour éviter les freezes d'affichage au démarrage
+      setTimeout(async () => {
+        try {
+          cleanupDecompressedFilesOnStartup();
+          await compressMissingVideosOnStartup();
+        } catch (e) {
+          log.error(`Erreur lors des tâches de maintenance en arrière-plan : ${e.message}`);
+        }
+      }, 3000);
     });
   };
 
