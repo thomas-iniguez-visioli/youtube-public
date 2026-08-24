@@ -11,7 +11,7 @@
     "postpush": "gh signoff",
     "start": "electron .",
     "test": "bun test ./tests/*.test.js",
-    "dist": "cmd /c \"set CSC_NAME=spartan_arbinger&& electron-builder --win\""
+    "dist": "electron-builder --win"
   },
   "dependencies": {
     "adm-zip": "^0.6.0",
@@ -46,6 +46,7 @@
   "build": {
     "appId": "com.arbinger.youtube",
     "win": {
+      "certificateFile": "spartan_arbinger.pfx",
       "target": [
         "NSIS",
         "portable",
