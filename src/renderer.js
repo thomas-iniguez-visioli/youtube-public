@@ -279,6 +279,35 @@ if (typeof io !== 'undefined') {
                     });
             });
         }
+
+        const cleanupBtn = document.getElementById('cleanup-btn');
+        if (cleanupBtn) {
+            cleanupBtn.addEventListener('click', () => {
+                const days = prompt('Supprimer les vidéos non lues depuis combien de jours ?', '30');
+                if (days === null) return;
+                const daysInt = parseInt(days, 10);
+                if (isNaN(daysInt) || daysInt <= 0) {
+                    showToast('Erreur', 'Veuillez saisir un nombre de jours valide.', 'danger');
+                    return;
+                }
+                cleanupBtn.disabled = true;
+                cleanupBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Nettoyage...';
+                fetch(`/maintenance/cleanup?days=${daysInt}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        showToast('Maintenance', data.message || 'Nettoyage terminé.', 'success');
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1500);
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        showToast('Erreur', 'Impossible de lancer le nettoyage.', 'danger');
+                        cleanupBtn.disabled = false;
+                        cleanupBtn.textContent = '🧹 Nettoyer vidéos';
+                    });
+            });
+        }
     });
 
     // Événements d'auto-updater via WebSocket
