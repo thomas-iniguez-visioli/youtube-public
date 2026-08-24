@@ -45,6 +45,7 @@
   "build": {
     "appId": "com.arbinger.youtube",
     "win": {
+      "certificateSubjectName": "spartan_arbinger",
       "target": [
         "NSIS",
         "portable",
