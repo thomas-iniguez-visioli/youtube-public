@@ -589,7 +589,57 @@ export default class FileDatabase {
         if (this.history.length > limit && limit > 0) {
             this.history.pop();
         }
+        
+        // Mettre à jour la date de dernière lecture
+        const entry = this.getFile(videoId);
+        if (entry) {
+            entry.lastViewedAt = Date.now();
+        }
         this.saveDatabase();
+    }
+
+    cleanupOldVideos(daysLimit = 30) {
+        const threshold = Date.now() - (daysLimit * 24 * 60 * 60 * 1000);
+        const toDelete = [];
+        
+        this.database.forEach(entry => {
+            const lastView = entry.lastViewedAt || entry.mtime || 0;
+            if (lastView < threshold) {
+                toDelete.push(entry);
+            }
+        });
+        
+        toDelete.forEach(entry => {
+            const filePath = path.join(this.directoryPath, entry.fileName);
+            try {
+                if (fs.existsSync(filePath)) fs.rmSync(filePath);
+                const gzPath = filePath + '.zip';
+                if (fs.existsSync(gzPath)) fs.rmSync(gzPath);
+                const infoPath = filePath.replace(/\.mp4$/, '.info.json');
+                if (fs.existsSync(infoPath)) fs.rmSync(infoPath);
+            } catch (e) {
+                console.error(`[DB Cleanup] Impossible de supprimer les fichiers pour ${entry.yid} :`, e);
+            }
+            
+            // Retirer de la base de données
+            this.database = this.database.filter(file => file.yid !== entry.yid);
+            if (this.yidMap) this.yidMap.delete(entry.yid);
+            this.history = this.history.filter(id => id !== entry.yid);
+            this.queue = this.queue.filter(id => id !== entry.yid);
+            this.favorites = this.favorites.filter(id => id !== entry.yid);
+            this.playlists.forEach(p => {
+                p.videoIds = p.videoIds.filter(id => id !== entry.yid);
+            });
+        });
+        
+        if (toDelete.length > 0) {
+            this.playlists = this.playlists.filter(p => p.videoIds.length > 0);
+            this._tagsCache = null;
+            this._channelsCache = null;
+            this.saveDatabase();
+        }
+        
+        return toDelete.length;
     }
 
     getHistory() {

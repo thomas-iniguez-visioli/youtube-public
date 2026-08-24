@@ -1433,6 +1433,13 @@ web.get("/delete", function (req, res) {
   res.redirect("/");
 });
 
+web.get("/maintenance/cleanup", function (req, res) {
+  const days = parseInt(req.query.days, 10) || 30;
+  const deletedCount = db.cleanupOldVideos(days);
+  cleanupOrphanedThumbnails();
+  res.json({ success: true, message: `${deletedCount} vidéos inactives supprimées.` });
+});
+
 web.get("/api/search", function (req, res) {
   const query = req.query.q || req.query.tags || "";
   const results = db.search(query);
@@ -2121,6 +2128,12 @@ if (!gotTheLock) {
         try {
           cleanupDecompressedFilesOnStartup();
           await compressMissingVideosOnStartup();
+          // Nettoyage automatique des vidéos non lues depuis plus de 60 jours
+          const cleanedCount = db.cleanupOldVideos(60);
+          if (cleanedCount > 0) {
+            log.info(`[Auto Cleanup] ${cleanedCount} vidéos inactives supprimées.`);
+            cleanupOrphanedThumbnails();
+          }
         } catch (e) {
           log.error(`Erreur lors des tâches de maintenance en arrière-plan : ${e.message}`);
         }

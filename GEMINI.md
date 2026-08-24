@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.15.4] - 2026-08-24
+### Ajouté
+- **Nettoyage automatique et manuel des vidéos inactives** : Ajout d'une fonctionnalité pour supprimer automatiquement les vidéos non lues depuis plus de 60 jours lors des tâches de fond au démarrage. Implémentation d'une méthode `cleanupOldVideos(daysLimit)` dans `db.js` et d'une route API Express `/maintenance/cleanup` pour déclencher manuellement le nettoyage à la demande.
+
 ## [1.15.3] - 2026-08-24
 ### Optimisé
 - **Streaming vidéo 100% asynchrone (Anti-Freeze)** : Remplacement de l'ensemble des appels synchrones de système de fichiers (`fs.existsSync` et `fs.statSync`) par leurs équivalents asynchrones basés sur des promesses (`fs.promises.access` et `fs.promises.stat`) dans la route `/video`. De plus, la boucle d'attente d'écriture des morceaux décompressés a été adoucie à 100 ms d'intervalle, libérant complètement le thread principal de Node.js d'I/O disques bloquantes.
