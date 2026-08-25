@@ -104,7 +104,7 @@
                 <!-- Onglet Vidéos -->
                 <div class="tab-pane active" id="videos-pane" role="tabpanel">
                     <!-- Section Filtres Inline -->
-                    <div class="tag-filter-section flex gap-2 flex-wrap overflow-x-auto pb-4 mb-4">
+                    <div class="tag-filter-section flex gap-2 overflow-x-auto pb-4 mb-4">
                         <div class="filter-chip active" onclick="filterByTag('all', this)">Tous</div>
                         <div class="filter-chip text-warning border-warning" onclick="switchToPlaylistsTab(this)">📁 Playlists</div>
                         <% if (typeof allTags !== 'undefined') { %>
@@ -197,7 +197,7 @@
             </div>
         <% } else { %>
             <!-- Section Filtres Inline -->
-            <div class="tag-filter-section flex gap-2 flex-wrap overflow-x-auto pb-4 mb-4">
+            <div class="tag-filter-section flex gap-2 overflow-x-auto pb-4 mb-4">
                 <div class="filter-chip active" onclick="filterByTag('all', this)">Tous</div>
                 <% if (typeof allTags !== 'undefined') { %>
                     <% allTags.forEach(function(tag){ %>
