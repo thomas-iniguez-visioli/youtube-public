@@ -26,30 +26,44 @@ function debounce(fn, delay) {
 
 // --- Toast Notifications ---
 function showToast(title, message, type = 'primary', link = null) {
-    const toastContainer = document.querySelector('.toast-container');
-    if (!toastContainer) return;
+    let toastContainer = document.querySelector('.toast-container') || document.getElementById('toast-container');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toast-container';
+        toastContainer.className = 'fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full px-4 pointer-events-none';
+        document.body.appendChild(toastContainer);
+    } else {
+        toastContainer.className = 'fixed bottom-4 right-4 z-[1060] flex flex-col gap-2 max-w-sm w-full px-4 pointer-events-none';
+    }
 
     const toastId = 'toast-' + Date.now() + Math.floor(Math.random() * 1000);
-    const bgClass = type === 'error' ? 'bg-danger' : 'bg-primary';
-    const btnClass = type === 'error' ? 'btn-danger' : 'btn-primary';
+    const bgHeader = type === 'error' ? 'bg-red-600' : type === 'success' ? 'bg-emerald-600' : type === 'warning' ? 'bg-amber-600' : 'bg-blue-600';
+    const bgBody = 'bg-neutral-800 text-neutral-100 border border-neutral-700';
 
     toastContainer.insertAdjacentHTML('beforeend', `
-        <div id="${toastId}" class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="15000">
-            <div class="toast-header ${bgClass} text-white">
-                <strong class="me-auto">${title}</strong>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+        <div id="${toastId}" class="pointer-events-auto flex flex-col rounded-lg shadow-xl overflow-hidden transition-all duration-300 transform translate-y-2 opacity-0">
+            <div class="${bgHeader} px-3 py-2 text-white font-bold flex justify-between items-center text-sm">
+                <span>${title}</span>
+                <button type="button" class="text-white hover:text-gray-200 focus:outline-none ml-4" onclick="this.closest('#${toastId}').remove()">✕</button>
             </div>
-            <div class="toast-body">
-                ${message}
-                ${link ? `<div class="mt-2 pt-2 border-top"><a href="${link.url}" class="btn ${btnClass} btn-sm">${link.text}</a></div>` : ''}
+            <div class="${bgBody} p-3 text-sm">
+                <div>${message}</div>
+                ${link ? `<div class="mt-2 pt-2 border-t border-neutral-700"><a href="${link.url}" class="inline-block bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-full px-3 py-1 text-xs transition">${link.text}</a></div>` : ''}
             </div>
         </div>
     `);
 
     const toastEl = document.getElementById(toastId);
-    const toast = new bootstrap.Toast(toastEl);
-    toast.show();
-    toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
+    setTimeout(() => {
+        if (toastEl) toastEl.classList.remove('translate-y-2', 'opacity-0');
+    }, 10);
+
+    setTimeout(() => {
+        if (toastEl) {
+            toastEl.classList.add('opacity-0', 'translate-y-2');
+            setTimeout(() => toastEl.remove(), 300);
+        }
+    }, 6000);
 }
 
 // --- Queue ---
@@ -385,5 +399,39 @@ if (typeof io !== 'undefined') {
             while (consoleLogs.children.length > 1000) consoleLogs.removeChild(consoleLogs.firstChild);
             downloadConsole.scrollTop = downloadConsole.scrollHeight;
         }
+    });
+
+    // Événements de synchronisation des chaînes via WebSocket
+    socket.on('channel-check-started', (data) => {
+        showToast('Synchronisation', `Démarrage de la vérification de ${data.total} chaîne(s) suivie(s)...`, 'info');
+        const btn = document.getElementById('sync-channels-btn');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Sync...';
+        }
+    });
+
+    socket.on('channel-check-progress', (data) => {
+        showToast('Synchronisation', `Vérification (${data.current}/${data.total}) : ${data.channelName}`, 'info');
+    });
+
+    socket.on('channel-new-videos', (data) => {
+        showToast('Nouvelles vidéos', `${data.count} nouvelle(s) vidéo(s) ajoutée(s) pour la chaîne ${data.channelName} !`, 'success');
+    });
+
+    socket.on('channel-check-error', (data) => {
+        showToast('Erreur Synchronisation', `Échec de la vérification pour la chaîne ${data.channelName} : ${data.error}`, 'danger');
+    });
+
+    socket.on('channel-check-finished', (data) => {
+        showToast('Synchronisation terminée', `La vérification est finie. ${data.totalAdded} nouvelle(s) vidéo(s) ont été ajoutées au backlog.`, 'success');
+        const btn = document.getElementById('sync-channels-btn');
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '🔄 Sync chaînes';
+        }
+        setTimeout(() => {
+            window.location.reload();
+        }, 2000);
     });
 }

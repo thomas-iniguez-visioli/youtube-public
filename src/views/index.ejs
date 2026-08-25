@@ -6,220 +6,187 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>YouTube Downloader - Ma Bibliothèque</title>
     
-    <!-- Bootstrap CSS -->
-    <link href="/bootstrap.min.css" rel="stylesheet">
-    <!-- Plyr CSS -->
+    <link href="/tailwind.css" rel="stylesheet">
     <link rel="stylesheet" href="/plyr.css" />
-    <!-- Fuse.js for fuzzy search -->
     <script src="/fuse.js"></script>
-    <!-- Roboto Font -->
     <link href="/roboto.css" rel="stylesheet">
 
     <script src="socket.io.js"></script>
     <script src="renderer.js"></script>
-
     <link rel="stylesheet" href="/style.css">
-
-
-    <script>
-        // Socket.io and shared utilities are initialized in renderer.js
-    </script>
-
 </head>
-<body>
+<body class="bg-[#0f0f0f] text-neutral-100 min-h-screen font-sans">
     <!-- Toast Container -->
-    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1060;">
-    </div>
-    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
-        <div class="container-fluid">
-            <a class="navbar-brand d-flex align-items-center" href="/">
-                <img src="/favicon.ico" width="30" height="30" class="me-2" alt="">
-                <div class="d-flex flex-column">
-                    <strong>YouTube Downloader</strong>
-                    <span style="font-size: 0.65rem; color: #aaaaaa; margin-top: -5px;">v<%= typeof appVersion !== 'undefined' ? appVersion : '' %></span>
+    <div id="toast-container" class="fixed bottom-4 right-4 z-[1060] flex flex-col gap-2 max-w-sm w-full px-4 pointer-events-none"></div>
+
+    <nav class="sticky top-0 z-50 bg-[#0f0f0f]/90 backdrop-blur-md border-b border-neutral-800 px-6 py-3 flex flex-wrap items-center justify-between gap-4">
+        <a class="flex items-center gap-2 text-white font-bold" href="/">
+            <img src="/favicon.ico" width="30" height="30" alt="">
+            <div class="flex flex-col">
+                <strong>YouTube Downloader</strong>
+                <span class="text-[10px] text-neutral-400 -mt-1">v<%= typeof appVersion !== 'undefined' ? appVersion : '' %></span>
+            </div>
+        </a>
+        
+        <div class="flex-1 max-w-xl mx-4">
+            <form id="commandForm" class="flex flex-col m-0 w-full">
+                <div class="flex items-center gap-2">
+                    <input class="bg-neutral-900 border border-neutral-800 text-white rounded-full px-4 py-2 text-sm w-full focus:outline-none focus:border-blue-500 transition" type="text" id="commandInput" placeholder="Coller une URL YouTube..." required>
+                    <button class="bg-blue-600 hover:bg-blue-700 text-white rounded-full px-4 py-2 text-sm font-semibold transition" type="submit">Télécharger</button>
+                    <button type="button" class="border border-neutral-750 hover:bg-neutral-850 rounded-full p-2 text-sm transition" title="Changer le dossier de téléchargement" onclick="changeFolder()">📂</button>
                 </div>
-            </a>
-            
-            <div class="d-flex flex-grow-1 justify-content-center mx-4">
-                <form id="commandForm" class="d-flex w-100 search-container m-0 flex-column">
-                    <div class="d-flex w-100 align-items-center">
-                        <input class="form-control me-2 rounded-pill ps-4" type="text" id="commandInput" placeholder="Coller une URL YouTube..." required>
-                        <button class="btn btn-outline-light rounded-pill px-4" type="submit">Télécharger</button>
-                        <button type="button" class="btn btn-outline-secondary rounded-pill ms-2" title="Changer le dossier de téléchargement" onclick="changeFolder()">📂</button>
-                    </div>
-                    <small class="text-muted text-center mt-1" style="font-size: 0.65rem; color: #777 !important;">Fichier backlog : <%= typeof backlogFile !== 'undefined' ? backlogFile : '' %></small>
-                </form>
-            </div>
-            <div class="d-flex">
-                <a href="https://github.com/sponsors/alphaleadership" target="_blank" class="btn btn-outline-danger rounded-pill px-4 me-2">💖 Sponsor</a>
-                <a href="/patchnotes" class="btn btn-outline-secondary rounded-pill px-4 me-2">📜 Notes</a>
-                <a href="/suggestions" class="btn btn-outline-primary rounded-pill px-4 me-2">✨ Suggestions</a>
-                <a href="/followed-channels" class="btn btn-outline-warning rounded-pill px-4 me-2">📺 Suivis</a>
-                <a href="/favorites" class="btn btn-outline-danger rounded-pill px-4 me-2">Favoris (<%= typeof favoritesCount !== 'undefined' ? favoritesCount : 0 %>)</a>
-                <a href="/queue" class="btn btn-outline-success rounded-pill px-4 me-2">File (<%= typeof queueCount !== 'undefined' ? queueCount : 0 %>)</a>
-                <a href="/playlists" class="btn btn-outline-warning rounded-pill px-4 me-2">Playlists</a>
-                <a href="/history" class="btn btn-outline-info rounded-pill px-4">Historique (<%= typeof historyCount !== 'undefined' ? historyCount : 0 %>/<%= typeof historyLimit !== 'undefined' ? historyLimit : 0 %>)</a>
-            </div>
+                <small class="text-[10px] text-neutral-500 text-center mt-1">Fichier backlog : <%= typeof backlogFile !== 'undefined' ? backlogFile : '' %></small>
+            </form>
+        </div>
+
+        <div class="flex items-center gap-2 flex-wrap text-sm">
+            <a href="https://github.com/sponsors/alphaleadership" target="_blank" class="border border-red-500/50 hover:bg-red-500/10 text-red-400 rounded-full px-4 py-1.5 font-medium transition">💖 Sponsor</a>
+            <a href="/patchnotes" class="border border-neutral-750 hover:bg-neutral-850 text-neutral-300 rounded-full px-4 py-1.5 font-medium transition">📜 Notes</a>
+            <a href="/suggestions" class="border border-neutral-750 hover:bg-neutral-850 text-neutral-300 rounded-full px-4 py-1.5 font-medium transition">✨ Suggestions</a>
+            <a href="/followed-channels" class="border border-neutral-750 hover:bg-neutral-850 text-neutral-300 rounded-full px-4 py-1.5 font-medium transition">📺 Suivis</a>
+            <a href="/favorites" class="border border-neutral-750 hover:bg-neutral-850 text-neutral-300 rounded-full px-4 py-1.5 font-medium transition">Favoris (<%= typeof favoritesCount !== 'undefined' ? favoritesCount : 0 %>)</a>
+            <a href="/queue" class="border border-neutral-750 hover:bg-neutral-850 text-neutral-300 rounded-full px-4 py-1.5 font-medium transition">File (<%= typeof queueCount !== 'undefined' ? queueCount : 0 %>)</a>
+            <a href="/playlists" class="border border-neutral-750 hover:bg-neutral-850 text-neutral-300 rounded-full px-4 py-1.5 font-medium transition">Playlists</a>
+            <a href="/history" class="border border-neutral-750 hover:bg-neutral-850 text-neutral-300 rounded-full px-4 py-1.5 font-medium transition">Historique (<%= typeof historyCount !== 'undefined' ? historyCount : 0 %>/<%= typeof historyLimit !== 'undefined' ? historyLimit : 0 %>)</a>
         </div>
     </nav>
 
-    <div class="container-fluid px-4">
-        <div class="row mt-3">
-            <div class="col-md-6 offset-md-3">
-                <input type="text" id="fuzzySearchInput" class="form-control rounded-pill ps-4 bg-dark text-white border-secondary" placeholder="🔍 Rechercher dans votre bibliothèque (titre, uploader...)" autocomplete="off">
-            </div>
+    <div class="max-w-7xl mx-auto px-6 mt-6">
+        <div class="max-w-xl mx-auto mb-6">
+            <input type="text" id="fuzzySearchInput" class="bg-neutral-900 border border-neutral-800 text-white rounded-full px-5 py-2 text-sm w-full focus:outline-none focus:border-blue-500 transition" placeholder="🔍 Rechercher dans votre bibliothèque (titre, uploader...)" autocomplete="off">
         </div>
         
         <% if (typeof channel !== 'undefined' && channel) { %>
-            <div class="d-flex align-items-center mb-4 mt-3 flex-wrap gap-2">
-                <h2 class="text-white me-2 mb-0"><%= channel %></h2>
+            <div class="flex items-center gap-3 mb-6 mt-4 flex-wrap">
+                <h2 class="text-xl font-bold text-white"><%= channel %></h2>
                 <% if (typeof channelUrl === 'string' && channelUrl.startsWith('http')) { %>
-                    <button class="btn btn-primary btn-sm" onclick="downloadChannel(<%- JSON.stringify(channelUrl).replace(/\"/g, '&quot;') %>)">Télécharger la chaîne</button>
+                    <button class="bg-blue-600 hover:bg-blue-700 text-white rounded-full px-3 py-1 text-xs font-semibold transition" onclick="downloadChannel(<%- JSON.stringify(channelUrl).replace(/\"/g, '&quot;') %>)">Télécharger la chaîne</button>
                 <% } %>
                 <% if (channel !== "Ma File d'attente" && channel !== "Mes Playlists" && channel !== "Mes Favoris" && channel !== "Historique" && !channel.startsWith('Playlist : ')) { %>
-                    <button class="btn btn-success btn-sm" onclick="addAllToQueue()">Ajouter toute la chaîne à la file d'attente</button>
+                    <button class="bg-emerald-600 hover:bg-emerald-700 text-white rounded-full px-3 py-1 text-xs font-semibold transition" onclick="addAllToQueue()">Ajouter tout à la file</button>
                     <% if (typeof channelUrl === 'string' && channelUrl.startsWith('http')) { %>
                         <% if (typeof isFollowed !== 'undefined' && isFollowed) { %>
-                            <button id="followBtn" class="btn btn-warning btn-sm" onclick="toggleFollowChannel(<%- JSON.stringify(channel) %>, <%- JSON.stringify(channelUrl) %>, this)">
+                            <button id="followBtn" class="bg-yellow-500 hover:bg-yellow-600 text-neutral-900 rounded-full px-3 py-1 text-xs font-semibold transition" onclick="toggleFollowChannel(<%- JSON.stringify(channel) %>, <%- JSON.stringify(channelUrl) %>, this)">
                                 ✅ Suivi
                             </button>
                         <% } else { %>
-                            <button id="followBtn" class="btn btn-outline-warning btn-sm" onclick="toggleFollowChannel(<%- JSON.stringify(channel) %>, <%- JSON.stringify(channelUrl) %>, this)">
+                            <button id="followBtn" class="border border-yellow-550/50 hover:bg-yellow-500/10 text-yellow-400 rounded-full px-3 py-1 text-xs font-semibold transition" onclick="toggleFollowChannel(<%- JSON.stringify(channel) %>, <%- JSON.stringify(channelUrl) %>, this)">
                                 ➕ Suivre cette chaîne
                             </button>
                         <% } %>
                     <% } %>
                 <% } %>
                 <% if (channel.startsWith('Playlist : ')) { %>
-                    <a href="/playlist/delete?name=<%= encodeURIComponent(channel.replace('Playlist : ', '')) %>" class="btn btn-danger btn-sm" onclick="return confirm('Supprimer cette playlist ?')">Supprimer la playlist</a>
+                    <a href="/playlist/delete?name=<%= encodeURIComponent(channel.replace('Playlist : ', '')) %>" class="bg-red-655 hover:bg-red-700 text-white rounded-full px-3 py-1 text-xs font-semibold transition" onclick="return confirm('Supprimer cette playlist ?')">Supprimer la playlist</a>
                 <% } %>
                 <% if (channel === "Ma File d'attente") { %>
-                    <a href="/queue/clear" class="btn btn-danger btn-sm" onclick="return confirm('Vider la file d\\'attente ?')">Vider la file</a>
+                    <a href="/queue/clear" class="bg-red-655 hover:bg-red-700 text-white rounded-full px-3 py-1 text-xs font-semibold transition" onclick="return confirm('Vider la file d\'attente ?')">Vider la file</a>
                 <% } %>
                 <% if (channel === "Historique") { %>
-                    <a href="/history/clear" class="btn btn-danger btn-sm" onclick="return confirm('Purger l\\'historique ?')">Purger l'historique</a>
+                    <a href="/history/clear" class="bg-red-655 hover:bg-red-700 text-white rounded-full px-3 py-1 text-xs font-semibold transition" onclick="return confirm('Purger l\'historique ?')">Purger l'historique</a>
                 <% } %>
-                <a href="/" class="btn btn-outline-secondary btn-sm">Retour à l'accueil</a>
+                <a href="/" class="border border-neutral-700 hover:bg-neutral-800 text-neutral-300 rounded-full px-3 py-1 text-xs font-semibold transition">Retour à l'accueil</a>
             </div>
         <% } %>
 
         <% if (typeof channel === 'undefined' || !channel || channel === "Mes Playlists") { %>
-            <ul class="nav nav-tabs justify-content-center border-secondary mt-3 mb-4" id="mainTab" role="tablist">
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link <%= (typeof channel === 'undefined' || !channel) ? 'active' : '' %> text-white" id="videos-tab" data-bs-toggle="tab" data-bs-target="#videos-pane" type="button" role="tab" aria-controls="videos-pane" aria-selected="<%= (typeof channel === 'undefined' || !channel) %>">🎥 Vidéos</button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link <%= (channel === 'Mes Playlists') ? 'active' : '' %> text-white" id="playlists-tab" data-bs-toggle="tab" data-bs-target="#playlists-pane" type="button" role="tab" aria-controls="playlists-pane" aria-selected="<%= (channel === 'Mes Playlists') %>">📁 Playlists</button>
-                </li>
-            </ul>
+            <div class="flex justify-center border-b border-neutral-800 mt-4 mb-6" id="mainTab">
+                <button class="px-6 py-2 border-b-2 font-semibold text-sm transition-all duration-200 <%= (typeof channel === 'undefined' || !channel) ? 'border-blue-500 text-blue-400' : 'border-transparent text-neutral-400 hover:text-neutral-200' %>" id="videos-tab" onclick="switchTab('videos')">🎥 Vidéos</button>
+                <button class="px-6 py-2 border-b-2 font-semibold text-sm transition-all duration-200 <%= (channel === 'Mes Playlists') ? 'border-blue-500 text-blue-400' : 'border-transparent text-neutral-400 hover:text-neutral-200' %>" id="playlists-tab" onclick="switchTab('playlists')">📁 Playlists</button>
+            </div>
 
-            <div class="tab-content" id="mainTabContent">
+            <div>
                 <!-- Onglet Vidéos -->
-                <div class="tab-pane fade <%= (typeof channel === 'undefined' || !channel) ? 'show active' : '' %>" id="videos-pane" role="tabpanel" aria-labelledby="videos-tab" tabindex="0">
+                <div class="<%= (typeof channel === 'undefined' || !channel) ? 'block' : 'hidden' %>" id="videos-pane">
                     <!-- Section Filtres Inline -->
-                    <div class="tag-filter-section">
-                        <div class="filter-chip active" onclick="filterByTag('all', this)">Tous</div>
-                        <div class="filter-chip text-warning border-warning" onclick="switchToPlaylistsTab(this)">📁 Playlists</div>
+                    <div class="flex gap-2 flex-wrap overflow-x-auto pb-4 mb-4">
+                        <div class="bg-blue-600/25 border border-blue-500/40 text-blue-400 hover:bg-blue-600/35 rounded-full px-4 py-1.5 text-xs font-semibold cursor-pointer transition filter-chip active" onclick="filterByTag('all', this)">Tous</div>
+                        <div class="bg-neutral-900 border border-neutral-800 hover:bg-neutral-800 text-amber-400 rounded-full px-4 py-1.5 text-xs font-semibold cursor-pointer transition filter-chip" onclick="switchToPlaylistsTab(this)">📁 Playlists</div>
                         <% if (typeof allTags !== 'undefined') { %>
                             <% allTags.forEach(function(tag){ %>
-                                <div class="filter-chip" onclick="filterByTag('<%= tag.replace(/\\/g, "\\\\").replace(/'/g, "\\'") %>', this)"><%= tag %></div>
+                                <div class="bg-neutral-900 border border-neutral-800 hover:bg-neutral-800 text-neutral-300 rounded-full px-4 py-1.5 text-xs font-semibold cursor-pointer transition filter-chip" onclick="filterByTag('<%= tag.replace(/\\/g, "\\\\").replace(/'/g, "\\'") %>', this)"><%= tag %></div>
                             <% }); %>
                         <% } %>
                         <% if (typeof allChannels !== 'undefined') { %>
                             <% allChannels.forEach(function(uploader){ %>
-                                <div class="filter-chip" onclick="filterByChannel('<%= uploader.replace(/\\/g, "\\\\").replace(/'/g, "\\'") %>', this)"><%= uploader %></div>
+                                <div class="bg-neutral-900 border border-neutral-800 hover:bg-neutral-800 text-neutral-300 rounded-full px-4 py-1.5 text-xs font-semibold cursor-pointer transition filter-chip" onclick="filterByChannel('<%= uploader.replace(/\\/g, "\\\\").replace(/'/g, "\\'") %>', this)"><%= uploader %></div>
                             <% }); %>
                         <% } %>
                     </div>
 
-                    <div class="row" id="resultsList">
-                        <!-- Les vidéos seront chargées ici par JavaScript pour économiser la mémoire -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6" id="resultsList">
+                        <!-- Les vidéos seront chargées ici par JavaScript -->
                     </div>
-                    <div class="text-center my-4" id="loadMoreContainer">
-                        <button id="loadMoreBtn" class="btn btn-outline-primary rounded-pill px-5">Charger plus de vidéos</button>
+                    <div class="text-center my-8 hidden" id="loadMoreContainer">
+                        <button id="loadMoreBtn" class="border border-blue-500/50 hover:bg-blue-500/10 text-blue-400 rounded-full px-6 py-2.5 font-semibold text-sm transition">Charger plus de vidéos</button>
                     </div>
                 </div>
 
                 <!-- Onglet Playlists -->
-                <div class="tab-pane fade <%= (channel === 'Mes Playlists') ? 'show active' : '' %>" id="playlists-pane" role="tabpanel" aria-labelledby="playlists-tab" tabindex="0">
-                    <div class="row mb-4 justify-content-center">
-                        <div class="col-md-5 mb-3 mb-md-0">
-                            <div class="card bg-dark text-white border-secondary h-100">
-                                <div class="card-body d-flex flex-column justify-content-between">
-                                    <h5 class="card-title">Créer une playlist</h5>
-                                    <form action="/playlist/create" method="POST" class="d-flex">
-                                        <input type="text" name="name" class="form-control form-control-sm bg-dark text-white border-secondary me-2" placeholder="Nom de la playlist" required>
-                                        <button type="submit" class="btn btn-primary btn-sm px-4">Créer</button>
-                                    </form>
-                                </div>
-                            </div>
+                <div class="<%= (channel === 'Mes Playlists') ? 'block' : 'hidden' %>" id="playlists-pane">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        <div class="bg-neutral-900 border border-neutral-800 rounded-2xl p-5 flex flex-col justify-between gap-4">
+                            <h5 class="font-bold text-white text-sm">Créer une playlist</h5>
+                            <form action="/playlist/create" method="POST" class="flex gap-2">
+                                <input type="text" name="name" class="bg-neutral-950 border border-neutral-800 text-white rounded-lg px-3 py-2 text-xs w-full focus:outline-none focus:border-blue-500 transition" placeholder="Nom de la playlist" required>
+                                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 text-xs font-bold transition">Créer</button>
+                            </form>
                         </div>
-                        <div class="col-md-5">
-                            <div class="card bg-dark text-white border-secondary h-100">
-                                <div class="card-body d-flex flex-column justify-content-between">
-                                    <h5 class="card-title">Maintenance & Mises à jour</h5>
-                                    <div class="d-flex flex-column gap-2">
-                                        <div class="d-flex gap-2">
-                                            <a href="/cache/clear-logos" class="btn btn-outline-danger btn-sm w-50" onclick="return confirm('Vider le cache des logos de chaînes ? Ils seront retéléchargés automatiquement au besoin.')">🧹 Purger les logos</a>
-                                            <button id="cleanup-btn" class="btn btn-outline-warning btn-sm w-50">🧹 Nettoyer vidéos</button>
-                                        </div>
-                                        <div class="d-flex gap-2">
-                                            <button id="sync-channels-btn" class="btn btn-outline-info btn-sm w-50">🔄 Sync chaînes</button>
-                                            <button id="check-update-btn" class="btn btn-outline-primary btn-sm w-50">🔄 Chercher MAJ</button>
-                                        </div>
-                                    </div>
-                                </div>
+                        <div class="bg-neutral-900 border border-neutral-800 rounded-2xl p-5 flex flex-col justify-between gap-4">
+                            <h5 class="font-bold text-white text-sm">Maintenance & Mises à jour</h5>
+                            <div class="grid grid-cols-2 gap-2">
+                                <a href="/cache/clear-logos" class="border border-red-500/30 hover:bg-red-500/10 text-red-400 rounded-lg py-2 text-xs font-semibold text-center transition" onclick="return confirm('Vider le cache des logos de chaînes ?')">🧹 Purger logos</a>
+                                <button id="cleanup-btn" class="border border-amber-500/30 hover:bg-amber-500/10 text-amber-400 rounded-lg py-2 text-xs font-semibold transition">🧹 Nettoyer vidéos</button>
+                                <button id="sync-channels-btn" class="border border-cyan-555/35 hover:bg-cyan-500/10 text-cyan-400 rounded-lg py-2 text-xs font-semibold transition">🔄 Sync chaînes</button>
+                                <button id="check-update-btn" class="border border-blue-500/30 hover:bg-blue-500/10 text-blue-400 rounded-lg py-2 text-xs font-semibold transition">🔄 Chercher MAJ</button>
                             </div>
                         </div>
                     </div>
+
                     <!-- Section Vos Playlists -->
-                    <h4 class="text-white mb-3">📁 Vos Playlists</h4>
-                    <div class="row mb-4">
+                    <h4 class="text-lg font-bold text-white mb-4">📁 Vos Playlists</h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6 mb-8">
                         <% const realPlaylists = playlists.filter(p => !p.name.startsWith('Channel: ')); %>
                         <% if (realPlaylists.length === 0) { %>
-                            <div class="col-12 text-muted">Aucune playlist créée.</div>
+                            <div class="col-span-full text-neutral-500 text-sm">Aucune playlist créée.</div>
                         <% } else { %>
                             <% realPlaylists.forEach(function(playlist) { %>
-                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-2 mb-4">
-                                    <a href="/playlist?name=<%= encodeURIComponent(playlist.name) %>" class="text-decoration-none">
-                                        <div class="card bg-dark text-white border-secondary h-100 playlist-card-hover">
-                                            <div class="card-body d-flex flex-column justify-content-center align-items-center" style="height: 150px; background: #272727; border-radius: 8px;">
-                                                <h5 class="text-center text-truncate w-100" title="<%= playlist.name.replace('Playlist: ', '') %>"><%= playlist.name.replace('Playlist: ', '') %></h5>
-                                                <span class="badge bg-secondary"><%= playlist.videoIds.length %> vidéos</span>
-                                            </div>
+                                <a href="/playlist?name=<%= encodeURIComponent(playlist.name) %>" class="group">
+                                    <div class="bg-neutral-900 border border-neutral-800 group-hover:border-neutral-700 rounded-2xl overflow-hidden transition duration-200">
+                                        <div class="h-28 bg-neutral-800 flex flex-col justify-center items-center p-4">
+                                            <h5 class="text-sm font-bold text-white text-center truncate w-full" title="<%= playlist.name.replace('Playlist: ', '') %>"><%= playlist.name.replace('Playlist: ', '') %></h5>
+                                            <span class="bg-neutral-750 text-neutral-300 text-[10px] px-2.5 py-0.5 rounded-full border border-neutral-700 mt-2"><%= playlist.videoIds.length %> vidéos</span>
                                         </div>
-                                    </a>
-                                </div>
+                                    </div>
+                                </a>
                             <% }); %>
                         <% } %>
                     </div>
 
                     <!-- Section Chaînes -->
-                    <h4 class="text-white mb-3">📺 Chaînes suivies</h4>
-                    <div class="row">
+                    <h4 class="text-lg font-bold text-white mb-4">📺 Chaînes suivies</h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6">
                         <% const channelPlaylists = playlists.filter(p => p.name.startsWith('Channel: ')); %>
                         <% if (channelPlaylists.length === 0) { %>
-                            <div class="col-12 text-muted">Aucune chaîne suivie.</div>
+                            <div class="col-span-full text-neutral-500 text-sm">Aucune chaîne suivie.</div>
                         <% } else { %>
                             <% channelPlaylists.forEach(function(playlist) { %>
-                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-2 mb-4">
-                                    <a href="/playlist?name=<%= encodeURIComponent(playlist.name) %>" class="text-decoration-none">
-                                        <div class="card bg-dark text-white border-secondary h-100 playlist-card-hover video-card m-0" style="overflow: hidden;">
-                                            <div class="video-thumb-container" style="position: relative; height: 120px; overflow: hidden; background: #272727;">
-                                                <% if (playlist.videoIds.length > 0) { %>
-                                                    <img src="/thumbnail/<%= playlist.videoIds[0] %>" class="video-thumbnail" alt="Logo Chaîne" style="height: 100%; width: 100%; object-fit: cover; filter: brightness(0.75);">
-                                                    <img src="/channel-logo/<%= encodeURIComponent(playlist.name.replace('Channel: ', '')) %>" alt="Logo" style="position: absolute; bottom: 8px; left: 8px; border-radius: 50%; width: 36px; height: 36px; object-fit: cover; border: 1px solid rgba(255, 255, 255, 0.2);">
-                                                <% } else { %>
-                                                    <div style="height: 100%; width: 100%; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; background: #1f1f1f;">📺</div>
-                                                <% } %>
-                                            </div>
-                                            <div class="card-body p-3 d-flex flex-column justify-content-between" style="background: rgba(20, 20, 20, 0.45);">
-                                                <h6 class="text-white text-truncate mb-1" title="<%= playlist.name.replace('Channel: ', '') %>" style="font-size: 0.9rem; font-weight: 600;"><%= playlist.name.replace('Channel: ', '') %></h6>
-                                                <span class="badge bg-secondary align-self-start" style="font-size: 0.65rem; background: rgba(255,255,255,0.08) !important; border: 1px solid rgba(255,255,255,0.12); color: #a1a1aa !important;"><%= playlist.videoIds.length %> vidéos</span>
-                                            </div>
+                                <a href="/playlist?name=<%= encodeURIComponent(playlist.name) %>" class="group">
+                                    <div class="bg-neutral-900 border border-neutral-800 group-hover:border-neutral-700 rounded-2xl overflow-hidden transition duration-200">
+                                        <div class="relative h-28 bg-neutral-950 overflow-hidden">
+                                            <% if (playlist.videoIds.length > 0) { %>
+                                                <img src="/thumbnail/<%= playlist.videoIds[0] %>" class="w-full h-full object-cover opacity-60" alt="Logo Chaîne">
+                                                <img src="/channel-logo/<%= encodeURIComponent(playlist.name.replace('Channel: ', '')) %>" alt="Logo" class="absolute bottom-2 left-2 w-9 h-9 rounded-full object-cover border border-neutral-750 bg-neutral-900">
+                                            <% } else { %>
+                                                <div class="h-full flex items-center justify-center text-4xl">📺</div>
+                                            <% } %>
                                         </div>
-                                    </a>
-                                </div>
+                                        <div class="p-3">
+                                            <h6 class="text-white text-xs font-bold truncate mb-1" title="<%= playlist.name.replace('Channel: ', '') %>"><%= playlist.name.replace('Channel: ', '') %></h6>
+                                            <span class="bg-neutral-800 text-neutral-450 text-[10px] px-2 py-0.5 rounded border border-neutral-750"><%= playlist.videoIds.length %> vidéos</span>
+                                        </div>
+                                    </div>
+                                </a>
                             <% }); %>
                         <% } %>
                     </div>
@@ -227,34 +194,30 @@
             </div>
         <% } else { %>
             <!-- Section Filtres Inline -->
-            <div class="tag-filter-section">
-                <div class="filter-chip active" onclick="filterByTag('all', this)">Tous</div>
+            <div class="flex gap-2 flex-wrap overflow-x-auto pb-4 mb-4">
+                <div class="bg-blue-600/25 border border-blue-500/40 text-blue-400 hover:bg-blue-600/35 rounded-full px-4 py-1.5 text-xs font-semibold cursor-pointer transition filter-chip active" onclick="filterByTag('all', this)">Tous</div>
                 <% if (typeof allTags !== 'undefined') { %>
                     <% allTags.forEach(function(tag){ %>
-                        <div class="filter-chip" onclick="filterByTag('<%= tag.replace(/\\/g, "\\\\").replace(/'/g, "\\'") %>', this)"><%= tag %></div>
+                        <div class="bg-neutral-900 border border-neutral-800 hover:bg-neutral-800 text-neutral-300 rounded-full px-4 py-1.5 text-xs font-semibold cursor-pointer transition filter-chip" onclick="filterByTag('<%= tag.replace(/\\/g, "\\\\").replace(/'/g, "\\'") %>', this)"><%= tag %></div>
                     <% }); %>
                 <% } %>
                 <% if (typeof allChannels !== 'undefined') { %>
                     <% allChannels.forEach(function(uploader){ %>
-                        <div class="filter-chip" onclick="filterByChannel('<%= uploader.replace(/\\/g, "\\\\").replace(/'/g, "\\'") %>', this)"><%= uploader %></div>
+                        <div class="bg-neutral-900 border border-neutral-800 hover:bg-neutral-800 text-neutral-300 rounded-full px-4 py-1.5 text-xs font-semibold cursor-pointer transition filter-chip" onclick="filterByChannel('<%= uploader.replace(/\\/g, "\\\\").replace(/'/g, "\\'") %>', this)"><%= uploader %></div>
                     <% }); %>
                 <% } %>
             </div>
 
-            <div class="row" id="resultsList">
-                <!-- Les vidéos seront chargées ici par JavaScript pour économiser la mémoire -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6" id="resultsList">
+                <!-- Les vidéos seront chargées ici par JavaScript -->
             </div>
-            <div class="text-center my-4" id="loadMoreContainer">
-                <button id="loadMoreBtn" class="btn btn-outline-primary rounded-pill px-5">Charger plus de vidéos</button>
+            <div class="text-center my-8 hidden" id="loadMoreContainer">
+                <button id="loadMoreBtn" class="border border-blue-500/50 hover:bg-blue-500/10 text-blue-400 rounded-full px-6 py-2.5 font-semibold text-sm transition">Charger plus de vidéos</button>
             </div>
         <% } %>
     </div>
 
-    <!-- Bootstrap JS -->
-    <script src="/bootstrap.bundle.min.js"></script>
-
     <script>
-        // Données des vidéos passées par le serveur
         const allVideos = <%- JSON.stringify(results) %>;
         const channel = <%- JSON.stringify(channel) %>;
         const itemsPerPage = 24;
@@ -266,7 +229,33 @@
         const loadMoreContainer = document.getElementById('loadMoreContainer');
         const searchInput = document.getElementById('fuzzySearchInput');
 
+        function switchTab(tabName) {
+            const videosTab = document.getElementById('videos-tab');
+            const playlistsTab = document.getElementById('playlists-tab');
+            const videosPane = document.getElementById('videos-pane');
+            const playlistsPane = document.getElementById('playlists-pane');
+
+            if (!videosTab || !playlistsTab) return;
+
+            if (tabName === 'videos') {
+                videosTab.className = 'px-6 py-2 border-b-2 font-semibold text-sm transition-all duration-200 border-blue-500 text-blue-400';
+                playlistsTab.className = 'px-6 py-2 border-b-2 font-semibold text-sm transition-all duration-200 border-transparent text-neutral-400 hover:text-neutral-255';
+                videosPane.classList.remove('hidden');
+                playlistsPane.classList.add('hidden');
+            } else {
+                playlistsTab.className = 'px-6 py-2 border-b-2 font-semibold text-sm transition-all duration-200 border-blue-500 text-blue-400';
+                videosTab.className = 'px-6 py-2 border-b-2 font-semibold text-sm transition-all duration-200 border-transparent text-neutral-400 hover:text-neutral-255';
+                playlistsPane.classList.remove('hidden');
+                videosPane.classList.add('hidden');
+            }
+        }
+
+        function switchToPlaylistsTab(elem) {
+            switchTab('playlists');
+        }
+
         function renderVideos(append = false) {
+            if (!resultsList) return;
             if (!append) {
                 resultsList.innerHTML = '';
                 currentPage = 0;
@@ -286,64 +275,65 @@
                     }
                 }
 
-                const col = document.createElement('div');
-                col.className = 'col-12 col-sm-6 col-md-4 col-lg-3 col-xl-2 video-item';
-                col.setAttribute('data-tags', result.tags.join(','));
+                const cardDiv = document.createElement('div');
+                cardDiv.className = 'bg-neutral-900 border border-neutral-800 hover:border-neutral-700 rounded-2xl overflow-hidden flex flex-col h-full transition duration-200 cursor-pointer video-item';
+                cardDiv.setAttribute('data-tags', result.tags.join(','));
+                cardDiv.addEventListener('click', () => {
+                    location.href = `/watch?id=${result.yid}${playlistParam}`;
+                });
                 
-                let tagsHtml = result.tags.map(tag => `<span class="tag-badge">${tag}</span>`).join('');
-                let actionBtns = '';
+                let tagsHtml = result.tags.map(tag => `<span class="bg-neutral-800 text-neutral-400 text-[10px] px-2 py-0.5 rounded border border-neutral-750">${tag}</span>`).join('');
                 
+                let actionBtns = `<div class="flex gap-1 mt-3 w-full flex-wrap" onclick="event.stopPropagation();">`;
                 if (channel && channel.startsWith('Playlist : ')) {
-                    actionBtns += `<button class="btn btn-sm btn-outline-warning" onclick="event.stopPropagation(); if(confirm('Retirer de la playlist ?')) window.location.href='/playlist/remove?name=${encodeURIComponent(channel.replace('Playlist : ', ''))}&videoId=${result.yid}'">Retirer</button>`;
+                    actionBtns += `<button class="bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-2 py-1 text-[10px] font-bold transition" onclick="if(confirm('Retirer de la playlist ?')) window.location.href='/playlist/remove?name=${encodeURIComponent(channel.replace('Playlist : ', ''))}&videoId=${result.yid}'">Retirer</button>`;
                 }
                 if (channel === "Ma File d'attente") {
-                    actionBtns += `<button class="btn btn-sm btn-outline-warning" onclick="event.stopPropagation(); window.location.href='/queue/remove?id=${result.yid}'">Retirer</button>`;
+                    actionBtns += `<button class="bg-amber-605 hover:bg-amber-700 text-white rounded-lg px-2 py-1 text-[10px] font-bold transition" onclick="window.location.href='/queue/remove?id=${result.yid}'">Retirer</button>`;
                 } else {
-                    actionBtns += `<button class="btn btn-sm btn-outline-success" onclick="event.stopPropagation(); addToQueue('${result.yid}')">File</button>`;
+                    actionBtns += `<button class="bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg px-2.5 py-1 text-[10px] font-bold transition" onclick="addToQueue('${result.yid}')">File</button>`;
                 }
-                actionBtns += `<button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); toggleFavorite('${result.yid}', this)">❤</button>`;
-                actionBtns += `<button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); if(confirm('Supprimer cette vidéo ?')) window.location.href='/delete?id=${result.yid}'">Supprimer</button>`;
+                actionBtns += `<button class="bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg px-2.5 py-1 text-[10px] font-bold border border-red-500/20 transition" onclick="toggleFavorite('${result.yid}', this)">❤</button>`;
+                actionBtns += `<button class="bg-red-655 hover:bg-red-700 text-white rounded-lg px-2.5 py-1 text-[10px] font-bold transition" onclick="if(confirm('Supprimer cette vidéo ?')) window.location.href='/delete?id=${result.yid}'">Supprimer</button>`;
+                actionBtns += `</div>`;
 
-                col.innerHTML = `
-                    <div class="video-card" onclick="location.href='/watch?id=${result.yid}${playlistParam}'">
-                        <div class="video-thumb-container">
-                            <img data-src="/thumbnail/${result.yid}" src="" class="video-thumbnail lazy" alt="Thumbnail" loading="lazy">
-                        </div>
-                        <div class="video-info">
-                            <div class="video-details w-100">
-                                <div class="video-title text-white">
-                                    ${result.fileName}
-                                    ${result.isGz ? '<span class="badge bg-secondary ms-1" style="font-size: 0.6rem; vertical-align: middle; background: rgba(255, 255, 255, 0.08) !important; border: 1px solid rgba(255,255,255,0.12); color: #a1a1aa !important;">📦 zip</span>' : ''}
-                                </div>
-                                <div class="video-meta">
-                                    ${result.uploader ? `
-                                        <div class="mb-1 d-flex align-items-center gap-2">
-                                            <img src="/channel-logo/${encodeURIComponent(result.uploader)}" alt="Logo" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(255,255,255,0.2);">
-                                            <a href="/channel?name=${encodeURIComponent(result.uploader)}" onclick="event.stopPropagation();" style="color: #aaaaaa; text-decoration: none; font-size: 0.9rem; font-weight: 500;">
-                                                ${result.uploader}
-                                            </a>
-                                        </div>
-                                    ` : ''}
+                cardDiv.innerHTML = `
+                    <div class="relative aspect-video bg-neutral-950 overflow-hidden">
+                        <img data-src="/thumbnail/${result.yid}" src="" class="w-full h-full object-cover lazy" alt="Thumbnail" loading="lazy">
+                        ${result.isGz ? '<span class="absolute bottom-2 right-2 bg-neutral-900/90 text-neutral-300 text-[9px] px-1.5 py-0.5 rounded border border-neutral-750 font-semibold">📦 zip</span>' : ''}
+                    </div>
+                    <div class="p-4 flex-1 flex flex-col justify-between gap-3">
+                        <div class="min-w-0">
+                            <div class="text-white font-bold text-sm line-clamp-2 leading-tight mb-2" title="${result.fileName}">
+                                ${result.fileName}
+                            </div>
+                            <div class="flex flex-col gap-1.5">
+                                ${result.uploader ? `
+                                    <div class="flex items-center gap-1.5 mt-1">
+                                        <img src="/channel-logo/${encodeURIComponent(result.uploader)}" alt="Logo" class="w-5 h-5 rounded-full object-cover border border-neutral-850">
+                                        <a href="/channel?name=${encodeURIComponent(result.uploader)}" onclick="event.stopPropagation();" class="text-neutral-400 hover:text-white transition text-xs font-semibold truncate">
+                                            ${result.uploader}
+                                        </a>
+                                    </div>
+                                ` : ''}
+                                <div class="flex flex-wrap gap-1 mt-1">
                                     ${tagsHtml}
-                                </div>
-                                <div class="mt-2 d-flex gap-1">
-                                    ${actionBtns}
                                 </div>
                             </div>
                         </div>
+                        ${actionBtns}
                     </div>
                 `;
-                resultsList.appendChild(col);
+                resultsList.appendChild(cardDiv);
             });
 
             if (end >= filteredVideos.length) {
-                loadMoreContainer.style.display = 'none';
+                loadMoreContainer.classList.add('hidden');
             } else {
-                loadMoreContainer.style.display = 'block';
+                loadMoreContainer.classList.remove('hidden');
             }
         }
 
-        // Initialize Fuse.js for search
         const fuse = new Fuse(allVideos, {
             keys: ['fileName', 'uploader'],
             threshold: 0.3,
@@ -351,7 +341,6 @@
             ignoreLocation: true
         });
 
-        // Lazy-load thumbnails with IntersectionObserver
         const thumbObserver = new IntersectionObserver((entries, obs) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
@@ -367,49 +356,58 @@
             document.querySelectorAll('img.lazy').forEach(img => thumbObserver.observe(img));
         }
 
-        // Initial render
         renderVideos();
         observeLazyImages();
 
-        loadMoreBtn.addEventListener('click', () => {
-            currentPage++;
-            renderVideos(true);
-            observeLazyImages();
-        });
+        if (loadMoreBtn) {
+            loadMoreBtn.addEventListener('click', () => {
+                currentPage++;
+                renderVideos(true);
+                observeLazyImages();
+            });
+        }
 
-        // Debounced fuzzy search
-        searchInput.addEventListener('input', debounce(function() {
-            const query = this.value.trim();
-            filteredVideos = query.length === 0 ? [...allVideos] : fuse.search(query).map(r => r.item);
-            renderVideos();
-            observeLazyImages();
-        }, 250));
+        if (searchInput) {
+            searchInput.addEventListener('input', debounce(function() {
+                const query = this.value.trim();
+                filteredVideos = query.length === 0 ? [...allVideos] : fuse.search(query).map(r => r.item);
+                renderVideos();
+                observeLazyImages();
+            }, 250));
+        }
 
         function filterByTag(tag, element) {
-            document.querySelectorAll('.filter-chip').forEach(chip => chip.classList.remove('active'));
-            element.classList.add('active');
+            document.querySelectorAll('.filter-chip').forEach(chip => {
+                chip.classList.remove('active', 'bg-blue-600/25', 'border-blue-500/40', 'text-blue-400');
+                chip.classList.add('bg-neutral-900', 'border-neutral-800', 'text-neutral-300');
+            });
+            element.classList.add('active', 'bg-blue-600/25', 'border-blue-500/40', 'text-blue-400');
+            element.classList.remove('bg-neutral-900', 'border-neutral-800', 'text-neutral-300');
+            
             filteredVideos = tag === 'all' ? [...allVideos] : allVideos.filter(v => v.tags.includes(tag));
             renderVideos();
             observeLazyImages();
         }
 
         function filterByChannel(uploader, element) {
-            document.querySelectorAll('.filter-chip').forEach(chip => chip.classList.remove('active'));
-            element.classList.add('active');
+            document.querySelectorAll('.filter-chip').forEach(chip => {
+                chip.classList.remove('active', 'bg-blue-600/25', 'border-blue-500/40', 'text-blue-400');
+                chip.classList.add('bg-neutral-900', 'border-neutral-800', 'text-neutral-300');
+            });
+            element.classList.add('active', 'bg-blue-600/25', 'border-blue-500/40', 'text-blue-400');
+            element.classList.remove('bg-neutral-900', 'border-neutral-800', 'text-neutral-300');
+            
             filteredVideos = uploader === 'all' ? [...allVideos] : allVideos.filter(v => v.uploader === uploader);
             renderVideos();
             observeLazyImages();
         }
 
-        // Gestion du retour à la dernière page visitée
         (function() {
             const lastUrlKey = 'last_visited_url';
             const sessionNavKey = 'has_navigated_this_session';
             const currentUrl = window.location.href;
             const lastUrl = localStorage.getItem(lastUrlKey);
 
-            // Si on est sur l'accueil, qu'on a une URL sauvegardée différente, 
-            // et que c'est le début de la session (pas encore navigué)
             if (window.location.pathname === '/' && 
                 lastUrl && 
                 lastUrl !== currentUrl && 
@@ -421,16 +419,12 @@
                 return;
             }
 
-            // Marquer comme navigué et sauvegarder l'URL actuelle
             sessionStorage.setItem(sessionNavKey, 'true');
             localStorage.setItem(lastUrlKey, currentUrl);
         })();
 
-        // Le téléchargement est géré par renderer.js via IPC.
-        // On peut ajouter un fallback au cas où renderer.js ne se charge pas correctement.
         const commandForm = document.getElementById('commandForm');
         commandForm.addEventListener('submit', (e) => {
-            // Si window.electronAPI n'existe pas, on utilise la route Express classique
             if (!window.electronAPI) {
                 e.preventDefault();
                 const url = document.getElementById('commandInput').value;
@@ -438,14 +432,6 @@
             }
         });
 
-        function switchToPlaylistsTab(elem) {
-            const playlistsTabButton = document.getElementById('playlists-tab');
-            if (playlistsTabButton) {
-                const tab = new bootstrap.Tab(playlistsTabButton);
-                tab.show();
-            }
-        }
-        
         async function addAllToQueue() {
             const ids = allVideos.map(v => v.yid);
             if (ids.length === 0) return;
@@ -474,7 +460,7 @@
         }
 
         async function toggleFollowChannel(channelName, channelUrl, btn) {
-            const isCurrentlyFollowed = btn.classList.contains('btn-warning');
+            const isCurrentlyFollowed = btn.classList.contains('bg-yellow-500');
             const endpoint = isCurrentlyFollowed ? '/channel/unfollow' : '/channel/follow';
             try {
                 btn.disabled = true;
@@ -486,13 +472,13 @@
                 const data = await response.json();
                 if (data.success) {
                     if (data.isFollowing) {
-                        btn.className = 'btn btn-warning btn-sm';
+                        btn.className = 'bg-yellow-500 hover:bg-yellow-600 text-neutral-900 rounded-full px-3 py-1 text-xs font-semibold transition';
                         btn.textContent = '✅ Suivi';
-                        showToast('Chaîne suivie', `Vous suivez désormais ${channelName}. Les nouvelles vidéos seront téléchargées automatiquement.`, 'primary');
+                        showToast('Chaîne suivie', `Vous suivez désormais ${channelName}. Les nouvelles vidéos seront téléchargées automatiquement.`, 'success');
                     } else {
-                        btn.className = 'btn btn-outline-warning btn-sm';
+                        btn.className = 'border border-yellow-550/50 hover:bg-yellow-500/10 text-yellow-400 rounded-full px-3 py-1 text-xs font-semibold transition';
                         btn.textContent = '➕ Suivre cette chaîne';
-                        showToast('Chaîne retirée', `Vous ne suivez plus ${channelName}.`, 'primary');
+                        showToast('Chaîne retirée', `Vous ne suivez plus ${channelName}.`, 'success');
                     }
                 } else {
                     showToast('Erreur', data.error || 'Action impossible.', 'error');
@@ -505,14 +491,13 @@
             }
         }
 
-        // Événements Socket.io pour la vérification des chaînes suivies
         if (typeof io !== 'undefined') {
             const _sock = typeof socket !== 'undefined' ? socket : io();
             _sock.on('channel-check-started', data => {
                 if (data.total > 0) showToast('Sync chaînes', `Vérification de ${data.total} chaîne(s) suivie(s)...`, 'info');
             });
             _sock.on('channel-new-videos', data => {
-                showToast('Nouvelles vidéos', `${data.count} nouvelle(s) vidéo(s) de <strong>${data.channelName}</strong> ajoutée(s) au téléchargement.`, 'primary');
+                showToast('Nouvelles vidéos', `${data.count} nouvelle(s) vidéo(s) de <strong>${data.channelName}</strong> ajoutée(s) au téléchargement.`, 'success');
             });
             _sock.on('channel-check-finished', data => {
                 if (data.totalAdded > 0) {
@@ -521,7 +506,5 @@
             });
         }
     </script>
-
-    <!-- Tawk.to removed (offline mode) -->
 </body>
 </html>

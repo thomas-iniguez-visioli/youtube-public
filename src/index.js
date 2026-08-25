@@ -20,8 +20,9 @@ import log from './logger.js';
 import morgan from 'morgan';
 import { Server as SocketServer } from 'socket.io';
 import { createServer } from 'http';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+let io = null;
 
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 
@@ -767,7 +768,7 @@ const checkChannelsForNewVideos = async () => {
 };
 
 const httpServer = createServer(web);
-const io = new SocketServer(httpServer);
+io = new SocketServer(httpServer);
 
 // Forward errors to the UI via Socket.io
 log.hooks.push((message) => {
@@ -1053,6 +1054,7 @@ async function build() {
     ['./client-dist/style.css',             'src/client-dist/style.css'],
     ['./client-dist/bootstrap.min.css',     'src/client-dist/bootstrap.min.css'],
     ['./client-dist/bootstrap.bundle.min.js','src/client-dist/bootstrap.bundle.min.js'],
+    ['./client-dist/tailwind.css',          'src/client-dist/tailwind.css'],
     ['./client-dist/plyr.css',              'src/client-dist/plyr.css'],
     ['./client-dist/plyr.polyfilled.js',    'src/client-dist/plyr.polyfilled.js'],
     ['./client-dist/fuse.js',               'src/client-dist/fuse.js'],
@@ -1881,6 +1883,9 @@ function serveStaticFile(req, res, relPath, localRelPath, contentType) {
 
 web.get("/style.css", function (req, res) {
   serveStaticFile(req, res, "./src/client-dist/style.css", "./client-dist/style.css", "text/css");
+});
+web.get("/tailwind.css", function (req, res) {
+  serveStaticFile(req, res, "./src/client-dist/tailwind.css", "./client-dist/tailwind.css", "text/css");
 });
 web.get("/renderer.js", function (req, res) {
   serveStaticFile(req, res, "./src/renderer.js", "./renderer.js", "application/javascript");
