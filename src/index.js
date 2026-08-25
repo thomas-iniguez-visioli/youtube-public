@@ -672,21 +672,34 @@ const checkChannelsForNewVideos = async () => {
   const ytdlpPath = binaryResolver.ytdlp;
   if (!ytdlpPath) return;
 
-  log.info("[Auto Channel Downloader] Démarrage de la vérification des nouvelles vidéos des chaînes suivies...");
-  
-  const channels = {};
-  db.database.forEach(video => {
-    if (video.uploader && video.uploader !== 'Uploader inconnu' && video.channel_url) {
-      channels[video.uploader] = video.channel_url;
+  // Seules les chaînes explicitement suivies sont vérifiées
+  const followedChannels = db.getFollowedChannels();
+  if (followedChannels.length === 0) {
+    log.info("[Auto Channel Downloader] Aucune chaîne suivie, vérification ignorée.");
+    return;
+  }
+
+  log.info(`[Auto Channel Downloader] Démarrage de la vérification pour ${followedChannels.length} chaîne(s) suivie(s)...`);
+
+  if (io) {
+    io.emit('channel-check-started', { total: followedChannels.length });
+  }
+
+  let totalAdded = 0;
+
+  for (let i = 0; i < followedChannels.length; i++) {
+    const { name: uploader, url: channelUrl } = followedChannels[i];
+    if (!channelUrl) continue;
+
+    log.info(`[Auto Channel Downloader] Vérification (${i + 1}/${followedChannels.length}) : ${uploader} (${channelUrl})`);
+
+    if (io) {
+      io.emit('channel-check-progress', {
+        current: i + 1,
+        total: followedChannels.length,
+        channelName: uploader
+      });
     }
-  });
-
-  const uploaderNames = Object.keys(channels);
-  log.info(`[Auto Channel Downloader] ${uploaderNames.length} chaînes à vérifier.`);
-
-  for (const uploader of uploaderNames) {
-    const channelUrl = channels[uploader];
-    log.info(`[Auto Channel Downloader] Vérification de la chaîne : ${uploader} (${channelUrl})`);
 
     try {
       const ids = await new Promise((resolve, reject) => {
@@ -696,7 +709,7 @@ const checkChannelsForNewVideos = async () => {
           '--print', 'id',
           channelUrl
         ]);
-        
+
         let stdout = '';
         let stderr = '';
 
@@ -715,7 +728,7 @@ const checkChannelsForNewVideos = async () => {
         });
       });
 
-      log.info(`[Auto Channel Downloader] ${ids.length} vidéos trouvées pour ${uploader}.`);
+      log.info(`[Auto Channel Downloader] ${ids.length} vidéo(s) trouvée(s) pour ${uploader}.`);
 
       let addedCount = 0;
       for (const id of ids) {
@@ -726,15 +739,31 @@ const checkChannelsForNewVideos = async () => {
           addedCount++;
         }
       }
+
+      db.updateFollowedChannelMeta(uploader, {
+        lastCheckedAt: Date.now(),
+        ...(addedCount > 0 ? { lastNewVideoAt: Date.now() } : {})
+      });
+
       if (addedCount > 0) {
-        log.info(`[Auto Channel Downloader] ${addedCount} nouvelles vidéos ajoutées au backlog pour ${uploader}.`);
+        totalAdded += addedCount;
+        log.info(`[Auto Channel Downloader] ${addedCount} nouvelle(s) vidéo(s) ajoutée(s) au backlog pour ${uploader}.`);
+        if (io) {
+          io.emit('channel-new-videos', { channelName: uploader, count: addedCount });
+        }
       }
     } catch (err) {
       log.error(`[Auto Channel Downloader] Échec de la vérification pour ${uploader} : ${err.message}`);
+      if (io) {
+        io.emit('channel-check-error', { channelName: uploader, error: err.message });
+      }
     }
   }
 
-  log.info("[Auto Channel Downloader] Vérification des chaînes terminée.");
+  log.info(`[Auto Channel Downloader] Vérification terminée. ${totalAdded} nouvelle(s) vidéo(s) au total.`);
+  if (io) {
+    io.emit('channel-check-finished', { totalAdded, total: followedChannels.length });
+  }
 };
 
 const httpServer = createServer(web);
@@ -954,12 +983,13 @@ web.set('view engine', 'ejs');
 web.set('views', path.join(app.getPath('userData'), 'views'));
 
 // Helper: rend index.ejs avec les données communes de la DB en une seule passe
-function renderIndex(res, results, channel, channelUrl = null) {
+function renderIndex(res, results, channel, channelUrl = null, isFollowed = false) {
   const historyLimit = Math.floor(db.database.length * 0.8);
   res.render('index', {
     results,
     channel,
     channelUrl,
+    isFollowed,
     playlists: db.getPlaylists(),
     allTags: db.getAllTags(),
     allChannels: db.getAllChannels(),
@@ -1036,6 +1066,7 @@ async function build() {
     ['./views/view.ejs',                    'views/view.ejs'],
     ['./views/suggestions.ejs',             'views/suggestions.ejs'],
     ['./views/patchnotes.ejs',              'views/patchnotes.ejs'],
+    ['./views/followed-channels.ejs',       'views/followed-channels.ejs'],
   ];
   for (const [rel, dest] of assetMap) {
     ensureLocalAsset(rel, path.join(app.getPath('userData'), dest), isNewVersion);
@@ -1584,7 +1615,60 @@ web.get("/channel", function (req, res) {
   const channelName = req.query.name;
   const results = db.database.filter(item => item.uploader === channelName);
   const channelUrl = results.length > 0 ? results[0].channel_url : null;
-  renderIndex(res, results, channelName, channelUrl);
+  const isFollowed = db.isFollowing(channelName);
+  renderIndex(res, results, channelName, channelUrl, isFollowed);
+});
+
+// --- Chaînes suivies : routes API ---
+
+web.post("/channel/follow", function (req, res) {
+  const { name, url } = req.body;
+  if (!name || typeof name !== 'string' || name.length > 200) {
+    return res.status(400).json({ success: false, error: "Paramètre 'name' manquant ou invalide." });
+  }
+  if (!url || typeof url !== 'string' || !url.startsWith('http')) {
+    return res.status(400).json({ success: false, error: "Paramètre 'url' manquant ou invalide." });
+  }
+  const added = db.followChannel(name.trim(), url.trim());
+  res.json({ success: true, followed: added, isFollowing: true });
+});
+
+web.post("/channel/unfollow", function (req, res) {
+  const { name } = req.body;
+  if (!name || typeof name !== 'string') {
+    return res.status(400).json({ success: false, error: "Paramètre 'name' manquant." });
+  }
+  const removed = db.unfollowChannel(name.trim());
+  res.json({ success: true, unfollowed: removed, isFollowing: false });
+});
+
+web.get("/api/followed-channels", function (req, res) {
+  const followed = db.getFollowedChannels().map(ch => ({
+    ...ch,
+    videoCount: db.database.filter(v => v.uploader === ch.name).length
+  }));
+  res.json(followed);
+});
+
+web.get("/followed-channels", function (req, res) {
+  const followed = db.getFollowedChannels().map(ch => ({
+    ...ch,
+    videoCount: db.database.filter(v => v.uploader === ch.name).length,
+    lastVideo: db.database
+      .filter(v => v.uploader === ch.name)
+      .sort((a, b) => (b.mtime || 0) - (a.mtime || 0))[0] || null
+  }));
+  const historyLimit = Math.floor(db.database.length * 0.8);
+  res.render('followed-channels', {
+    followedChannels: followed,
+    playlists: db.getPlaylists(),
+    allTags: db.getAllTags(),
+    allChannels: db.getAllChannels(),
+    favoritesCount: db.favorites.length,
+    queueCount: db.queue.length,
+    historyCount: db.history.length,
+    historyLimit: historyLimit > 0 ? historyLimit : db.database.length
+  });
 });
 
 web.get("/favorites", function (req, res) {

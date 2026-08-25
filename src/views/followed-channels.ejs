@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chaînes suivies - YouTube Downloader</title>
+    <link href="/bootstrap.min.css" rel="stylesheet">
+    <link href="/roboto.css" rel="stylesheet">
+    <script src="/fuse.js"></script>
+    <script src="socket.io.js"></script>
+    <script src="renderer.js"></script>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <!-- Toast Container -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1060;"></div>
+
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+        <div class="container-fluid">
+            <a class="navbar-brand d-flex align-items-center" href="/">
+                <img src="/favicon.ico" width="30" height="30" class="me-2" alt="">
+                <strong>YouTube Downloader</strong>
+            </a>
+            <div class="d-flex ms-auto gap-2 flex-wrap">
+                <a href="/" class="btn btn-outline-secondary rounded-pill px-4">🏠 Accueil</a>
+                <a href="/suggestions" class="btn btn-outline-primary rounded-pill px-4">✨ Suggestions</a>
+                <a href="/followed-channels" class="btn btn-warning rounded-pill px-4">📺 Suivis</a>
+                <a href="/favorites" class="btn btn-outline-danger rounded-pill px-4">Favoris (<%= typeof favoritesCount !== 'undefined' ? favoritesCount : 0 %>)</a>
+                <a href="/queue" class="btn btn-outline-success rounded-pill px-4">File (<%= typeof queueCount !== 'undefined' ? queueCount : 0 %>)</a>
+                <a href="/history" class="btn btn-outline-info rounded-pill px-4">Historique</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid px-4 mt-4">
+        <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+            <h2 class="text-white mb-0">📺 Chaînes suivies</h2>
+            <div class="d-flex gap-2">
+                <button id="syncAllBtn" class="btn btn-outline-info rounded-pill px-4">
+                    🔄 Vérifier maintenant
+                </button>
+            </div>
+        </div>
+
+        <!-- Barre de progression de la vérification -->
+        <div id="syncProgressBar" class="mb-4" style="display:none;">
+            <div class="card bg-dark border-secondary">
+                <div class="card-body py-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span id="syncProgressLabel" class="text-white" style="font-size:0.9rem;">Vérification en cours...</span>
+                        <span id="syncProgressCount" class="text-muted" style="font-size:0.8rem;">0 / 0</span>
+                    </div>
+                    <div class="progress" style="height:6px; background:rgba(255,255,255,0.1); border-radius:3px;">
+                        <div id="syncProgressFill" class="progress-bar progress-bar-striped progress-bar-animated"
+                             role="progressbar" style="width:0%; background:linear-gradient(90deg,#3b82f6,#8b5cf6);"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <% if (followedChannels.length === 0) { %>
+            <div class="text-center py-5">
+                <p class="text-muted fs-5">Vous ne suivez aucune chaîne pour l'instant.</p>
+                <p class="text-muted">Rendez-vous sur la page d'une chaîne et cliquez sur <strong>➕ Suivre cette chaîne</strong>.</p>
+                <a href="/" class="btn btn-outline-primary rounded-pill px-5 mt-3">Explorer ma bibliothèque</a>
+            </div>
+        <% } else { %>
+            <div class="row" id="channelsList">
+                <% followedChannels.forEach(function(ch) { %>
+                    <div class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-2 mb-4" id="channel-card-<%= encodeURIComponent(ch.name) %>">
+                        <div class="card bg-dark text-white border-secondary h-100" style="border-radius:12px; overflow:hidden;">
+                            <!-- Miniature de la dernière vidéo -->
+                            <div style="position:relative; height:120px; overflow:hidden; background:#1a1a1a;">
+                                <% if (ch.lastVideo) { %>
+                                    <img src="/thumbnail/<%= ch.lastVideo.yid %>"
+                                         alt="Dernière vidéo"
+                                         style="width:100%; height:100%; object-fit:cover; filter:brightness(0.65);">
+                                <% } else { %>
+                                    <div style="height:100%; display:flex; align-items:center; justify-content:center; font-size:2.5rem;">📺</div>
+                                <% } %>
+                                <img src="/channel-logo/<%= encodeURIComponent(ch.name) %>"
+                                     alt="Logo"
+                                     style="position:absolute; bottom:8px; left:8px; width:40px; height:40px; border-radius:50%; object-fit:cover; border:2px solid rgba(255,255,255,0.3);">
+                            </div>
+
+                            <div class="card-body p-3 d-flex flex-column gap-2">
+                                <a href="/channel?name=<%= encodeURIComponent(ch.name) %>"
+                                   class="text-white text-decoration-none fw-bold text-truncate"
+                                   style="font-size:0.95rem;"
+                                   title="<%= ch.name %>">
+                                    <%= ch.name %>
+                                </a>
+
+                                <div class="d-flex flex-wrap gap-1">
+                                    <span class="badge" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.12); color:#a1a1aa; font-size:0.65rem;">
+                                        <%= ch.videoCount %> vidéo<%= ch.videoCount > 1 ? 's' : '' %>
+                                    </span>
+                                    <% if (ch.lastCheckedAt) { %>
+                                        <span class="badge" style="background:rgba(59,130,246,0.15); border:1px solid rgba(59,130,246,0.3); color:#93c5fd; font-size:0.65rem;" title="Dernière vérification">
+                                            🕐 <%= new Date(ch.lastCheckedAt).toLocaleDateString('fr-FR') %>
+                                        </span>
+                                    <% } else { %>
+                                        <span class="badge" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#6b7280; font-size:0.65rem;">
+                                            Pas encore vérifié
+                                        </span>
+                                    <% } %>
+                                    <% if (ch.lastNewVideoAt) { %>
+                                        <span class="badge" style="background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.3); color:#6ee7b7; font-size:0.65rem;" title="Dernière nouvelle vidéo">
+                                            🆕 <%= new Date(ch.lastNewVideoAt).toLocaleDateString('fr-FR') %>
+                                        </span>
+                                    <% } %>
+                                </div>
+
+                                <div class="d-flex gap-1 mt-auto">
+                                    <a href="/channel?name=<%= encodeURIComponent(ch.name) %>"
+                                       class="btn btn-outline-primary btn-sm flex-grow-1" style="font-size:0.75rem;">
+                                        Voir les vidéos
+                                    </a>
+                                    <button class="btn btn-outline-danger btn-sm"
+                                            style="font-size:0.75rem;"
+                                            onclick="unfollowChannel(<%- JSON.stringify(ch.name) %>, this)"
+                                            title="Ne plus suivre">
+                                        ✕
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                <% }); %>
+            </div>
+        <% } %>
+    </div>
+
+    <script src="/bootstrap.bundle.min.js"></script>
+    <script>
+        async function unfollowChannel(channelName, btn) {
+            if (!confirm(`Ne plus suivre "${channelName}" ?`)) return;
+            btn.disabled = true;
+            try {
+                const res = await fetch('/channel/unfollow', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: channelName })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    const card = document.getElementById('channel-card-' + encodeURIComponent(channelName));
+                    if (card) card.remove();
+                    showToast('Chaîne retirée', `Vous ne suivez plus "${channelName}".`, 'primary');
+                    // Si plus aucune carte, afficher le message vide
+                    const list = document.getElementById('channelsList');
+                    if (list && list.querySelectorAll('[id^="channel-card-"]').length === 0) {
+                        list.innerHTML = '<div class="col-12 text-center py-5"><p class="text-muted fs-5">Vous ne suivez aucune chaîne.</p></div>';
+                    }
+                }
+            } catch (e) {
+                console.error(e);
+                showToast('Erreur', 'Impossible de retirer la chaîne.', 'error');
+                btn.disabled = false;
+            }
+        }
+
+        // Bouton "Vérifier maintenant"
+        document.getElementById('syncAllBtn').addEventListener('click', function() {
+            this.disabled = true;
+            this.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Vérification...';
+            fetch('/maintenance/check-channels')
+                .then(r => r.json())
+                .then(data => {
+                    showToast('Sync', data.message || 'Vérification lancée.', 'success');
+                })
+                .catch(err => {
+                    showToast('Erreur', 'Impossible de lancer la vérification.', 'error');
+                });
+        });
+
+        // Socket.io : progression de la vérification
+        if (typeof io !== 'undefined') {
+            const _sock = typeof socket !== 'undefined' ? socket : io();
+            const progressBar = document.getElementById('syncProgressBar');
+            const progressLabel = document.getElementById('syncProgressLabel');
+            const progressCount = document.getElementById('syncProgressCount');
+            const progressFill = document.getElementById('syncProgressFill');
+            const syncBtn = document.getElementById('syncAllBtn');
+
+            _sock.on('channel-check-started', data => {
+                progressBar.style.display = 'block';
+                progressLabel.textContent = 'Démarrage de la vérification...';
+                progressCount.textContent = `0 / ${data.total}`;
+                progressFill.style.width = '0%';
+            });
+
+            _sock.on('channel-check-progress', data => {
+                const pct = Math.round((data.current / data.total) * 100);
+                progressLabel.textContent = `Vérification de : ${data.channelName}`;
+                progressCount.textContent = `${data.current} / ${data.total}`;
+                progressFill.style.width = pct + '%';
+            });
+
+            _sock.on('channel-new-videos', data => {
+                showToast('Nouvelles vidéos', `${data.count} nouvelle(s) vidéo(s) de <strong>${data.channelName}</strong> ajoutée(s).`, 'primary');
+            });
+
+            _sock.on('channel-check-error', data => {
+                showToast('Erreur', `Échec pour ${data.channelName} : ${data.error}`, 'error');
+            });
+
+            _sock.on('channel-check-finished', data => {
+                progressFill.style.width = '100%';
+                progressLabel.textContent = 'Vérification terminée !';
+                progressCount.textContent = `${data.total} / ${data.total}`;
+                syncBtn.disabled = false;
+                syncBtn.textContent = '🔄 Vérifier maintenant';
+                setTimeout(() => { progressBar.style.display = 'none'; }, 3000);
+                if (data.totalAdded > 0) {
+                    showToast('Sync terminée', `${data.totalAdded} nouvelle(s) vidéo(s) ajoutée(s) au téléchargement.`, 'success');
+                    // Recharger la page pour mettre à jour les dates de dernière vérification
+                    setTimeout(() => window.location.reload(), 2000);
+                } else {
+                    showToast('Sync terminée', 'Aucune nouvelle vidéo trouvée.', 'primary');
+                }
+            });
+        }
+    </script>
+</body>
+</html>

@@ -24,6 +24,7 @@ export default class FileDatabase {
         this.playlists = [];
         this.queue = [];
         this.favorites = [];
+        this.followedChannels = [];
         this.yidMap = new Map();
         this._playlistFileMtimes = {};
         this.loadDatabase();
@@ -417,13 +418,14 @@ export default class FileDatabase {
             fs.mkdirSync(dir, { recursive: true });
         }
         try {
-            log.info(`[DB] Sauvegarde de la base de données (${this.database.length} vidéos, ${this.playlists.length} playlists, ${this.history.length} historiques, ${this.queue.length} en file d'attente)`);
+            log.info(`[DB] Sauvegarde de la base de données (${this.database.length} vidéos, ${this.playlists.length} playlists, ${this.history.length} historiques, ${this.queue.length} en file d'attente, ${this.followedChannels.length} chaînes suivies)`);
             fs.writeFileSync(databaseFilePath, JSON.stringify({
                 database: this.database,
                 history: this.history,
                 playlists: this.playlists,
                 queue: this.queue,
-                favorites: this.favorites
+                favorites: this.favorites,
+                followedChannels: this.followedChannels
             }));
             log.debug("[DB] Sauvegarde réussie dans " + databaseFilePath);
         } catch (e) {
@@ -447,7 +449,8 @@ export default class FileDatabase {
                 this.playlists = Array.isArray(data.playlists) ? data.playlists : [];
                 this.queue = Array.isArray(data.queue) ? data.queue : [];
                 this.favorites = Array.isArray(data.favorites) ? data.favorites : [];
-                log.info(`[DB] Base de données chargée avec succès. Entrées indexées : ${this.database.length} vidéos, ${this.playlists.length} playlists.`);
+                this.followedChannels = Array.isArray(data.followedChannels) ? data.followedChannels : [];
+                log.info(`[DB] Base de données chargée avec succès. Entrées indexées : ${this.database.length} vidéos, ${this.playlists.length} playlists, ${this.followedChannels.length} chaînes suivies.`);
             } catch (error) {
                 log.error(`[DB] Échec de la lecture de la base de données: ${error.message}`, error);
                 this.database = [];
@@ -455,11 +458,81 @@ export default class FileDatabase {
                 this.playlists = [];
                 this.queue = [];
                 this.favorites = [];
+                this.followedChannels = [];
             }
         } else {
             log.warn("[DB] Aucun fichier de base de données existant trouvé. Initialisation à vide.");
         }
         this._buildIndex();
+    }
+
+    // --- Chaînes suivies ---
+
+    /**
+     * Suit une chaîne par son nom et son URL.
+     * @param {string} channelName
+     * @param {string} channelUrl
+     * @returns {boolean} true si ajouté, false si déjà présent
+     */
+    followChannel(channelName, channelUrl) {
+        if (!channelName || !channelUrl) return false;
+        const already = this.followedChannels.find(c => c.name === channelName);
+        if (already) return false;
+        this.followedChannels.push({
+            name: channelName,
+            url: channelUrl,
+            followedAt: Date.now(),
+            lastCheckedAt: null,
+            lastNewVideoAt: null
+        });
+        this.saveDatabase();
+        return true;
+    }
+
+    /**
+     * Arrête de suivre une chaîne par son nom.
+     * @param {string} channelName
+     * @returns {boolean} true si retiré, false si introuvable
+     */
+    unfollowChannel(channelName) {
+        const before = this.followedChannels.length;
+        this.followedChannels = this.followedChannels.filter(c => c.name !== channelName);
+        if (this.followedChannels.length !== before) {
+            this.saveDatabase();
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Vérifie si une chaîne est suivie.
+     * @param {string} channelName
+     * @returns {boolean}
+     */
+    isFollowing(channelName) {
+        return this.followedChannels.some(c => c.name === channelName);
+    }
+
+    /**
+     * Retourne toutes les chaînes suivies.
+     * @returns {Array<{name, url, followedAt, lastCheckedAt, lastNewVideoAt}>}
+     */
+    getFollowedChannels() {
+        return this.followedChannels;
+    }
+
+    /**
+     * Met à jour les métadonnées de suivi (dernière vérification, dernière nouvelle vidéo).
+     * @param {string} channelName
+     * @param {{ lastCheckedAt?: number, lastNewVideoAt?: number }} updates
+     */
+    updateFollowedChannelMeta(channelName, updates) {
+        const channel = this.followedChannels.find(c => c.name === channelName);
+        if (channel) {
+            if (updates.lastCheckedAt !== undefined) channel.lastCheckedAt = updates.lastCheckedAt;
+            if (updates.lastNewVideoAt !== undefined) channel.lastNewVideoAt = updates.lastNewVideoAt;
+            this.saveDatabase();
+        }
     }
 
     getFile(yid) {

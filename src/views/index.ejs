@@ -54,6 +54,7 @@
                 <a href="https://github.com/sponsors/alphaleadership" target="_blank" class="btn btn-outline-danger rounded-pill px-4 me-2">💖 Sponsor</a>
                 <a href="/patchnotes" class="btn btn-outline-secondary rounded-pill px-4 me-2">📜 Notes</a>
                 <a href="/suggestions" class="btn btn-outline-primary rounded-pill px-4 me-2">✨ Suggestions</a>
+                <a href="/followed-channels" class="btn btn-outline-warning rounded-pill px-4 me-2">📺 Suivis</a>
                 <a href="/favorites" class="btn btn-outline-danger rounded-pill px-4 me-2">Favoris (<%= typeof favoritesCount !== 'undefined' ? favoritesCount : 0 %>)</a>
                 <a href="/queue" class="btn btn-outline-success rounded-pill px-4 me-2">File (<%= typeof queueCount !== 'undefined' ? queueCount : 0 %>)</a>
                 <a href="/playlists" class="btn btn-outline-warning rounded-pill px-4 me-2">Playlists</a>
@@ -70,24 +71,35 @@
         </div>
         
         <% if (typeof channel !== 'undefined' && channel) { %>
-            <div class="d-flex align-items-center mb-4 mt-3">
-                <h2 class="text-white"><%= channel %></h2>
+            <div class="d-flex align-items-center mb-4 mt-3 flex-wrap gap-2">
+                <h2 class="text-white me-2 mb-0"><%= channel %></h2>
                 <% if (typeof channelUrl === 'string' && channelUrl.startsWith('http')) { %>
-                    <button class="btn btn-primary btn-sm ms-3" onclick="downloadChannel(<%- JSON.stringify(channelUrl).replace(/\"/g, '&quot;') %>)">Télécharger la chaîne</button>
+                    <button class="btn btn-primary btn-sm" onclick="downloadChannel(<%- JSON.stringify(channelUrl).replace(/\"/g, '&quot;') %>)">Télécharger la chaîne</button>
                 <% } %>
                 <% if (channel !== "Ma File d'attente" && channel !== "Mes Playlists" && channel !== "Mes Favoris" && channel !== "Historique" && !channel.startsWith('Playlist : ')) { %>
-                    <button class="btn btn-success btn-sm ms-3" onclick="addAllToQueue()">Ajouter toute la chaîne à la file d'attente</button>
+                    <button class="btn btn-success btn-sm" onclick="addAllToQueue()">Ajouter toute la chaîne à la file d'attente</button>
+                    <% if (typeof channelUrl === 'string' && channelUrl.startsWith('http')) { %>
+                        <% if (typeof isFollowed !== 'undefined' && isFollowed) { %>
+                            <button id="followBtn" class="btn btn-warning btn-sm" onclick="toggleFollowChannel(<%- JSON.stringify(channel) %>, <%- JSON.stringify(channelUrl) %>, this)">
+                                ✅ Suivi
+                            </button>
+                        <% } else { %>
+                            <button id="followBtn" class="btn btn-outline-warning btn-sm" onclick="toggleFollowChannel(<%- JSON.stringify(channel) %>, <%- JSON.stringify(channelUrl) %>, this)">
+                                ➕ Suivre cette chaîne
+                            </button>
+                        <% } %>
+                    <% } %>
                 <% } %>
                 <% if (channel.startsWith('Playlist : ')) { %>
-                    <a href="/playlist/delete?name=<%= encodeURIComponent(channel.replace('Playlist : ', '')) %>" class="btn btn-danger btn-sm ms-3" onclick="return confirm('Supprimer cette playlist ?')">Supprimer la playlist</a>
+                    <a href="/playlist/delete?name=<%= encodeURIComponent(channel.replace('Playlist : ', '')) %>" class="btn btn-danger btn-sm" onclick="return confirm('Supprimer cette playlist ?')">Supprimer la playlist</a>
                 <% } %>
                 <% if (channel === "Ma File d'attente") { %>
-                    <a href="/queue/clear" class="btn btn-danger btn-sm ms-3" onclick="return confirm('Vider la file d\\'attente ?')">Vider la file</a>
+                    <a href="/queue/clear" class="btn btn-danger btn-sm" onclick="return confirm('Vider la file d\\'attente ?')">Vider la file</a>
                 <% } %>
                 <% if (channel === "Historique") { %>
-                    <a href="/history/clear" class="btn btn-danger btn-sm ms-3" onclick="return confirm('Purger l\\'historique ?')">Purger l'historique</a>
+                    <a href="/history/clear" class="btn btn-danger btn-sm" onclick="return confirm('Purger l\\'historique ?')">Purger l'historique</a>
                 <% } %>
-                <a href="/" class="btn btn-outline-secondary btn-sm ms-3">Retour à l'accueil</a>
+                <a href="/" class="btn btn-outline-secondary btn-sm">Retour à l'accueil</a>
             </div>
         <% } %>
 
@@ -459,6 +471,54 @@
                 console.error(e);
                 showToast('Erreur', 'Erreur lors de l\'ajout des vidéos à la file d\'attente.', 'error');
             }
+        }
+
+        async function toggleFollowChannel(channelName, channelUrl, btn) {
+            const isCurrentlyFollowed = btn.classList.contains('btn-warning');
+            const endpoint = isCurrentlyFollowed ? '/channel/unfollow' : '/channel/follow';
+            try {
+                btn.disabled = true;
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify({ name: channelName, url: channelUrl })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    if (data.isFollowing) {
+                        btn.className = 'btn btn-warning btn-sm';
+                        btn.textContent = '✅ Suivi';
+                        showToast('Chaîne suivie', `Vous suivez désormais ${channelName}. Les nouvelles vidéos seront téléchargées automatiquement.`, 'primary');
+                    } else {
+                        btn.className = 'btn btn-outline-warning btn-sm';
+                        btn.textContent = '➕ Suivre cette chaîne';
+                        showToast('Chaîne retirée', `Vous ne suivez plus ${channelName}.`, 'primary');
+                    }
+                } else {
+                    showToast('Erreur', data.error || 'Action impossible.', 'error');
+                }
+            } catch (e) {
+                console.error(e);
+                showToast('Erreur', 'Impossible de modifier le suivi.', 'error');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // Événements Socket.io pour la vérification des chaînes suivies
+        if (typeof io !== 'undefined') {
+            const _sock = typeof socket !== 'undefined' ? socket : io();
+            _sock.on('channel-check-started', data => {
+                if (data.total > 0) showToast('Sync chaînes', `Vérification de ${data.total} chaîne(s) suivie(s)...`, 'info');
+            });
+            _sock.on('channel-new-videos', data => {
+                showToast('Nouvelles vidéos', `${data.count} nouvelle(s) vidéo(s) de <strong>${data.channelName}</strong> ajoutée(s) au téléchargement.`, 'primary');
+            });
+            _sock.on('channel-check-finished', data => {
+                if (data.totalAdded > 0) {
+                    showToast('Sync terminée', `${data.totalAdded} nouvelle(s) vidéo(s) ajoutée(s) au total.`, 'success');
+                }
+            });
         }
     </script>
 
