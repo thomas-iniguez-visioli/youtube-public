@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr" class="dark">
+<html lang="fr">
 <head>
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
@@ -23,80 +23,71 @@
 
     <link rel="stylesheet" href="/style.css">
 </head>
-<body class="bg-gray-900 text-white min-h-screen">
+<body>
     <!-- Toast Container -->
-    <div class="fixed bottom-0 right-0 p-3 z-50 flex flex-col gap-2"></div>
-    
-    <nav class="sticky top-0 bg-gray-900/95 backdrop-blur-sm border-b border-gray-800 z-40 mb-6">
-        <div class="container mx-auto px-4 py-2">
-            <div class="flex items-center justify-between flex-wrap gap-4">
-                <a class="flex items-center no-underline text-white" href="/">
-                    <img src="/favicon.ico" width="30" height="30" class="mr-2" alt="">
-                    <div class="flex flex-col">
-                        <strong class="text-lg">YouTube Downloader</strong>
-                        <span class="text-[0.65rem] text-gray-400 -mt-1">v<%= typeof appVersion !== 'undefined' ? appVersion : '' %></span>
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1060;">
+    </div>
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top mb-4">
+        <div class="container-fluid">
+            <a class="navbar-brand d-flex align-items-center" href="/">
+                <img src="/favicon.ico" width="30" height="30" class="me-2" alt="">
+                <div class="d-flex flex-column">
+                    <strong>YouTube Downloader</strong>
+                    <span style="font-size: 0.65rem; color: #aaaaaa; margin-top: -5px;">v<%= typeof appVersion !== 'undefined' ? appVersion : '' %></span>
+                </div>
+            </a>
+            
+            <div class="d-flex flex-grow-1 justify-content-center mx-4">
+                <form id="commandForm" class="d-flex w-100 search-container m-0 flex-column">
+                    <div class="d-flex w-100 align-items-center">
+                        <input class="form-control me-2 rounded-pill ps-4" type="text" id="commandInput" placeholder="Coller une URL YouTube..." required>
+                        <button class="btn btn-outline-light rounded-pill px-4" type="submit">Télécharger</button>
+                        <button type="button" class="btn btn-outline-secondary rounded-pill ms-2" title="Changer le dossier de téléchargement" onclick="changeFolder()">📂</button>
                     </div>
-                </a>
-                
-                <div class="flex-grow flex justify-center mx-4 min-w-[300px]">
-                    <form id="commandForm" class="flex flex-col w-full max-w-2xl m-0">
-                        <div class="flex w-full items-center">
-                            <input class="flex-grow bg-gray-800 text-white border border-gray-700 rounded-full px-4 py-1.5 mr-2 focus:outline-none focus:border-blue-500" type="text" id="commandInput" placeholder="Coller une URL YouTube..." required>
-                            <button class="bg-transparent hover:bg-white text-white hover:text-gray-900 border border-white rounded-full px-4 py-1.5 transition-colors whitespace-nowrap" type="submit">Télécharger</button>
-                            <button type="button" class="bg-gray-800 hover:bg-gray-700 text-white border border-gray-600 rounded-full w-9 h-9 flex items-center justify-center ml-2 transition-colors" title="Changer le dossier de téléchargement" onclick="changeFolder()">📂</button>
-                        </div>
-                        <small class="text-center mt-1 text-[0.65rem] text-gray-500">Fichier backlog : <%= typeof backlogFile !== 'undefined' ? backlogFile : '' %></small>
-                    </form>
-                </div>
-                
-                <div class="flex gap-2 flex-wrap">
-                    <a href="/patchnotes" class="border border-gray-500 text-gray-400 hover:bg-gray-500 hover:text-white rounded-full px-4 py-1.5 text-sm transition-colors no-underline">📜 Notes</a>
-                    <a href="/suggestions" class="border border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white rounded-full px-4 py-1.5 text-sm transition-colors no-underline">✨ Suggestions</a>
-                    <a href="/favorites" class="border border-red-500 text-red-500 hover:bg-red-500 hover:text-white rounded-full px-4 py-1.5 text-sm transition-colors no-underline">Favoris (<%= typeof favoritesCount !== 'undefined' ? favoritesCount : 0 %>)</a>
-                    <a href="/queue" class="border border-green-500 text-green-500 hover:bg-green-500 hover:text-white rounded-full px-4 py-1.5 text-sm transition-colors no-underline">File (<%= typeof queueCount !== 'undefined' ? queueCount : 0 %>)</a>
-                    <a href="/playlists" class="border border-yellow-500 text-yellow-500 hover:bg-yellow-500 hover:text-gray-900 rounded-full px-4 py-1.5 text-sm transition-colors no-underline">Playlists</a>
-                    <a href="/history" class="border border-cyan-500 text-cyan-500 hover:bg-cyan-500 hover:text-white rounded-full px-4 py-1.5 text-sm transition-colors no-underline">Historique (<%= typeof historyCount !== 'undefined' ? historyCount : 0 %>/<%= typeof historyLimit !== 'undefined' ? historyLimit : 0 %>)</a>
-                </div>
+                    <small class="text-muted text-center mt-1" style="font-size: 0.65rem; color: #777 !important;">Fichier backlog : <%= typeof backlogFile !== 'undefined' ? backlogFile : '' %></small>
+                </form>
+            </div>
+            <div class="d-flex">
+                <a href="/patchnotes" class="btn btn-outline-secondary rounded-pill px-4 me-2">📜 Notes</a>
+                <a href="/suggestions" class="btn btn-outline-primary rounded-pill px-4 me-2">✨ Suggestions</a>
+                <a href="/favorites" class="btn btn-outline-danger rounded-pill px-4 me-2">Favoris (<%= typeof favoritesCount !== 'undefined' ? favoritesCount : 0 %>)</a>
+                <a href="/queue" class="btn btn-outline-success rounded-pill px-4 me-2">File (<%= typeof queueCount !== 'undefined' ? queueCount : 0 %>)</a>
+                <a href="/playlists" class="btn btn-outline-warning rounded-pill px-4 me-2">Playlists</a>
+                <a href="/history" class="btn btn-outline-info rounded-pill px-4">Historique (<%= typeof historyCount !== 'undefined' ? historyCount : 0 %>/<%= typeof historyLimit !== 'undefined' ? historyLimit : 0 %>)</a>
             </div>
         </div>
     </nav>
 
-    <div class="container mx-auto px-4 max-w-[1600px]">
-        <div class="flex flex-col lg:flex-row gap-6">
+    <div class="container-fluid video-container">
+        <div class="row">
             <!-- Lecteur Vidéo et Infos -->
-            <div class="lg:w-2/3 xl:w-3/4">
-                <div class="plyr__video-embed rounded-xl overflow-hidden shadow-2xl mb-4 bg-black" id="player">
+            <div class="col-lg-8">
+                <div class="plyr__video-embed" id="player">
                     <video id="videoPlayer" controls crossorigin playsinline>
                         <source src="/video/?id=<%= encodeURIComponent(code) %>" type="video/mp4" />
                     </video>
                 </div>
 
-                <h1 class="text-2xl md:text-3xl font-bold mb-3"><%= (typeof videodata !== 'undefined' && videodata.title) ? videodata.title : title %></h1>
+                <h1 class="video-title"><%= (typeof videodata !== 'undefined' && videodata.title) ? videodata.title : title %></h1>
                 
-                <div class="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-4 border-b border-gray-800 pb-4">
-                    <div class="flex items-center text-gray-300">
-                        <img src="/channel-logo/<%= (typeof videodata !== 'undefined' && videodata.uploader) ? encodeURIComponent(videodata.uploader) : '' %>" alt="Logo" class="w-10 h-10 rounded-full object-cover border border-gray-700 mr-3">
-                        <div class="flex flex-col">
-                            <strong><a href="/channel?name=<%= (typeof videodata !== 'undefined' && videodata.uploader) ? encodeURIComponent(videodata.uploader) : '' %>" class="text-white hover:text-blue-400 no-underline text-lg"><%= (typeof videodata !== 'undefined' && videodata.uploader) ? videodata.uploader : 'Uploader inconnu' %></a></strong>
-                            <span class="text-sm text-gray-500"><%= (typeof videodata !== 'undefined' && videodata.view_count) ? videodata.view_count.toLocaleString() + ' vues' : '' %></span>
-                        </div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="video-meta">
+                        <img src="/channel-logo/<%= (typeof videodata !== 'undefined' && videodata.uploader) ? encodeURIComponent(videodata.uploader) : '' %>" alt="Logo" style="width: 30px; height: 30px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(255,255,255,0.2); margin-right: 8px; vertical-align: middle;">
+                        <strong><a href="/channel?name=<%= (typeof videodata !== 'undefined' && videodata.uploader) ? encodeURIComponent(videodata.uploader) : '' %>" style="color: #ffffff; text-decoration: none; vertical-align: middle;"><%= (typeof videodata !== 'undefined' && videodata.uploader) ? videodata.uploader : 'Uploader inconnu' %></a></strong> • <%= (typeof videodata !== 'undefined' && videodata.view_count) ? videodata.view_count.toLocaleString() + ' vues' : '' %>
                     </div>
-                    
-                    <div class="flex flex-wrap items-center gap-2">
-                        <button id="favoriteBtn" class="border <%= isFavorite ? 'bg-red-600 border-red-600 text-white' : 'border-red-500 text-red-500 hover:bg-red-500 hover:text-white' %> rounded px-3 py-1.5 text-sm transition-colors flex items-center" onclick="toggleFavorite(<%- JSON.stringify(code).replace(/\"/g, '&quot;') %>)">
-                            <span class="mr-1"><%= isFavorite ? '❤' : '♡' %></span> Favori
+                    <div class="d-flex align-items-center">
+                        <button id="favoriteBtn" class="btn <%= isFavorite ? 'btn-danger' : 'btn-outline-danger' %> btn-sm me-2" onclick="toggleFavorite(<%- JSON.stringify(code).replace(/\"/g, '&quot;') %>)">
+                            <%= isFavorite ? '❤' : '♡' %> Favori
                         </button>
-                        <button class="border border-cyan-500 text-cyan-500 hover:bg-cyan-500 hover:text-white rounded px-3 py-1.5 text-sm transition-colors" onclick="shareVideo(<%- JSON.stringify((typeof videodata !== 'undefined' && videodata.webpage_url) ? videodata.webpage_url : ('https://www.youtube.com/watch?v=' + code)).replace(/\"/g, '&quot;') %>)">
+                        <button class="btn btn-outline-info btn-sm me-2" onclick="shareVideo(<%- JSON.stringify((typeof videodata !== 'undefined' && videodata.webpage_url) ? videodata.webpage_url : ('https://www.youtube.com/watch?v=' + code)).replace(/\"/g, '&quot;') %>)">
                             ↗ Partager
                         </button>
-                        <button class="border border-green-500 text-green-500 hover:bg-green-500 hover:text-white rounded px-3 py-1.5 text-sm transition-colors" onclick='addToQueue(<%- JSON.stringify(code) %>)'>File d'attente</button>
-                        
+                        <button class="btn btn-outline-success btn-sm me-2" onclick='addToQueue(<%- JSON.stringify(code) %>)'>File d'attente</button>
                         <% if (typeof videodata !== 'undefined' && videodata.uploader && videodata.uploader !== 'Uploader inconnu') { %>
-                            <a href="/channel?name=<%= encodeURIComponent(videodata.uploader) %>" class="border border-cyan-500 text-cyan-500 hover:bg-cyan-500 hover:text-white rounded px-3 py-1.5 text-sm transition-colors no-underline inline-block">
+                            <a href="/channel?name=<%= encodeURIComponent(videodata.uploader) %>" class="btn btn-outline-info btn-sm me-2">
                                 📺 Voir la chaîne
                             </a>
                         <% } %>
-                        
                         <% 
                         let targetChannelUrl = null;
                         if (typeof videodata !== 'undefined') {
@@ -107,124 +98,117 @@
                             }
                         }
                         if (targetChannelUrl) { %>
-                            <button class="border border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white rounded px-3 py-1.5 text-sm transition-colors" onclick="downloadChannel(<%- JSON.stringify(targetChannelUrl) %>)">
+                            <button class="btn btn-outline-primary btn-sm me-2" onclick="downloadChannel(<%- JSON.stringify(targetChannelUrl) %>)">
                                 📥 Télécharger la chaîne
                             </button>
                         <% } %>
-
-                        <!-- Simple Dropdown implementation with Tailwind -->
-                        <div class="relative inline-block text-left group">
-                            <button type="button" class="border border-yellow-500 text-yellow-500 hover:bg-yellow-500 hover:text-gray-900 rounded px-3 py-1.5 text-sm transition-colors flex items-center">
-                                Ajouter à une playlist <span class="ml-1 opacity-70">▼</span>
+                        <div class="dropdown me-2">
+                            <button class="btn btn-outline-warning btn-sm dropdown-toggle" type="button" id="playlistDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                Ajouter à une playlist
                             </button>
-                            <div class="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-gray-800 ring-1 ring-black ring-opacity-5 divide-y divide-gray-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-                                <div class="py-1">
-                                    <% playlists.forEach(function(playlist) { %>
+                            <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="playlistDropdown">
+                                <% playlists.forEach(function(playlist) { %>
+                                    <li>
                                         <form action="/playlist/add" method="POST">
                                             <input type="hidden" name="playlistName" value="<%= playlist.name %>">
                                             <input type="hidden" name="videoId" value="<%= code %>">
-                                            <button type="submit" class="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white">
-                                                <%= playlist.name %>
-                                            </button>
+                                            <button type="submit" class="dropdown-item"><%= playlist.name %></button>
                                         </form>
-                                    <% }); %>
-                                    <% if (playlists.length === 0) { %>
-                                        <span class="block px-4 py-2 text-sm text-gray-500 italic">Aucune playlist</span>
-                                    <% } %>
-                                </div>
-                                <div class="py-1">
-                                    <a href="/playlists" class="block px-4 py-2 text-sm text-blue-400 hover:bg-gray-700 hover:text-blue-300">Gérer les playlists</a>
-                                </div>
-                            </div>
+                                    </li>
+                                <% }); %>
+                                <% if (playlists.length === 0) { %>
+                                    <li><a class="dropdown-item disabled" href="#">Aucune playlist</a></li>
+                                <% } %>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="/playlists">Gérer les playlists</a></li>
+                            </ul>
                         </div>
-
                         <% if (typeof nextVideo !== 'undefined' && nextVideo) { %>
-                            <button onclick="playNext()" class="border border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white rounded px-3 py-1.5 text-sm transition-colors">Vidéo suivante</button>
+                            <button onclick="playNext()" class="btn btn-outline-primary btn-sm me-2">Vidéo suivante</button>
                         <% } %>
-                        <a href="/delete?id=<%= encodeURIComponent(code) %>" class="border border-red-600 text-red-600 hover:bg-red-600 hover:text-white rounded px-3 py-1.5 text-sm transition-colors no-underline">Supprimer</a>
+                        <a href="/delete?id=<%= encodeURIComponent(code) %>" class="btn btn-outline-danger btn-sm">Supprimer</a>
                     </div>
                 </div>
 
-                <div class="bg-gray-800/50 rounded-xl p-4 border border-gray-700/50 mt-4 mb-6">
-                    <p class="whitespace-pre-wrap text-sm text-gray-300 m-0"><%= (typeof videodata !== 'undefined') ? videodata.description : '' %></p>
+                <div class="video-description">
+                    <p><%= (typeof videodata !== 'undefined') ? videodata.description : '' %></p>
                 </div>
 
-                <div class="bg-gray-800 rounded-xl p-4 border border-gray-700 mb-6">
-                    <h5 class="text-lg font-medium mb-3">Ajouter un tag</h5>
-                    <form action="/tag" method="post" class="flex flex-wrap gap-2">
-                        <input type="text" class="flex-grow bg-gray-900 text-white border border-gray-600 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500 max-w-xs" id="tagInput" name="tag" placeholder="Tag..." required>
+                <div class="mt-4">
+                    <h5>Ajouter un tag</h5>
+                    <form action="/tag" method="post" class="row g-3">
+                        <div class="col-auto">
+                            <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary" id="tagInput" name="tag" placeholder="Tag..." required>
+                        </div>
                         <input type="hidden" name="videoId" value="<%= encodeURIComponent(code) %>">
-                        <button type="submit" class="bg-gray-700 hover:bg-gray-600 text-white border border-gray-600 rounded px-4 py-1.5 text-sm transition-colors">Taguer</button>
+                        <div class="col-auto">
+                            <button type="submit" class="btn btn-secondary btn-sm">Taguer</button>
+                        </div>
                     </form>
                 </div>
             </div>
 
             <!-- Barre Latérale (Suggestions) -->
-            <div class="lg:w-1/3 xl:w-1/4 flex flex-col gap-6">
-                <div>
-                    <h5 class="text-lg font-medium mb-3">Vidéos suggérées</h5>
-                    <div class="flex flex-col gap-3">
-                    <% 
-                        let suggestions = [];
-                        if (typeof nextVideo !== 'undefined' && nextVideo) {
-                            suggestions.push(nextVideo);
-                        }
+            <div class="col-lg-4 sidebar">
+                <h5 class="mb-3">Vidéos suggérées</h5>
+                <% 
+                    let suggestions = [];
+                    if (typeof nextVideo !== 'undefined' && nextVideo) {
+                        suggestions.push(nextVideo);
+                    }
 
-                        const otherVideos = videos
-                            .filter(v => v.yid !== code && (!nextVideo || v.yid !== (nextVideo.id || nextVideo.yid)))
-                            .sort(() => Math.random() - 0.5);
-                        
-                        suggestions = suggestions.concat(otherVideos).slice(0, 5);
+                    const otherVideos = videos
+                        .filter(v => v.yid !== code && (!nextVideo || v.yid !== (nextVideo.id || nextVideo.yid)))
+                        .sort(() => Math.random() - 0.5);
+                    
+                    suggestions = suggestions.concat(otherVideos).slice(0, 5);
 
-                        suggestions.forEach(function(v) { 
-                    %>
-                        <div class="flex items-center justify-between gap-2 group">
-                            <a class="flex flex-1 min-w-0 text-white no-underline hover:bg-gray-800/50 p-1.5 rounded-lg transition-colors" href="/watch?id=<%= v.yid %>">
-                                <div class="w-32 h-20 flex-shrink-0 bg-gray-800 rounded overflow-hidden mr-3">
-                                    <img src="/thumbnail/<%= v.yid %>" loading="lazy" class="w-full h-full object-cover" alt="<%= v.fileName %>">
-                                </div>
-                                <div class="flex flex-col min-w-0 py-0.5 justify-between">
-                                    <span class="text-sm font-medium line-clamp-2 leading-snug" title="<%= v.fileName %>"><%= v.fileName %></span>
-                                    <span class="text-xs text-gray-400 flex items-center gap-1.5 mt-1">
-                                        <% if (v.uploader) { %>
-                                            <img src="/channel-logo/<%= encodeURIComponent(v.uploader) %>" alt="Logo" class="w-4 h-4 rounded-full object-cover border border-white/20">
-                                            <span class="truncate"><%= v.uploader %></span>
-                                        <% } else { %>
-                                            Bibliothèque
-                                        <% } %>
-                                    </span>
-                                </div>
-                            </a>
-                            <button onclick="addToQueue('<%= v.yid %>')" class="flex-shrink-0 border border-green-500 text-green-500 hover:bg-green-500 hover:text-white rounded w-8 h-8 flex items-center justify-center transition-colors opacity-0 group-hover:opacity-100" title="Ajouter à la file">
-                                +
-                            </button>
-                        </div>
-                    <% }); %>
+                    suggestions.forEach(function(v) { 
+                %>
+                    <div class="suggestion-card d-flex align-items-center justify-content-between w-100">
+                        <a class="d-flex text-decoration-none" style="flex: 1; min-width: 0; color: inherit;" href="/watch?id=<%= v.yid %>">
+                            <img src="/thumbnail/<%= v.yid %>" loading="lazy" class="suggestion-thumb" alt="<%= v.fileName %>">
+                            <div class="suggestion-info" style="min-width: 0;">
+                                <span class="suggestion-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;" title="<%= v.fileName %>"><%= v.fileName %></span>
+                                <span class="suggestion-channel" style="font-size: 0.75rem; color: #aaaaaa; display: flex; align-items: center; gap: 6px; margin-top: 2px;">
+                                    <% if (v.uploader) { %>
+                                        <img src="/channel-logo/<%= encodeURIComponent(v.uploader) %>" alt="Logo" style="width: 14px; height: 14px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(255,255,255,0.2);">
+                                        <%= v.uploader %>
+                                    <% } else { %>
+                                        Bibliothèque
+                                    <% } %>
+                                </span>
+                            </div>
+                        </a>
+                        <button onclick="addToQueue('<%= v.yid %>')" class="btn btn-outline-success btn-sm ms-2" title="Ajouter à la file">
+                            +
+                        </button>
                     </div>
+                <% }); %>
+                
+                <div class="mt-4 pt-4 border-top border-secondary" id="relatedYoutubeContainer">
+                    <h5 class="mb-3">Vidéos similaires (YouTube)</h5>
+                    <div id="relatedYoutubeLoading" class="text-center py-3">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                        <span class="ms-2 text-muted" style="font-size: 0.85rem;">Recherche sur YouTube...</span>
+                    </div>
+                    <div id="relatedYoutubeList" class="d-flex flex-column gap-2"></div>
                 </div>
                 
-                <div class="pt-4 border-t border-gray-800" id="relatedYoutubeContainer">
-                    <h5 class="text-lg font-medium mb-3">Vidéos similaires (YouTube)</h5>
-                    <div id="relatedYoutubeLoading" class="text-center py-4">
-                        <div class="inline-block animate-spin w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full" role="status"></div>
-                        <span class="ml-2 text-gray-500 text-sm">Recherche sur YouTube...</span>
+                <div class="mt-4 pt-4 border-top border-secondary" id="remixesYoutubeContainer">
+                    <h5 class="mb-3">Remixes (YouTube)</h5>
+                    <div id="remixesYoutubeLoading" class="text-center py-3">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                        <span class="ms-2 text-muted" style="font-size: 0.85rem;">Recherche de remixes...</span>
                     </div>
-                    <div id="relatedYoutubeList" class="flex flex-col gap-3"></div>
-                </div>
-                
-                <div class="pt-4 border-t border-gray-800" id="remixesYoutubeContainer">
-                    <h5 class="text-lg font-medium mb-3">Remixes (YouTube)</h5>
-                    <div id="remixesYoutubeLoading" class="text-center py-4">
-                        <div class="inline-block animate-spin w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full" role="status"></div>
-                        <span class="ml-2 text-gray-500 text-sm">Recherche de remixes...</span>
-                    </div>
-                    <div id="remixesYoutubeList" class="flex flex-col gap-3"></div>
+                    <div id="remixesYoutubeList" class="d-flex flex-column gap-2"></div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Plyr JS -->
+    <!-- Bootstrap & Plyr JS -->
+    <script src="/bootstrap.bundle.min.js"></script>
     <script src="/plyr.polyfilled.js"></script>
     
     <script>
@@ -346,29 +330,29 @@
                 }
                 
                 const card = document.createElement('div');
-                card.className = 'flex items-center justify-between gap-2 group';
+                card.className = 'suggestion-card d-flex align-items-center justify-content-between w-100';
+                card.style.cursor = 'default';
                 card.innerHTML = `
-                    <a class="flex flex-1 min-w-0 text-white no-underline hover:bg-gray-800/50 p-1.5 rounded-lg transition-colors cursor-pointer" href="/watch?id=${encodeURIComponent(v.id)}">
-                        <div class="relative w-32 h-20 flex-shrink-0 bg-gray-900 rounded overflow-hidden mr-3">
-                            <img src="${thumbUrl}" class="w-full h-full object-cover" alt="${escapeHTML(v.title)}">
-                            ${durStr ? `<span class="absolute bottom-1 right-1 bg-black/80 text-white px-1 py-0.5 rounded text-[0.65rem]">${durStr}</span>` : ''}
+                    <a class="d-flex text-decoration-none" style="flex: 1; min-width: 0; color: inherit;" href="/watch?id=${encodeURIComponent(v.id)}">
+                        <div class="position-relative flex-shrink-0">
+                            <img src="${thumbUrl}" class="suggestion-thumb" alt="${escapeHTML(v.title)}">
+                            ${durStr ? `<span class="position-absolute bottom-0 end-0 bg-dark text-white px-1 rounded" style="font-size: 0.65rem; margin: 2px; opacity: 0.85;">${durStr}</span>` : ''}
                         </div>
-                        <div class="flex flex-col min-w-0 justify-between py-0.5">
-                            <span class="text-sm font-medium line-clamp-2 leading-snug" title="${escapeHTML(v.title)}">${escapeHTML(v.title)}</span>
-                            <span class="text-xs text-gray-400 flex items-center gap-1.5 mt-1">
-                                <img src="/channel-logo/${encodeURIComponent(v.uploader || v.channel || 'YouTube')}" alt="Logo" class="w-4 h-4 rounded-full object-cover border border-white/20">
-                                <span class="truncate">${escapeHTML(v.uploader || v.channel || 'YouTube')}</span>
+                        <div class="suggestion-info" style="min-width: 0;">
+                            <span class="suggestion-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;" title="${escapeHTML(v.title)}">${escapeHTML(v.title)}</span>
+                            <span class="suggestion-channel" style="font-size: 0.75rem; color: #aaaaaa; display: flex; align-items: center; gap: 6px; margin-top: 2px;">
+                                <img src="/channel-logo/${encodeURIComponent(v.uploader || v.channel || 'YouTube')}" alt="Logo" style="width: 14px; height: 14px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(255,255,255,0.2);">
+                                ${escapeHTML(v.uploader || v.channel || 'YouTube')}
                             </span>
                         </div>
                     </a>
-                    <button class="flex-shrink-0 border border-green-500 text-green-500 hover:bg-green-500 hover:text-white rounded w-8 h-8 flex items-center justify-center transition-colors opacity-0 group-hover:opacity-100" title="Télécharger">
+                    <button class="btn btn-outline-success btn-sm ms-2" title="Télécharger">
                         📥
                     </button>
                 `;
                 
                 const downloadBtn = card.querySelector('button');
-                downloadBtn.addEventListener('click', (e) => {
-                    e.preventDefault();
+                downloadBtn.addEventListener('click', () => {
                     downloadYoutubeVideo(v.id);
                 });
                 
@@ -392,13 +376,13 @@
                                 list.appendChild(createYoutubeSuggestionCard(v));
                             });
                         } else {
-                            list.innerHTML = '<div class="text-center text-gray-500 py-2 text-sm">Aucune vidéo similaire trouvée.</div>';
+                            list.innerHTML = '<div class="text-center text-muted py-2" style="font-size: 0.8rem;">Aucune vidéo similaire trouvée.</div>';
                         }
                     })
                     .catch(err => {
                         console.error("Erreur chargement vidéos similaires:", err);
                         const loader = document.getElementById('relatedYoutubeLoading');
-                        if (loader) loader.innerHTML = '<span class="text-red-500 text-sm">Erreur de chargement</span>';
+                        if (loader) loader.innerHTML = '<span class="text-danger" style="font-size: 0.8rem;">Erreur de chargement</span>';
                     });
 
                 // Charger les remixes de YouTube de manière asynchrone
@@ -415,13 +399,13 @@
                                 list.appendChild(createYoutubeSuggestionCard(v));
                             });
                         } else {
-                            list.innerHTML = '<div class="text-center text-gray-500 py-2 text-sm">Aucun remix trouvé.</div>';
+                            list.innerHTML = '<div class="text-center text-muted py-2" style="font-size: 0.8rem;">Aucun remix trouvé.</div>';
                         }
                     })
                     .catch(err => {
                         console.error("Erreur chargement remixes:", err);
                         const loader = document.getElementById('remixesYoutubeLoading');
-                        if (loader) loader.innerHTML = '<span class="text-red-500 text-sm">Erreur de chargement</span>';
+                        if (loader) loader.innerHTML = '<span class="text-danger" style="font-size: 0.8rem;">Erreur de chargement</span>';
                     });
             }
 
@@ -454,16 +438,12 @@
             try {
                 await navigator.clipboard.writeText(url);
                 const shareBtn = document.activeElement;
-                const originalText = shareBtn.innerHTML;
-                shareBtn.innerHTML = '✓ Copié !';
-                shareBtn.classList.replace('border-cyan-500', 'border-cyan-400');
-                shareBtn.classList.replace('text-cyan-500', 'bg-cyan-500');
-                shareBtn.classList.add('text-white');
+                const originalText = shareBtn.textContent;
+                shareBtn.textContent = '✓ Copié !';
+                shareBtn.classList.replace('btn-outline-info', 'btn-info');
                 setTimeout(() => {
-                    shareBtn.innerHTML = originalText;
-                    shareBtn.classList.replace('border-cyan-400', 'border-cyan-500');
-                    shareBtn.classList.replace('bg-cyan-500', 'text-cyan-500');
-                    shareBtn.classList.remove('text-white');
+                    shareBtn.textContent = originalText;
+                    shareBtn.classList.replace('btn-info', 'btn-outline-info');
                 }, 2000);
             } catch (err) {
                 alert("Lien YouTube : " + url);
@@ -491,6 +471,22 @@
                 window.location.href = `/download?url=${encodeURIComponent(url)}`;
             }
         });
+
+        // Dropdown toggle native emulation
+        const dropdownBtn = document.getElementById('playlistDropdown');
+        if (dropdownBtn) {
+            dropdownBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const menu = this.nextElementSibling;
+                menu.classList.toggle('show');
+            });
+            document.addEventListener('click', function() {
+                const menu = dropdownBtn.nextElementSibling;
+                if (menu) menu.classList.remove('show');
+            });
+        }
     </script>
+
+    <!-- Tawk.to removed (offline mode) -->
 </body>
 </html>
