@@ -1,6 +1,6 @@
 {
   "name": "youtube",
-  "version": "1.15.4",
+  "version": "1.15.5",
   "type": "module",
   "description": "youtube local",
   "main": "src/index.js",
@@ -11,7 +11,7 @@
     "postpush": "gh signoff",
     "start": "electron .",
     "test": "bun test ./tests/*.test.js",
-    "dist": "electron-builder --win"
+    "dist": "cmd /c \"set WIN_CSC_LINK=spartan_arbinger.pfx&& electron-builder --win\""
   },
   "dependencies": {
     "adm-zip": "^0.6.0",
@@ -46,7 +46,6 @@
   "build": {
     "appId": "com.arbinger.youtube",
     "win": {
-      "certificateFile": "spartan_arbinger.pfx",
       "target": [
         "NSIS",
         "portable",

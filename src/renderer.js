@@ -308,6 +308,30 @@ if (typeof io !== 'undefined') {
                     });
             });
         }
+
+        const syncChannelsBtn = document.getElementById('sync-channels-btn');
+        if (syncChannelsBtn) {
+            syncChannelsBtn.addEventListener('click', () => {
+                syncChannelsBtn.disabled = true;
+                syncChannelsBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Sync...';
+                showToast('Synchronisation', 'Recherche de nouvelles vidéos sur vos chaînes suivies...', 'info');
+                fetch('/maintenance/check-channels')
+                    .then(res => res.json())
+                    .then(data => {
+                        showToast('Synchronisation', data.message || 'Synchronisation lancée avec succès.', 'success');
+                        setTimeout(() => {
+                            syncChannelsBtn.disabled = false;
+                            syncChannelsBtn.innerHTML = '🔄 Sync chaînes';
+                        }, 3000);
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        showToast('Erreur', 'Impossible de synchroniser les chaînes.', 'danger');
+                        syncChannelsBtn.disabled = false;
+                        syncChannelsBtn.innerHTML = '🔄 Sync chaînes';
+                    });
+            });
+        }
     });
 
     // Événements d'auto-updater via WebSocket

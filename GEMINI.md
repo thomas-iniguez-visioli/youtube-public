@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.15.5] - 2026-08-25
+### Ajouté
+- **Téléchargement automatique des nouvelles vidéos de chaînes** : Implémentation d'une fonction d'analyse périodique (`checkChannelsForNewVideos`) qui extrait de la base de données locale les URLs de chaînes suivies, interroge yt-dlp de manière optimisée via `--flat-playlist` pour lister leurs 5 vidéos les plus récentes, et ajoute automatiquement les vidéos manquantes au backlog de téléchargement. Ajout d'un bouton « 🔄 Sync chaînes » dans l'interface et d'une route API `/maintenance/check-channels`.
+
 ## [1.15.4] - 2026-08-24
 ### Ajouté
 - **Nettoyage automatique et manuel des vidéos inactives** : Ajout d'une fonctionnalité pour supprimer automatiquement les vidéos non lues depuis plus de 60 jours lors des tâches de fond au démarrage. Implémentation d'une méthode `cleanupOldVideos(daysLimit)` dans `db.js` et d'une route API Express `/maintenance/cleanup` pour déclencher manuellement le nettoyage à la demande.

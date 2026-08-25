@@ -668,6 +668,75 @@ const download = (url) => {
   }
 };
 
+const checkChannelsForNewVideos = async () => {
+  const ytdlpPath = binaryResolver.ytdlp;
+  if (!ytdlpPath) return;
+
+  log.info("[Auto Channel Downloader] Démarrage de la vérification des nouvelles vidéos des chaînes suivies...");
+  
+  const channels = {};
+  db.database.forEach(video => {
+    if (video.uploader && video.uploader !== 'Uploader inconnu' && video.channel_url) {
+      channels[video.uploader] = video.channel_url;
+    }
+  });
+
+  const uploaderNames = Object.keys(channels);
+  log.info(`[Auto Channel Downloader] ${uploaderNames.length} chaînes à vérifier.`);
+
+  for (const uploader of uploaderNames) {
+    const channelUrl = channels[uploader];
+    log.info(`[Auto Channel Downloader] Vérification de la chaîne : ${uploader} (${channelUrl})`);
+
+    try {
+      const ids = await new Promise((resolve, reject) => {
+        const childProc = child.spawn(ytdlpPath, [
+          '--flat-playlist',
+          '--playlist-end', '5',
+          '--print', 'id',
+          channelUrl
+        ]);
+        
+        let stdout = '';
+        let stderr = '';
+
+        childProc.stdout.on('data', data => { stdout += data.toString(); });
+        childProc.stderr.on('data', data => { stderr += data.toString(); });
+
+        childProc.on('close', code => {
+          if (code === 0) {
+            const videoIds = stdout.split('\n')
+              .map(line => line.trim())
+              .filter(line => /^[a-zA-Z0-9_\-]{11}$/.test(line));
+            resolve(videoIds);
+          } else {
+            reject(new Error(`yt-dlp a quitté avec le code ${code}. Stderr: ${stderr}`));
+          }
+        });
+      });
+
+      log.info(`[Auto Channel Downloader] ${ids.length} vidéos trouvées pour ${uploader}.`);
+
+      let addedCount = 0;
+      for (const id of ids) {
+        const videoUrl = `https://www.youtube.com/watch?v=${id}`;
+        if (!db.getFile(id) && !backlog.includes(videoUrl)) {
+          log.info(`[Auto Channel Downloader] Nouvelle vidéo détectée : ${id}. Ajout au backlog.`);
+          download(videoUrl);
+          addedCount++;
+        }
+      }
+      if (addedCount > 0) {
+        log.info(`[Auto Channel Downloader] ${addedCount} nouvelles vidéos ajoutées au backlog pour ${uploader}.`);
+      }
+    } catch (err) {
+      log.error(`[Auto Channel Downloader] Échec de la vérification pour ${uploader} : ${err.message}`);
+    }
+  }
+
+  log.info("[Auto Channel Downloader] Vérification des chaînes terminée.");
+};
+
 const httpServer = createServer(web);
 const io = new SocketServer(httpServer);
 
@@ -1440,6 +1509,17 @@ web.get("/maintenance/cleanup", function (req, res) {
   res.json({ success: true, message: `${deletedCount} vidéos inactives supprimées.` });
 });
 
+web.get("/maintenance/check-channels", function (req, res) {
+  checkChannelsForNewVideos()
+    .then(() => {
+      res.json({ success: true, message: "Vérification des chaînes terminée." });
+    })
+    .catch(err => {
+      log.error(`[Auto Channel Downloader API] Erreur : ${err.message}`);
+      res.status(500).json({ success: false, error: err.message });
+    });
+});
+
 web.get("/api/search", function (req, res) {
   const query = req.query.q || req.query.tags || "";
   const results = db.search(query);
@@ -2134,10 +2214,19 @@ if (!gotTheLock) {
             log.info(`[Auto Cleanup] ${cleanedCount} vidéos inactives supprimées.`);
             cleanupOrphanedThumbnails();
           }
+          // Vérification automatique des nouvelles vidéos des chaînes suivies (7s après les tâches, soit 10s après le boot)
+          setTimeout(() => {
+            checkChannelsForNewVideos().catch(err => log.error(`Erreur checkChannelsForNewVideos: ${err.message}`));
+          }, 7000);
         } catch (e) {
           log.error(`Erreur lors des tâches de maintenance en arrière-plan : ${e.message}`);
         }
       }, 3000);
+
+      // Planifier la vérification des chaînes toutes les 6 heures
+      setInterval(() => {
+        checkChannelsForNewVideos().catch(err => log.error(`Erreur checkChannelsForNewVideos: ${err.message}`));
+      }, 6 * 60 * 60 * 1000);
     });
   };
 
