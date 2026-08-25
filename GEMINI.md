@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.16.0] - 2026-08-25
+### Ajouté
+- **Bascule vers Tailwind CSS & Réparation du suivi** : Remplacement complet de Bootstrap par Tailwind CSS v4 avec compilation statique pour le mode hors ligne. Correction des écouteurs de progression et de notifications WebSocket pour le suivi de chaînes dans l'interface et correction d'une exception TDZ de socket au démarrage.
+
 ## [1.15.5] - 2026-08-25
 ### Ajouté
 - **Téléchargement automatique des nouvelles vidéos de chaînes** : Implémentation d'une fonction d'analyse périodique (`checkChannelsForNewVideos`) qui extrait de la base de données locale les URLs de chaînes suivies, interroge yt-dlp de manière optimisée via `--flat-playlist` pour lister leurs 5 vidéos les plus récentes, et ajoute automatiquement les vidéos manquantes au backlog de téléchargement. Ajout d'un bouton « 🔄 Sync chaînes » dans l'interface et d'une route API `/maintenance/check-channels`.
