@@ -1002,11 +1002,21 @@ function renderIndex(res, results, channel, channelUrl = null, isFollowed = fals
 
 // Copie un fichier bundle -> userData seulement s'il est absent ou si nouvelle version
 function ensureLocalAsset(bundleRelPath, destPath, force = false) {
-  if (!force && fs.existsSync(destPath)) return;
   const src = path.join(__dirname, bundleRelPath);
-  if (fs.existsSync(src)) {
+  if (!fs.existsSync(src)) return;
+
+  let shouldCopy = force || !fs.existsSync(destPath);
+  if (!shouldCopy) {
+    const srcStat = fs.statSync(src);
+    const destStat = fs.statSync(destPath);
+    if (srcStat.mtimeMs > destStat.mtimeMs) {
+      shouldCopy = true;
+    }
+  }
+
+  if (shouldCopy) {
     fs.copyFileSync(src, destPath);
-    log.info(`Asset local copié : ${path.basename(destPath)}`);
+    log.info(`Asset local copié (source plus récente ou force) : ${path.basename(destPath)}`);
   }
 }
 
