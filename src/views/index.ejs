@@ -15,11 +15,11 @@
     <script src="renderer.js"></script>
     <link rel="stylesheet" href="/style.css">
 </head>
-<body class="bg-[#0f0f0f] text-neutral-100 min-h-screen font-sans">
+<body class="bg-[#050505] text-neutral-100 min-h-screen font-sans" style="background-image: radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.08), transparent 25%), radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.08), transparent 25%); background-attachment: fixed;">
     <!-- Toast Container -->
     <div id="toast-container" class="fixed bottom-4 right-4 z-[1060] flex flex-col gap-2 max-w-sm w-full px-4 pointer-events-none"></div>
 
-    <nav class="sticky top-0 z-50 bg-[#0f0f0f]/90 backdrop-blur-md border-b border-neutral-800 px-6 py-3 flex flex-wrap items-center justify-between gap-4">
+    <nav class="navbar sticky top-0 z-50 flex flex-wrap items-center justify-between gap-4">
         <a class="flex items-center gap-2 text-white font-bold" href="/">
             <img src="/favicon.ico" width="30" height="30" alt="">
             <div class="flex flex-col">
@@ -31,23 +31,23 @@
         <div class="flex-1 max-w-xl mx-4">
             <form id="commandForm" class="flex flex-col m-0 w-full">
                 <div class="flex items-center gap-2">
-                    <input class="bg-neutral-900 border border-neutral-800 text-white rounded-full px-4 py-2 text-sm w-full focus:outline-none focus:border-blue-500 transition" type="text" id="commandInput" placeholder="Coller une URL YouTube..." required>
-                    <button class="bg-blue-600 hover:bg-blue-700 text-white rounded-full px-4 py-2 text-sm font-semibold transition" type="submit">Télécharger</button>
-                    <button type="button" class="border border-neutral-750 hover:bg-neutral-850 rounded-full p-2 text-sm transition" title="Changer le dossier de téléchargement" onclick="changeFolder()">📂</button>
+                    <input class="form-control text-white rounded-full px-4 py-2 text-sm w-full focus:outline-none transition" type="text" id="commandInput" placeholder="Coller une URL YouTube..." required>
+                    <button class="btn btn-outline-primary text-white rounded-full px-4 py-2 text-sm font-semibold transition" type="submit">Télécharger</button>
+                    <button type="button" class="btn btn-outline-secondary rounded-full p-2 text-sm transition" title="Changer le dossier de téléchargement" onclick="changeFolder()">📂</button>
                 </div>
                 <small class="text-[10px] text-neutral-500 text-center mt-1">Fichier backlog : <%= typeof backlogFile !== 'undefined' ? backlogFile : '' %></small>
             </form>
         </div>
 
         <div class="flex items-center gap-2 flex-wrap text-sm">
-            <a href="https://github.com/sponsors/alphaleadership" target="_blank" class="border border-red-500/50 hover:bg-red-500/10 text-red-400 rounded-full px-4 py-1.5 font-medium transition">💖 Sponsor</a>
-            <a href="/patchnotes" class="border border-neutral-750 hover:bg-neutral-850 text-neutral-300 rounded-full px-4 py-1.5 font-medium transition">📜 Notes</a>
-            <a href="/suggestions" class="border border-neutral-750 hover:bg-neutral-850 text-neutral-300 rounded-full px-4 py-1.5 font-medium transition">✨ Suggestions</a>
-            <a href="/followed-channels" class="border border-neutral-750 hover:bg-neutral-850 text-neutral-300 rounded-full px-4 py-1.5 font-medium transition">📺 Suivis</a>
-            <a href="/favorites" class="border border-neutral-750 hover:bg-neutral-850 text-neutral-300 rounded-full px-4 py-1.5 font-medium transition">Favoris (<%= typeof favoritesCount !== 'undefined' ? favoritesCount : 0 %>)</a>
-            <a href="/queue" class="border border-neutral-750 hover:bg-neutral-850 text-neutral-300 rounded-full px-4 py-1.5 font-medium transition">File (<%= typeof queueCount !== 'undefined' ? queueCount : 0 %>)</a>
-            <a href="/playlists" class="border border-neutral-750 hover:bg-neutral-850 text-neutral-300 rounded-full px-4 py-1.5 font-medium transition">Playlists</a>
-            <a href="/history" class="border border-neutral-750 hover:bg-neutral-850 text-neutral-300 rounded-full px-4 py-1.5 font-medium transition">Historique (<%= typeof historyCount !== 'undefined' ? historyCount : 0 %>/<%= typeof historyLimit !== 'undefined' ? historyLimit : 0 %>)</a>
+            <a href="https://github.com/sponsors/alphaleadership" target="_blank" class="btn btn-outline-danger rounded-full px-4 py-1.5 font-medium transition">💖 Sponsor</a>
+            <a href="/patchnotes" class="btn btn-outline-secondary rounded-full px-4 py-1.5 font-medium transition">📜 Notes</a>
+            <a href="/suggestions" class="btn btn-outline-primary rounded-full px-4 py-1.5 font-medium transition">✨ Suggestions</a>
+            <a href="/followed-channels" class="btn btn-outline-warning rounded-full px-4 py-1.5 font-medium transition">📺 Suivis</a>
+            <a href="/favorites" class="btn btn-outline-danger rounded-full px-4 py-1.5 font-medium transition">Favoris (<%= typeof favoritesCount !== 'undefined' ? favoritesCount : 0 %>)</a>
+            <a href="/queue" class="btn btn-outline-success rounded-full px-4 py-1.5 font-medium transition">File (<%= typeof queueCount !== 'undefined' ? queueCount : 0 %>)</a>
+            <a href="/playlists" class="btn btn-outline-warning rounded-full px-4 py-1.5 font-medium transition">Playlists</a>
+            <a href="/history" class="btn btn-outline-info rounded-full px-4 py-1.5 font-medium transition">Historique (<%= typeof historyCount !== 'undefined' ? historyCount : 0 %>/<%= typeof historyLimit !== 'undefined' ? historyLimit : 0 %>)</a>
         </div>
     </nav>
 
@@ -276,35 +276,35 @@
                 }
 
                 const cardDiv = document.createElement('div');
-                cardDiv.className = 'bg-neutral-900 border border-neutral-800 hover:border-neutral-700 rounded-2xl overflow-hidden flex flex-col h-full transition duration-200 cursor-pointer video-item';
+                cardDiv.className = 'video-card video-item';
                 cardDiv.setAttribute('data-tags', result.tags.join(','));
                 cardDiv.addEventListener('click', () => {
                     location.href = `/watch?id=${result.yid}${playlistParam}`;
                 });
                 
-                let tagsHtml = result.tags.map(tag => `<span class="bg-neutral-800 text-neutral-400 text-[10px] px-2 py-0.5 rounded border border-neutral-750">${tag}</span>`).join('');
+                let tagsHtml = result.tags.map(tag => `<span class="tag-badge">${tag}</span>`).join('');
                 
                 let actionBtns = `<div class="flex gap-1 mt-3 w-full flex-wrap" onclick="event.stopPropagation();">`;
                 if (channel && channel.startsWith('Playlist : ')) {
                     actionBtns += `<button class="bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-2 py-1 text-[10px] font-bold transition" onclick="if(confirm('Retirer de la playlist ?')) window.location.href='/playlist/remove?name=${encodeURIComponent(channel.replace('Playlist : ', ''))}&videoId=${result.yid}'">Retirer</button>`;
                 }
                 if (channel === "Ma File d'attente") {
-                    actionBtns += `<button class="bg-amber-605 hover:bg-amber-700 text-white rounded-lg px-2 py-1 text-[10px] font-bold transition" onclick="window.location.href='/queue/remove?id=${result.yid}'">Retirer</button>`;
+                    actionBtns += `<button class="bg-amber-655 hover:bg-amber-700 text-white rounded-lg px-2 py-1 text-[10px] font-bold transition" onclick="window.location.href='/queue/remove?id=${result.yid}'">Retirer</button>`;
                 } else {
                     actionBtns += `<button class="bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg px-2.5 py-1 text-[10px] font-bold transition" onclick="addToQueue('${result.yid}')">File</button>`;
                 }
                 actionBtns += `<button class="bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg px-2.5 py-1 text-[10px] font-bold border border-red-500/20 transition" onclick="toggleFavorite('${result.yid}', this)">❤</button>`;
                 actionBtns += `<button class="bg-red-655 hover:bg-red-700 text-white rounded-lg px-2.5 py-1 text-[10px] font-bold transition" onclick="if(confirm('Supprimer cette vidéo ?')) window.location.href='/delete?id=${result.yid}'">Supprimer</button>`;
                 actionBtns += `</div>`;
-
+ 
                 cardDiv.innerHTML = `
-                    <div class="relative aspect-video bg-neutral-950 overflow-hidden">
-                        <img data-src="/thumbnail/${result.yid}" src="" class="w-full h-full object-cover lazy" alt="Thumbnail" loading="lazy">
+                    <div class="video-thumb-container relative aspect-video bg-neutral-950 overflow-hidden">
+                        <img data-src="/thumbnail/${result.yid}" src="" class="video-thumbnail w-full h-full object-cover lazy" alt="Thumbnail" loading="lazy">
                         ${result.isGz ? '<span class="absolute bottom-2 right-2 bg-neutral-900/90 text-neutral-300 text-[9px] px-1.5 py-0.5 rounded border border-neutral-750 font-semibold">📦 zip</span>' : ''}
                     </div>
-                    <div class="p-4 flex-1 flex flex-col justify-between gap-3">
+                    <div class="video-info flex-1 flex flex-col justify-between gap-3">
                         <div class="min-w-0">
-                            <div class="text-white font-bold text-sm line-clamp-2 leading-tight mb-2" title="${result.fileName}">
+                            <div class="video-title" title="${result.fileName}">
                                 ${result.fileName}
                             </div>
                             <div class="flex flex-col gap-1.5">

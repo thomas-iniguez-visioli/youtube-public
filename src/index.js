@@ -20,7 +20,8 @@ import log from './logger.js';
 import morgan from 'morgan';
 import { Server as SocketServer } from 'socket.io';
 import { createServer } from 'http';
-const __dirname = dirname(fileURLToPath(import.meta.url));
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 
 let io = null;
 
