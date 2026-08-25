@@ -100,7 +100,7 @@
                 <button class="px-6 py-2.5 border-b-2 font-semibold text-sm transition-all duration-200 <%= (channel === 'Mes Playlists') ? 'border-blue-500 text-blue-400' : 'border-transparent text-neutral-400 hover:text-neutral-200' %> nav-link" id="playlists-tab" data-bs-toggle="tab" data-bs-target="#playlists-pane" type="button" role="tab">📁 Playlists</button>
             </div>
 
-            <div>
+            <div class="tab-content">
                 <!-- Onglet Vidéos -->
                 <div class="tab-pane active" id="videos-pane" role="tabpanel">
                     <!-- Section Filtres Inline -->
@@ -267,12 +267,13 @@
 
                 const cardDiv = document.createElement('div');
                 cardDiv.className = 'video-card video-item';
-                cardDiv.setAttribute('data-tags', result.tags.join(','));
+                const tags = Array.isArray(result.tags) ? result.tags : [];
+                cardDiv.setAttribute('data-tags', tags.join(','));
                 cardDiv.addEventListener('click', () => {
                     location.href = `/watch?id=${result.yid}${playlistParam}`;
                 });
                 
-                let tagsHtml = result.tags.map(tag => `<span class="tag-badge">${tag}</span>`).join('');
+                let tagsHtml = tags.map(tag => `<span class="tag-badge">${tag}</span>`).join('');
                 
                 let actionBtns = `<div class="flex gap-1 mt-3 w-full flex-wrap" onclick="event.stopPropagation();">`;
                 if (channel && channel.startsWith('Playlist : ')) {
