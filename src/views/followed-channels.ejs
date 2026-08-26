@@ -7,6 +7,8 @@
     <title>Chaînes suivies - YouTube Downloader</title>
     <!-- Tailwind CSS -->
     <link href="/tailwind.css" rel="stylesheet">
+    <!-- Bootstrap CSS -->
+    <link href="/bootstrap.min.css" rel="stylesheet">
     <link href="/roboto.css" rel="stylesheet">
     <script src="/fuse.js"></script>
     <script src="socket.io.js"></script>
@@ -120,7 +122,7 @@
                                     </a>
                                     <button class="btn btn-outline-danger btn-sm"
                                             style="font-size:0.75rem;"
-                                            onclick="unfollowChannel(<%- JSON.stringify(ch.name) %>, this)"
+                                            onclick="unfollowChannel(<%- JSON.stringify(ch.name).replace(/\"/g, '&quot;') %>, this)"
                                             title="Ne plus suivre">
                                         ✕
                                     </button>
@@ -224,5 +226,7 @@
             });
         }
     </script>
+    <!-- Bootstrap JS -->
+    <script src="/bootstrap.bundle.min.js"></script>
 </body>
 </html>

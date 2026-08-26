@@ -208,114 +208,48 @@ const cleanupOrphanedThumbnails = () => {
   }
 };
 
-const downloadMissingThumbnails = async () => {
-  try {
-    const thumbCacheDir = path.join(app.getPath('userData'), 'thumbnails');
-    if (!fs.existsSync(thumbCacheDir)) {
-      fs.mkdirSync(thumbCacheDir, { recursive: true });
-    }
-    
-    // Nettoyer les miniatures/logos orphelins
-    cleanupOrphanedThumbnails();
-    
-    // Purger l'ancien cache des logos de chaînes pour forcer la mise à jour vers les vrais logos
-    try {
-      const files = fs.readdirSync(thumbCacheDir);
-      for (const file of files) {
-        if (file.startsWith('channel_') && file.endsWith('.jpg')) {
-          fs.unlinkSync(path.join(thumbCacheDir, file));
-        }
-      }
-    } catch (e) {
-      log.warn(`Échec du nettoyage de l'ancien cache des logos : ${e.message}`);
-    }
-    
-    log.info("Vérification et téléchargement des miniatures manquantes...");
-    let downloadedCount = 0;
-    
-    for (const entry of db.database) {
-      if (entry.yid) {
-        const cachePath = path.join(thumbCacheDir, `${entry.yid}.jpg`);
-        if (!fs.existsSync(cachePath)) {
-          const url = `https://img.youtube.com/vi/${entry.yid}/hqdefault.jpg`;
-          try {
-            await new Promise((resolve, reject) => {
-              https.get(url, (stream) => {
-                if (stream.statusCode !== 200) {
-                  return reject(new Error(`Status ${stream.statusCode}`));
-                }
-                const chunks = [];
-                stream.on('data', chunk => chunks.push(chunk));
-                stream.on('end', () => {
-                  const buf = Buffer.concat(chunks);
-                  fs.writeFileSync(cachePath, buf);
-                  downloadedCount++;
-                  resolve();
-                });
-                stream.on('error', reject);
-              }).on('error', reject);
-            });
-          } catch (e) {
-            log.warn(`Impossible de télécharger la miniature pour ${entry.yid}: ${e.message}`);
-          }
-        }
-      }
-    }
-    if (downloadedCount > 0) {
-      log.info(`${downloadedCount} miniatures manquantes ont été téléchargées.`);
-    } else {
-      log.info("Toutes les miniatures sont déjà en cache.");
-    }
+const { Worker } = require('worker_threads');
 
-    // Pré-téléchargement des logos des chaînes
-    log.info("Vérification et téléchargement des logos de chaînes...");
-    const channels = [...new Set(db.database.map(v => v.uploader).filter(Boolean))];
-    let downloadedLogos = 0;
-    for (const channelName of channels) {
-      const safeUploader = channelName.replace(/[^a-zA-Z0-9_\-]/g, '_');
-      const cachePath = path.join(thumbCacheDir, `channel_${safeUploader}.jpg`);
-      if (!fs.existsSync(cachePath)) {
-        const video = db.database.find(v => v.uploader === channelName && v.channel_url);
-        if (video && video.channel_url) {
-          try {
-            const html = await fetchHtmlWithRedirects(video.channel_url, {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36'
-            });
-            let avatarUrl;
-            const matchOg = html.match(/<meta property="og:image" content="([^"]+)"/);
-            if (matchOg && matchOg[1]) {
-              avatarUrl = matchOg[1];
-            } else {
-              const matchAvatar = html.match(/"avatar":{"thumbnails":\[{"url":"([^"]+)"/);
-              if (matchAvatar && matchAvatar[1]) {
-                avatarUrl = matchAvatar[1];
-              } else {
-                const matchYt3 = html.match(/https:\/\/yt3\.googleusercontent\.com\/[a-zA-Z0-9_\-]+=s[0-9]+-c-k-c0x[0-9a-fA-F]+-no-rj/);
-                if (matchYt3) {
-                  avatarUrl = matchYt3[0];
-                }
-              }
-            }
-
-            if (avatarUrl) {
-              const cleanAvatarUrl = avatarUrl.replace(/&amp;/g, '&');
-              await downloadImageWithRedirects(cleanAvatarUrl, cachePath);
-              downloadedLogos++;
-            }
-          } catch (e) {
-            log.warn(`Impossible de télécharger l'avatar de la chaîne ${channelName} : ${e.message}`);
-          }
-        }
-      }
-    }
-    if (downloadedLogos > 0) {
-      log.info(`${downloadedLogos} logos de chaînes ont été téléchargés.`);
-    } else {
-      log.info("Tous les logos de chaînes sont déjà en cache.");
-    }
-  } catch (err) {
-    log.error(`Erreur lors du téléchargement des miniatures/logos manquants : ${err.message}`);
+const downloadMissingThumbnails = () => {
+  const thumbCacheDir = path.join(app.getPath('userData'), 'thumbnails');
+  
+  // Nettoyer les miniatures/logos orphelins (rapide, fait sur le main thread)
+  cleanupOrphanedThumbnails();
+  
+  const workerPath = path.join(__dirname, 'thumbnail-worker.js');
+  if (!fs.existsSync(workerPath)) {
+    log.error("Fichier thumbnail-worker.js introuvable.");
+    return;
   }
+  
+  const worker = new Worker(workerPath, {
+    workerData: {
+      dbEntries: db.database,
+      thumbCacheDir
+    }
+  });
+  
+  worker.on('message', (msg) => {
+    if (msg.type === 'log') {
+      log[msg.level](msg.message);
+    } else if (msg.type === 'done') {
+      if (msg.downloadedThumbnails > 0) log.info(`${msg.downloadedThumbnails} miniatures manquantes ont été téléchargées par le worker.`);
+      else log.info("Toutes les miniatures sont déjà en cache.");
+      
+      if (msg.downloadedLogos > 0) log.info(`${msg.downloadedLogos} logos de chaînes ont été téléchargés par le worker.`);
+      else log.info("Tous les logos de chaînes sont déjà en cache.");
+    } else if (msg.type === 'error') {
+      log.error(`Erreur dans le worker de miniatures : ${msg.message}`);
+    }
+  });
+  
+  worker.on('error', (err) => {
+    log.error(`Échec critique du worker miniatures : ${err.message}`);
+  });
+  
+  worker.on('exit', (code) => {
+    if (code !== 0) log.error(`Le worker miniatures s'est arrêté avec le code ${code}`);
+  });
 };
 
 
@@ -670,100 +604,46 @@ const download = (url) => {
   }
 };
 
-const checkChannelsForNewVideos = async () => {
-  const ytdlpPath = binaryResolver.ytdlp;
-  if (!ytdlpPath) return;
+const checkChannelsForNewVideos = () => {
+  return new Promise((resolve, reject) => {
+    const ytdlpPath = binaryResolver.ytdlp;
+    if (!ytdlpPath) return resolve();
 
-  // Seules les chaînes explicitement suivies sont vérifiées
-  const followedChannels = db.getFollowedChannels();
-  if (followedChannels.length === 0) {
-    log.info("[Auto Channel Downloader] Aucune chaîne suivie, vérification ignorée.");
-    return;
-  }
+    const followedChannels = db.getFollowedChannels();
+    if (followedChannels.length === 0) {
+      log.info("[Auto Channel Downloader] Aucune chaîne suivie, vérification ignorée.");
+      return resolve();
+    }
 
-  log.info(`[Auto Channel Downloader] Démarrage de la vérification pour ${followedChannels.length} chaîne(s) suivie(s)...`);
-
-  if (io) {
-    io.emit('channel-check-started', { total: followedChannels.length });
-  }
-
-  let totalAdded = 0;
-
-  for (let i = 0; i < followedChannels.length; i++) {
-    const { name: uploader, url: channelUrl } = followedChannels[i];
-    if (!channelUrl) continue;
-
-    log.info(`[Auto Channel Downloader] Vérification (${i + 1}/${followedChannels.length}) : ${uploader} (${channelUrl})`);
+    log.info(`[Auto Channel Downloader] Démarrage de la vérification pour ${followedChannels.length} chaîne(s) suivie(s) avec un Worker...`);
 
     if (io) {
-      io.emit('channel-check-progress', {
-        current: i + 1,
-        total: followedChannels.length,
-        channelName: uploader
-      });
+      io.emit('channel-check-started', { total: followedChannels.length });
     }
 
-    try {
-      const ids = await new Promise((resolve, reject) => {
-        const childProc = child.spawn(ytdlpPath, [
-          '--flat-playlist',
-          '--playlist-end', '5',
-          '--print', 'id',
-          channelUrl
-        ]);
+    const workerPath = path.join(__dirname, 'channel-check-worker.js');
+    if (!fs.existsSync(workerPath)) {
+      log.error("Fichier channel-check-worker.js introuvable.");
+      return resolve();
+    }
 
-        let stdout = '';
-        let stderr = '';
+    // Pass existing video IDs to avoid calling db methods inside the worker
+    const existingIds = db.database.map(v => v.yid).filter(Boolean);
 
-        childProc.stdout.on('data', data => { stdout += data.toString(); });
-        childProc.stderr.on('data', data => { stderr += data.toString(); });
-
-        childProc.on('close', code => {
-          if (code === 0) {
-            const videoIds = stdout.split('\n')
-              .map(line => line.trim())
-              .filter(line => /^[a-zA-Z0-9_\-]{11}$/.test(line));
-            resolve(videoIds);
-          } else {
-            reject(new Error(`yt-dlp a quitté avec le code ${code}. Stderr: ${stderr}`));
-          }
-        });
-      });
-
-      log.info(`[Auto Channel Downloader] ${ids.length} vidéo(s) trouvée(s) pour ${uploader}.`);
-
-      let addedCount = 0;
-      for (const id of ids) {
-        const videoUrl = `https://www.youtube.com/watch?v=${id}`;
-        if (!db.getFile(id) && !backlog.includes(videoUrl)) {
-          log.info(`[Auto Channel Downloader] Nouvelle vidéo détectée : ${id}. Ajout au backlog.`);
-          download(videoUrl);
-          addedCount++;
-        }
+    const worker = new Worker(workerPath, {
+      workerData: {
+        ytdlpPath,
+        followedChannels,
+        existingIds
       }
+    });
 
-      db.updateFollowedChannelMeta(uploader, {
-        lastCheckedAt: Date.now(),
-        ...(addedCount > 0 ? { lastNewVideoAt: Date.now() } : {})
-      });
-
-      if (addedCount > 0) {
-        totalAdded += addedCount;
-        log.info(`[Auto Channel Downloader] ${addedCount} nouvelle(s) vidéo(s) ajoutée(s) au backlog pour ${uploader}.`);
+    worker.on('message', (msg) => {
+      if (msg.type === 'log') {
+        log[msg.level](msg.message);
+      } else if (msg.type === 'progress') {
+        log.info(`[Auto Channel Downloader] Vérification (${msg.current}/${msg.total}) : ${msg.channelName}`);
         if (io) {
-          io.emit('channel-new-videos', { channelName: uploader, count: addedCount });
-        }
-      }
-    } catch (err) {
-      log.error(`[Auto Channel Downloader] Échec de la vérification pour ${uploader} : ${err.message}`);
-      if (io) {
-        io.emit('channel-check-error', { channelName: uploader, error: err.message });
-      }
-    }
-  }
-
-  log.info(`[Auto Channel Downloader] Vérification terminée. ${totalAdded} nouvelle(s) vidéo(s) au total.`);
-  if (io) {
     io.emit('channel-check-finished', { totalAdded, total: followedChannels.length });
   }
 };
@@ -2301,7 +2181,7 @@ if (!gotTheLock) {
         createWindow();
       }
       // Téléchargement des miniatures et logos manquants en arrière-plan (non prioritaire)
-      downloadMissingThumbnails().catch(err => log.error(`Erreur de téléchargement des miniatures en arrière-plan : ${err.message}`));
+      downloadMissingThumbnails();
       
       // Tâches de maintenance lourdes différées pour éviter les freezes d'affichage au démarrage
       setTimeout(async () => {

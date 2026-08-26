@@ -8,6 +8,8 @@
     
     <!-- Tailwind CSS -->
     <link href="/tailwind.css" rel="stylesheet">
+    <!-- Bootstrap CSS -->
+    <link href="/bootstrap.min.css" rel="stylesheet">
     <!-- Plyr CSS -->
     <link rel="stylesheet" href="/plyr.css" />
     <!-- Roboto Font -->
@@ -58,10 +60,10 @@
         </div>
     </nav>
 
-    <div class="container-fluid video-container">
-        <div class="row">
+    <div class="max-w-[1600px] mx-auto px-6 mt-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <!-- Lecteur Vidéo et Infos -->
-            <div class="col-lg-8">
+            <div class="lg:col-span-2">
                 <div class="plyr__video-embed" id="player">
                     <video id="videoPlayer" controls crossorigin playsinline>
                         <source src="/video/?id=<%= encodeURIComponent(code) %>" type="video/mp4" />
@@ -149,7 +151,7 @@
             </div>
 
             <!-- Barre Latérale (Suggestions) -->
-            <div class="col-lg-4 sidebar">
+            <div class="sidebar flex flex-col gap-4">
                 <h5 class="mb-3">Vidéos suggérées</h5>
                 <% 
                     let suggestions = [];
@@ -486,6 +488,9 @@
             });
         }
     </script>
+
+    <!-- Bootstrap JS -->
+    <script src="/bootstrap.bundle.min.js"></script>
 
     <!-- Tawk.to removed (offline mode) -->
 </body>
