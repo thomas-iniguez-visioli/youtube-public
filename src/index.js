@@ -51,6 +51,16 @@ const getconfig = () => {
 };
 const config = getconfig();
 
+const videoSizesPath = path.join(app.getPath('userData'), 'videoSizes.json');
+let videoSizesCache = {};
+try {
+  if (fs.existsSync(videoSizesPath)) {
+    videoSizesCache = JSON.parse(fs.readFileSync(videoSizesPath, 'utf8'));
+  }
+} catch (err) {
+  log.error(`Erreur de lecture de videoSizes.json : ${err.message}`);
+}
+
 const rollbar = new Rollbar(rollbarConfig);
 
 // Gestionnaire d'erreurs globales (zone blanche) pour transmission à Rollbar
@@ -106,7 +116,7 @@ const compressMissingVideosOnStartup = async () => {
       if (entry.fileName) {
         const fullPath = path.join(storagePath, entry.fileName);
         const gzPath = fullPath + '.zip';
-        if (fs.existsSync(fullPath) && !fs.existsSync(gzPath)) {
+        if (fs.existsSync(fullPath) && !fs.existsSync(gzPath) && !entry.keepUnzipped) {
           log.info(`Vidéo non compressée détectée au démarrage : ${entry.fileName}. Lancement de l'archivage...`);
           try {
             await gzipFile(fullPath, logger);
@@ -399,10 +409,15 @@ const corsOptions = {
     if (!origin) return callback(null, true);
 
     // Autoriser les domaines spécifiques, par exemple YouTube
-    if (['youtube.com', 'www.youtube.com'].includes(new URL(origin).hostname)) {
+    if (['youtube.com', 'www.youtube.com', 'localhost', '127.0.0.1'].includes(new URL(origin).hostname)) {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      // Autoriser également les requêtes provenant de l'application Electron
+      if (origin.startsWith('http://localhost:8001')) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
     }
   },
   methods: ['GET', 'POST'], // Spécifiez les méthodes HTTP autorisées
@@ -644,8 +659,48 @@ const checkChannelsForNewVideos = () => {
       } else if (msg.type === 'progress') {
         log.info(`[Auto Channel Downloader] Vérification (${msg.current}/${msg.total}) : ${msg.channelName}`);
         if (io) {
-    io.emit('channel-check-finished', { totalAdded, total: followedChannels.length });
-  }
+          io.emit('channel-check-progress', {
+            current: msg.current,
+            total: msg.total,
+            channelName: msg.channelName
+          });
+        }
+      } else if (msg.type === 'new_videos') {
+        if (io) io.emit('channel-new-videos', { channelName: msg.channelName, count: msg.count });
+        for (const url of msg.urls) {
+          if (!backlog.includes(url)) {
+            download(url);
+          }
+        }
+      } else if (msg.type === 'update_meta') {
+        db.updateFollowedChannelMeta(msg.channelName, {
+          lastCheckedAt: Date.now(),
+          ...(msg.addedCount > 0 ? { lastNewVideoAt: Date.now() } : {})
+        });
+      } else if (msg.type === 'done') {
+        log.info(`[Auto Channel Downloader] Vérification terminée. ${msg.totalAdded} nouvelle(s) vidéo(s) au total.`);
+        if (io) {
+          io.emit('channel-check-finished', { totalAdded: msg.totalAdded, total: followedChannels.length });
+        }
+        resolve();
+      } else if (msg.type === 'error') {
+        log.error(`[Auto Channel Downloader Worker] Erreur : ${msg.message}`);
+        reject(new Error(msg.message));
+      }
+    });
+
+    worker.on('error', (err) => {
+      log.error(`[Auto Channel Downloader] Échec critique du worker : ${err.message}`);
+      reject(err);
+    });
+
+    worker.on('exit', (code) => {
+      if (code !== 0) {
+        log.error(`[Auto Channel Downloader] Le worker s'est arrêté avec le code ${code}`);
+        reject(new Error(`Exit code ${code}`));
+      }
+    });
+  });
 };
 
 const httpServer = createServer(web);
@@ -748,15 +803,23 @@ const downloadbacklog = (parameter) => {
         }
       }
     }, (progress) => {
+      let title = 'Téléchargement...';
+      if (progress.filename) {
+        const basename = path.basename(progress.filename);
+        title = basename.replace(/ \[[a-zA-Z0-9_-]{11}\]\.(mp4|mkv|webm|avi|part|ytdl)$/, '').split('-').pop();
+      }
+
       if (progress.speed) {
         lastSpeed = progress.speed;
       }
       if (io) {
         io.emit('download-progress', {
           parameter,
+          title,
           percent: progress.percent,
           eta: progress.eta,
-          speed: progress.speed
+          speed: progress.speed,
+          backlogLength: backlog.length
         });
       }
     }, (proc) => {
@@ -772,7 +835,8 @@ const downloadbacklog = (parameter) => {
                 parameter,
                 percent: 100,
                 eta: 'Archivage ZIP...',
-                speed: ''
+                speed: '',
+                backlogLength: backlog.length
               });
             }
             await gzipFile(downloadedFilePath, logger);
@@ -865,13 +929,14 @@ web.set('view engine', 'ejs');
 web.set('views', path.join(app.getPath('userData'), 'views'));
 
 // Helper: rend index.ejs avec les données communes de la DB en une seule passe
-function renderIndex(res, results, channel, channelUrl = null, isFollowed = false) {
+function renderIndex(res, results, channel, channelUrl = null, isFollowed = false, isUnzippedPage = false) {
   const historyLimit = Math.floor(db.database.length * 0.8);
   res.render('index', {
     results,
     channel,
     channelUrl,
     isFollowed,
+    isUnzippedPage,
     playlists: db.getPlaylists(),
     allTags: db.getAllTags(),
     allChannels: db.getAllChannels(),
@@ -1590,6 +1655,33 @@ web.get("/history/clear", function (req, res) {
   res.redirect("/history");
 });
 
+web.get("/unzipped", function (req, res) {
+  const unzippedVideos = db.database.filter(v => v.keepUnzipped);
+  renderIndex(res, unzippedVideos, "Vidéos Dézippées", null, false, true);
+});
+
+web.post("/api/rezip", async (req, res) => {
+  const { id } = req.body;
+  if (!id) return res.status(400).send("ID requis");
+  
+  const entry = db.getFile(id);
+  if (!entry) return res.status(404).send("Vidéo introuvable");
+  
+  entry.keepUnzipped = false;
+  db.saveDatabase();
+  
+  // Launch re-compression in background
+  const videoPath = path.join(base, path.basename(entry.fileName));
+  if (fs.existsSync(videoPath)) {
+    log.info(`[Re-zip] Lancement de l'archivage manuel pour ${entry.fileName}`);
+    gzipFile(videoPath, { info: log.info, error: log.error })
+      .then(() => log.info(`[Re-zip] Terminé pour ${entry.fileName}`))
+      .catch(e => log.error(`[Re-zip] Erreur pour ${entry.fileName}: ${e.message}`));
+  }
+  
+  res.json({ success: true });
+});
+
 web.get("/cache/clear-logos", function (req, res) {
   try {
     const thumbCacheDir = path.join(app.getPath('userData'), 'thumbnails');
@@ -1908,6 +2000,76 @@ web.get("/channel-logo/:uploader", async function (req, res) {
 const decompressedFiles = new Map();
 const ongoingDecompressions = new Map();
 
+web.get("/api/preload", async (req, res) => {
+  const id = req.query.id;
+  if (!id) return res.json({ status: "ignored" });
+  
+  const fileData = db.getFile(id);
+  if (!fileData || !fileData.fileName) return res.json({ status: "ignored" });
+  
+  const fileName = path.basename(fileData.fileName);
+  const videoPath = path.join(base, fileName);
+  const gzPath = videoPath + '.zip';
+  
+  try {
+    const zipExists = await fs.promises.access(gzPath).then(() => true).catch(() => false);
+    if (zipExists && !ongoingDecompressions.has(videoPath)) {
+      const isFullyOnDisk = await fs.promises.stat(videoPath)
+        .then(s => s.size > 1000000)
+        .catch(() => false);
+          
+      if (!isFullyOnDisk) {
+        log.info(`[Smart Preload] Anticipation de la décompression pour la vidéo : ${fileName}`);
+        const decompressPromise = gunzipFile(gzPath, videoPath);
+        ongoingDecompressions.set(videoPath, decompressPromise);
+        decompressPromise
+          .then(() => ongoingDecompressions.delete(videoPath))
+          .catch((err) => {
+            ongoingDecompressions.delete(videoPath);
+            log.error(`[Smart Preload] Erreur décompression anticipée : ${err.message}`);
+          });
+        return res.json({ status: "started" });
+      }
+    }
+  } catch (e) {}
+  res.json({ status: "ready" });
+});
+
+web.get("/api/preload", async (req, res) => {
+  const id = req.query.id;
+  if (!id) return res.json({ status: "ignored" });
+  
+  const fileData = db.getFile(id);
+  if (!fileData || !fileData.fileName) return res.json({ status: "ignored" });
+  
+  const fileName = path.basename(fileData.fileName);
+  const videoPath = path.join(base, fileName);
+  const gzPath = videoPath + '.zip';
+  
+  try {
+    const zipExists = await fs.promises.access(gzPath).then(() => true).catch(() => false);
+    if (zipExists && !ongoingDecompressions.has(videoPath)) {
+      const isFullyOnDisk = await fs.promises.stat(videoPath)
+        .then(s => s.size > 1000000)
+        .catch(() => false);
+          
+      if (!isFullyOnDisk) {
+        log.info(`[Smart Preload] Anticipation de la décompression pour la vidéo : ${fileName}`);
+        const decompressPromise = gunzipFile(gzPath, videoPath);
+        ongoingDecompressions.set(videoPath, decompressPromise);
+        decompressPromise
+          .then(() => ongoingDecompressions.delete(videoPath))
+          .catch((err) => {
+            ongoingDecompressions.delete(videoPath);
+            log.error(`[Smart Preload] Erreur décompression anticipée : ${err.message}`);
+          });
+        return res.json({ status: "started" });
+      }
+    }
+  } catch (e) {}
+  res.json({ status: "ready" });
+});
+
 web.get("/video", limiter, async function (req, res) {
   lastVideoRequestTime = Date.now();
   const range = req.headers.range;
@@ -1922,19 +2084,23 @@ web.get("/video", limiter, async function (req, res) {
 
   const gzPath = videoPath + '.zip';
 
-  // Récupérer la taille de la vidéo (physique ou dans l'archive zip) pour le calcul de range
+  const zipExists = await fs.promises.access(gzPath).then(() => true).catch(() => false);
   let videoSize;
-  try {
-    const s = await fs.promises.stat(videoPath);
-    videoSize = s.size;
-  } catch (e) {
-    const zipExists = await fs.promises.access(gzPath).then(() => true).catch(() => false);
-    if (zipExists) {
+
+  if (zipExists) {
+    if (videoSizesCache[gzPath]) {
+      videoSize = videoSizesCache[gzPath];
+    } else {
       try {
         const zip = new AdmZip(gzPath);
         const zipEntries = zip.getEntries();
         if (zipEntries.length > 0) {
           videoSize = zipEntries[0].header.size;
+          // Sauvegarder dans le cache
+          videoSizesCache[gzPath] = videoSize;
+          fs.writeFile(videoSizesPath, JSON.stringify(videoSizesCache), (err) => {
+            if (err) log.error(`Erreur écriture videoSizes.json : ${err.message}`);
+          });
         }
       } catch (zipErr) {
         log.error(`Impossible de lire la taille du fichier dans le zip : ${zipErr.message}`);
@@ -1943,13 +2109,25 @@ web.get("/video", limiter, async function (req, res) {
   }
 
   if (!videoSize) {
+    try {
+      const s = await fs.promises.stat(videoPath);
+      videoSize = s.size;
+    } catch (e) {}
+  }
+
+  if (!videoSize) {
     return res.status(500).send("Taille de vidéo inconnue.");
   }
 
   const parts = range.replace(/bytes=/, "").split("-");
-  const start = parseInt(parts[0], 10);
-  const endPart = parts[1];
-  const clientEnd = endPart ? parseInt(endPart, 10) : NaN;
+  let start = parts[0] ? parseInt(parts[0], 10) : NaN;
+  let clientEnd = parts[1] ? parseInt(parts[1], 10) : NaN;
+
+  // Gestion des requêtes "bytes=-X" (récupérer les X derniers octets)
+  if (isNaN(start) && !isNaN(clientEnd)) {
+    start = Math.max(0, videoSize - clientEnd);
+    clientEnd = videoSize - 1;
+  }
 
   if (isNaN(start) || start < 0 || start >= videoSize) {
     res.setHeader("Content-Range", `bytes */${videoSize}`);
@@ -1963,9 +2141,12 @@ web.get("/video", limiter, async function (req, res) {
     isVideoFullyOnDisk = s.size === videoSize;
   } catch (e) {}
 
-  // Si elle est déjà sur le disque, on utilise de gros morceaux (10 Mo) pour limiter le nombre de requêtes.
-  // Sinon, on limite à 1 Mo max pour répondre instantanément pendant la décompression progressive.
-  const CHUNK_SIZE = isVideoFullyOnDisk ? (start === 0 ? 1 * 10 ** 6 : 10 * 10 ** 6) : (1 * 10 ** 6);
+  // Comme on est en localhost, on laisse de gros paquets (25 Mo ou 100 Mo) 
+  // pour s'assurer que l'en-tête MP4 (moov atom) n'est jamais tronqué, 
+  // ce qui cause des erreurs de "réponse tronquée" dans le lecteur.
+  const CHUNK_SIZE = isVideoFullyOnDisk 
+    ? 100 * 10 ** 6 // 100 Mo si le fichier est déjà complet
+    : (start === 0 ? 25 * 10 ** 6 : 5 * 10 ** 6); // 25 Mo au lancement pour sécuriser l'en-tête, puis 5 Mo.
   
   let end = !isNaN(clientEnd) ? Math.min(clientEnd, videoSize - 1) : Math.min(start + CHUNK_SIZE, videoSize - 1);
   if (end - start > CHUNK_SIZE) {
@@ -1979,7 +2160,7 @@ web.get("/video", limiter, async function (req, res) {
     currentSize = s.size;
   } catch (e) {}
 
-  // Si le fichier décompressé n'existe pas ou est incomplet, on s'assure que l'extraction tourne
+  // Si le fichier décompressé n'existe pas ou est incomplet, on s'assure que l'extraction tourne ou qu'il se télécharge
   if (currentSize < end) {
     const zipExists = await fs.promises.access(gzPath).then(() => true).catch(() => false);
     if (zipExists) {
@@ -1994,30 +2175,38 @@ web.get("/video", limiter, async function (req, res) {
             log.error(`Erreur de décompression en tâche de fond : ${err.message}`);
           });
         }
-
-        // Attendre que les octets requis soient écrits sur le disque (attente asynchrone et douce de 100ms)
-        const startTime = Date.now();
-        while (currentSize < end) {
-          await new Promise(resolve => setTimeout(resolve, 100));
-          try {
-            const s = await fs.promises.stat(videoPath);
-            currentSize = s.size;
-          } catch (e) {
-            currentSize = 0;
-          }
-          if (!ongoingDecompressions.has(videoPath) && currentSize < end) {
-            return res.status(500).send("Échec de la décompression de la vidéo.");
-          }
-          if (Date.now() - startTime > 30000) { // 30 secondes max
-            return res.status(500).send("Timeout de chargement de la vidéo.");
-          }
-        }
       } catch (err) {
-        log.error(`Erreur lors de la décompression asynchrone de ${fileName} : ${err.message}`);
-        return res.status(500).send("Erreur lors de la décompression de la vidéo");
+        log.error(`Erreur lors du lancement de la décompression asynchrone de ${fileName} : ${err.message}`);
       }
-    } else {
-      return res.status(404).send("Vidéo introuvable sur le disque.");
+    }
+
+    // Attendre que les octets requis soient écrits sur le disque (attente asynchrone et douce de 100ms)
+    // Cela fonctionne aussi bien pour le Worker de décompression que pour le téléchargement via yt-dlp !
+    const startTime = Date.now();
+    let noGrowthTime = Date.now();
+    let lastWaitSize = currentSize;
+
+    while (currentSize <= end) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      try {
+        const s = await fs.promises.stat(videoPath);
+        if (s.size > lastWaitSize) {
+          noGrowthTime = Date.now(); // Réinitialise le timeout si le fichier grandit (téléchargement ou décompression en cours)
+          lastWaitSize = s.size;
+        }
+        currentSize = s.size;
+      } catch (e) {
+        currentSize = 0;
+      }
+
+      if (Date.now() - noGrowthTime > 15000) { 
+        // 15 secondes sans aucun nouvel octet écrit : le téléchargement yt-dlp ou la décompression a probablement échoué/bloqué
+        return res.status(500).send("Timeout de chargement : la taille du fichier n'augmente plus.");
+      }
+      if (Date.now() - startTime > 60000) { 
+        // 60 secondes max pour répondre à la requête du navigateur
+        return res.status(500).send("Timeout global de chargement de la vidéo.");
+      }
     }
   }
 
@@ -2036,10 +2225,95 @@ web.get("/video", limiter, async function (req, res) {
   fs.createReadStream(videoPath, { start, end }).pipe(res);
 });
 
+web.get("/api/unzip-permanent", async (req, res) => {
+  const id = req.query.id;
+  if (!id) return res.status(400).send("ID requis");
+  
+  const entry = db.getFile(id);
+  if (!entry || !entry.fileName) return res.status(404).send("Vidéo introuvable");
+  
+  const videoPath = path.join(base, path.basename(entry.fileName));
+  const gzPath = videoPath + '.zip';
+  
+  try {
+    const zipExists = await fs.promises.access(gzPath).then(() => true).catch(() => false);
+    if (!zipExists) {
+      entry.keepUnzipped = true;
+      db.saveDatabase();
+      return res.json({ success: true, message: "Déjà dézippée." });
+    }
+
+    log.info(`[Unzip Permanent] Lancement de l'extraction complète pour ${entry.fileName}`);
+    // S'assurer qu'elle n'est pas déjà en cours
+    if (!ongoingDecompressions.has(videoPath)) {
+      const decompressPromise = gunzipFile(gzPath, videoPath);
+      ongoingDecompressions.set(videoPath, decompressPromise);
+      await decompressPromise;
+      ongoingDecompressions.delete(videoPath);
+    } else {
+      await ongoingDecompressions.get(videoPath);
+    }
+    
+    // Supprimer le zip de manière asynchrone
+    fs.unlink(gzPath, (err) => {
+      if (err) log.error(`Erreur suppression zip permanent ${gzPath}: ${err.message}`);
+      else log.info(`[Unzip Permanent] Zip supprimé pour ${entry.fileName}`);
+    });
+    
+    // Marquer pour ne pas être recompressé
+    entry.keepUnzipped = true;
+    db.saveDatabase();
+    
+    // Retirer des fichiers temporaires pour empêcher son nettoyage automatique
+    decompressedFiles.delete(videoPath);
+
+    res.json({ success: true, message: "Archive extraite et supprimée avec succès." });
+  } catch (err) {
+    log.error(`[Unzip Permanent] Échec pour ${entry.fileName} : ${err.message}`);
+    res.status(500).json({ success: false, message: "Erreur lors de l'extraction." });
+  }
+});
+
+web.get("/api/clear-cache", async (req, res) => {
+  let clearedVideos = 0;
+  const now = Date.now();
+  
+  // 1. Vider le cache des suggestions YouTube
+  suggestionCache.clear();
+  
+  // 2. Vider les vidéos décompressées inactives
+  for (const [filePath, lastAccessTime] of decompressedFiles.entries()) {
+    if (!ongoingDecompressions.has(filePath)) {
+      try {
+        const gzPath = filePath + '.zip';
+        if (!filePath.endsWith('.zip') && fs.existsSync(filePath) && fs.existsSync(gzPath)) {
+          fs.unlinkSync(filePath);
+          clearedVideos++;
+          log.info(`Vidage manuel du cache : supprimé ${path.basename(filePath)}`);
+        }
+      } catch (err) {
+        log.error(`Erreur vidage cache vidéo ${filePath}: ${err.message}`);
+      } finally {
+        decompressedFiles.delete(filePath);
+      }
+    }
+  }
+
+  // 3. Vider le cache Chromium (Electron)
+  try {
+    const windows = BrowserWindow.getAllWindows();
+    for (const win of windows) {
+      await win.webContents.session.clearCache();
+    }
+  } catch(e) {
+    log.error(`Erreur vidage cache Chromium: ${e.message}`);
+  }
+
+  res.json({ success: true, message: `Cache vidé avec succès ! (${clearedVideos} vidéos temporaires supprimées)`, clearedVideos });
+});
+
 // Nettoyage régulier des vidéos décompressées inactives depuis plus de 5 minutes
 setInterval(() => {
-  const isVideoPlaying = (Date.now() - lastVideoRequestTime) < 30000;
-  if (isVideoPlaying) return;
 
   const now = Date.now();
   for (const [filePath, lastAccessTime] of decompressedFiles.entries()) {
@@ -2081,6 +2355,12 @@ function createWindow() {
       shell.openExternal(url);
     }
     return { action: 'deny' };
+  });
+  ipcMain.on('set-fullscreen', (e, flag) => {
+    const win = BrowserWindow.fromWebContents(e.sender);
+    if (win) {
+      win.setFullScreen(flag);
+    }
   });
   ipcMain.on('execute-command', (e, arg) => {
     const parameter = arg;

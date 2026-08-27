@@ -53,6 +53,8 @@
             <a href="/queue" class="border border-emerald-500/30 hover:bg-emerald-500/10 text-emerald-400 rounded-full px-4 py-1.5 font-medium transition">File (<%= typeof queueCount !== 'undefined' ? queueCount : 0 %>)</a>
             <a href="/playlists" class="border border-yellow-500/30 hover:bg-yellow-500/10 text-yellow-400 rounded-full px-4 py-1.5 font-medium transition">Playlists</a>
             <a href="/history" class="border border-cyan-500/30 hover:bg-cyan-500/10 text-cyan-400 rounded-full px-4 py-1.5 font-medium transition">Historique (<%= typeof historyCount !== 'undefined' ? historyCount : 0 %>/<%= typeof historyLimit !== 'undefined' ? historyLimit : 0 %>)</a>
+            <a href="/unzipped" class="border border-orange-500/30 hover:bg-orange-500/10 text-orange-400 rounded-full px-4 py-1.5 font-medium transition">📦 Dézippées</a>
+            <button onclick="clearServerCache()" class="border border-purple-500/30 hover:bg-purple-500/10 text-purple-400 rounded-full px-4 py-1.5 font-medium transition" title="Vider les vidéos temporaires et le cache">🧹 Vider le cache</button>
         </div>
     </nav>
 
@@ -234,6 +236,7 @@
         const searchInput = document.getElementById('fuzzySearchInput');
 
         const channel = <%- typeof channel !== 'undefined' ? JSON.stringify(channel) : 'null' %>;
+        const isUnzippedPage = <%- typeof isUnzippedPage !== 'undefined' ? isUnzippedPage : 'false' %>;
 
         // Simple debounce
         function debounce(func, wait) {
@@ -268,6 +271,16 @@
                 const cardDiv = document.createElement('a');
                 cardDiv.href = `/watch?id=${result.yid}${playlistParam}`;
                 cardDiv.className = 'video-card video-item relative group';
+                
+                // Smart Preload : dézippage anticipé au survol
+                let preloadTimeout;
+                cardDiv.addEventListener('mouseenter', () => {
+                    preloadTimeout = setTimeout(() => {
+                        fetch(`/api/preload?id=${result.yid}`).catch(() => {});
+                    }, 400); // 400ms évite de spammer si on bouge juste la souris vite fait
+                });
+                cardDiv.addEventListener('mouseleave', () => clearTimeout(preloadTimeout));
+
                 const tags = Array.isArray(result.tags) ? result.tags : [];
                 cardDiv.setAttribute('data-tags', tags.join(','));
                 
@@ -283,6 +296,11 @@
                     actionBtns += `<button class="bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg px-2.5 py-1 text-[10px] font-bold transition" onclick="event.preventDefault(); event.stopPropagation(); addToQueue('${result.yid}')">File</button>`;
                 }
                 actionBtns += `<button class="bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg px-2.5 py-1 text-[10px] font-bold border border-red-500/20 transition" onclick="event.preventDefault(); event.stopPropagation(); toggleFavorite('${result.yid}', this)">❤</button>`;
+                
+                if (isUnzippedPage) {
+                    actionBtns += `<button class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-2.5 py-1 text-[10px] font-bold transition" onclick="event.preventDefault(); event.stopPropagation(); rezipVideo('${result.yid}')">Re-zipper</button>`;
+                }
+                
                 actionBtns += `<button class="bg-red-655 hover:bg-red-700 text-white rounded-lg px-2.5 py-1 text-[10px] font-bold transition" onclick="event.preventDefault(); event.stopPropagation(); if(confirm('Supprimer cette vidéo ?')) window.location.href='/delete?id=${result.yid}'">Supprimer</button>`;
                 actionBtns += `</div>`;
  
@@ -515,6 +533,43 @@
                 targetPane.classList.add('show', 'active');
             });
         });
+        async function clearServerCache() {
+            if (confirm("Voulez-vous vraiment vider le cache du serveur (vidéos temporaires et cache navigateur) ?")) {
+                try {
+                    const res = await fetch('/api/clear-cache');
+                    const data = await res.json();
+                    if (data.success) {
+                        showToast('Succès', data.message, 'success');
+                    }
+                } catch(e) {
+                    showToast('Erreur', "Impossible de vider le cache.", 'danger');
+                }
+            }
+        }        async function rezipVideo(id) {
+            try {
+                const response = await fetch('/api/rezip', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id })
+                });
+                const res = await response.json();
+                if (res.success) {
+                    showToast('Archivage lancé', 'La vidéo est en cours de recompression en arrière-plan. Elle reprendra moins de place d\'ici quelques instants.', 'success');
+                    // Retirer de la page si on est sur la page dézippées
+                    if (isUnzippedPage) {
+                        const idx = filteredVideos.findIndex(v => v.yid === id);
+                        if (idx > -1) filteredVideos.splice(idx, 1);
+                        resultsList.innerHTML = '';
+                        currentPage = 0;
+                        renderVideos();
+                    }
+                } else {
+                    showToast('Erreur', 'Impossible de lancer l\'archivage.', 'error');
+                }
+            } catch(e) {
+                showToast('Erreur', 'Erreur réseau.', 'error');
+            }
+        }
     </script>
 </body>
 </html>

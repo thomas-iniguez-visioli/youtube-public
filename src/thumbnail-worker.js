@@ -1,7 +1,7 @@
-const { parentPort, workerData } = require('worker_threads');
-const fs = require('fs');
-const path = require('path');
-const https = require('https');
+import { parentPort, workerData } from 'worker_threads';
+import fs from 'fs';
+import path from 'path';
+import https from 'https';
 
 const fetchHtmlWithRedirects = (targetUrl, headers = {}, maxRedirects = 5) => {
   return new Promise((resolve, reject) => {

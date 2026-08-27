@@ -24,6 +24,15 @@
 
 
     <link rel="stylesheet" href="/style.css">
+    <style>
+        body.fake-fullscreen { overflow: hidden !important; }
+        body.fake-fullscreen .plyr {
+            position: fixed !important;
+            top: 0 !important; left: 0 !important;
+            width: 100vw !important; height: 100vh !important;
+            z-index: 999999 !important;
+        }
+    </style>
 </head>
 <body>
     <!-- Toast Container -->
@@ -410,6 +419,50 @@
                         if (loader) loader.innerHTML = '<span class="text-danger" style="font-size: 0.8rem;">Erreur de chargement</span>';
                     });
             }
+
+            const isElectron = window.electronAPI && window.electronAPI.setFullscreen;
+
+            function enterFakeFullscreen() {
+                if (isElectron) window.electronAPI.setFullscreen(true);
+                document.body.classList.add('fake-fullscreen');
+                sessionStorage.setItem('keepFullscreen', 'true');
+            }
+
+            function exitFakeFullscreen() {
+                if (isElectron) window.electronAPI.setFullscreen(false);
+                document.body.classList.remove('fake-fullscreen');
+                sessionStorage.removeItem('keepFullscreen');
+            }
+
+            if (sessionStorage.getItem('keepFullscreen') === 'true') {
+                enterFakeFullscreen();
+            }
+
+            player.on('enterfullscreen', () => {
+                sessionStorage.setItem('keepFullscreen', 'true');
+            });
+
+            player.on('exitfullscreen', () => {
+                if (document.body.classList.contains('fake-fullscreen')) {
+                    exitFakeFullscreen();
+                } else {
+                    sessionStorage.removeItem('keepFullscreen');
+                }
+            });
+
+            window.addEventListener('beforeunload', () => {
+                if (document.fullscreenElement || document.body.classList.contains('fake-fullscreen')) {
+                    sessionStorage.setItem('keepFullscreen', 'true');
+                } else {
+                    sessionStorage.removeItem('keepFullscreen');
+                }
+            });
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && document.body.classList.contains('fake-fullscreen')) {
+                    exitFakeFullscreen();
+                }
+            });
 
             // Exposé pour le debug si besoin
             window.player = player;

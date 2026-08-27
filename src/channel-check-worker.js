@@ -1,5 +1,5 @@
-const { parentPort, workerData } = require('worker_threads');
-const child = require('child_process');
+import { parentPort, workerData } from 'worker_threads';
+import child from 'child_process';
 
 async function run() {
   const { ytdlpPath, followedChannels, existingIds } = workerData;

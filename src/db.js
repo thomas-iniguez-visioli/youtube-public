@@ -84,6 +84,22 @@ export default class FileDatabase {
         const existingFiles = new Map(this.database.map(item => [item.fileName, item]));
         let modified = false;
 
+        // Nettoyage des vidéos supprimées du disque
+        const validFileBaseNames = new Set();
+        files.forEach((item) => {
+            const isGz = item.endsWith(".mp4.zip");
+            if (item.endsWith(".mp4") || isGz) {
+                validFileBaseNames.add(isGz ? item.slice(0, -4) : item);
+            }
+        });
+
+        const initialLength = this.database.length;
+        this.database = this.database.filter(entry => validFileBaseNames.has(entry.fileName));
+        if (this.database.length !== initialLength) {
+            modified = true;
+            log.info(`[DB] Nettoyage : ${initialLength - this.database.length} vidéos fantômes supprimées de la base de données.`);
+        }
+
         files.forEach((item) => {
             const isTemp = item.includes('.temp') || item.includes('.part') || item.includes('.ytdl') || /\.f\d+\.mp4$/.test(item);
             if (isTemp) return;

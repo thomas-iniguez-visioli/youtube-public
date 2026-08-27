@@ -71,9 +71,17 @@ function runDownload(ytdlpPath, args, logger, onVideoFinished, onProgress, onPro
       reject(err);
     });
 
+    let currentFilename = null;
+
     childProcess.stdout.on('data', (data) => {
       const output = data.toString();
       if (logger) logger.info(`stdout: ${output}`);
+
+      // Extract filename to pass to progress
+      const destMatchForTitle = output.match(/\[download\] Destination: (.+)/);
+      if (destMatchForTitle) {
+        currentFilename = destMatchForTitle[1];
+      }
 
       // Detect video completion (merging format or finished downloading)
       // Example: [ffmpeg] Merging formats into "C:\Users\alpha\Downloads\Video [ID].mp4"
@@ -104,7 +112,8 @@ function runDownload(ytdlpPath, args, logger, onVideoFinished, onProgress, onPro
           onProgress({
             percent,
             eta: etaMatch ? etaMatch[1] : null,
-            speed: speedMatch ? speedMatch[1] : null
+            speed: speedMatch ? speedMatch[1] : null,
+            filename: currentFilename
           });
         }
       }
