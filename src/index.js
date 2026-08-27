@@ -828,6 +828,12 @@ const downloadbacklog = (parameter) => {
       .then(async (res) => {
         currentDownloadProcess = null;
         isDownloadCancelled = false; // Reset security
+        
+        let finalTitle = 'La vidéo';
+        if (downloadedFilePath) {
+            finalTitle = path.basename(downloadedFilePath).replace(/ \[[a-zA-Z0-9_-]{11}\]\.(mp4|mkv|webm|avi|part|ytdl)$/, '').split('-').pop();
+        }
+
         if (downloadedFilePath && fs.existsSync(downloadedFilePath)) {
           try {
             if (io) {
@@ -847,6 +853,14 @@ const downloadbacklog = (parameter) => {
         await db.readDatabaseAsync(); // Final refresh
         downloadMissingThumbnails();
         optimizeMemory();
+
+        if (Notification.isSupported()) {
+          new Notification({
+            title: 'Téléchargement terminé',
+            body: `${finalTitle} est maintenant disponible hors-ligne.`,
+            icon: path.join(__dirname, 'client-dist', 'favicon.ico')
+          }).show();
+        }
         resolve(res);
       })
       .catch((err) => {
@@ -2340,6 +2354,7 @@ function createWindow() {
     width: 800,
     height: 600,
     backgroundColor: '#080808',
+    icon: path.join(__dirname, 'client-dist', 'favicon.ico'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,

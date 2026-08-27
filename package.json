@@ -1,6 +1,6 @@
 {
   "name": "youtube",
-  "version": "1.16.1",
+  "version": "1.16.2",
   "type": "module",
   "description": "youtube local",
   "main": "src/index.js",
@@ -47,6 +47,7 @@
   "license": "MIT",
   "build": {
     "appId": "com.arbinger.youtube",
+    "icon": "src/client-dist/favicon.ico",
     "win": {
       "target": [
         "NSIS",
