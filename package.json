@@ -1,6 +1,6 @@
 {
   "name": "youtube",
-  "version": "1.16.3",
+  "version": "1.16.4",
   "type": "module",
   "description": "youtube local",
   "main": "src/index.js",
@@ -9,7 +9,7 @@
     "build": "bun i helmet cors ; bun x @tailwindcss/cli -i src/client-dist/tailwind-input.css -o src/client-dist/tailwind.css ; bun x electron-rebuild",
     "prepush": "bun test",
     "postpush": "gh signoff",
-    "start": "bun x @tailwindcss/cli -i src/client-dist/tailwind-input.css -o src/client-dist/tailwind.css ; electron .",
+    "start": "bun x @tailwindcss/cli -i src/client-dist/tailwind-input.css -o src/client-dist/tailwind.css && electron .",
     "test": "bun test ./tests/*.test.js",
     "dist": "cmd /c \"set WIN_CSC_LINK=spartan_arbinger.pfx&& electron-builder --win\""
   },

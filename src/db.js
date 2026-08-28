@@ -428,37 +428,74 @@ export default class FileDatabase {
         this.saveDatabase();
     }
 
+    
     saveDatabase() {
-        const dir = path.dirname(databaseFilePath);
-        if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir, { recursive: true });
-        }
+        if (this._saveTimeout) clearTimeout(this._saveTimeout);
+        this._saveTimeout = setTimeout(() => {
+            this._executeSave();
+        }, 1000);
+    }
+
+    _executeSave() {
+        const sqliteFilePath = require('path').join(require('electron').app ? require('electron').app.getPath('userData') : process.cwd(), 'database.sqlite');
         try {
-            log.info(`[DB] Sauvegarde de la base de données (${this.database.length} vidéos, ${this.playlists.length} playlists, ${this.history.length} historiques, ${this.queue.length} en file d'attente, ${this.followedChannels.length} chaînes suivies)`);
-            fs.writeFileSync(databaseFilePath, JSON.stringify({
-                database: this.database,
-                history: this.history,
-                playlists: this.playlists,
-                queue: this.queue,
-                favorites: this.favorites,
-                followedChannels: this.followedChannels
-            }));
-            log.debug("[DB] Sauvegarde réussie dans " + databaseFilePath);
+            if (!this.db) {
+                const { DatabaseSync } = require('node:sqlite');
+                this.db = new DatabaseSync(sqliteFilePath);
+                this.db.exec(`
+                    CREATE TABLE IF NOT EXISTS videos (yid TEXT PRIMARY KEY, data TEXT);
+                    CREATE TABLE IF NOT EXISTS state (key TEXT PRIMARY KEY, data TEXT);
+                `);
+                if (!this._cleanSnapshots) this._cleanSnapshots = new Map();
+            }
+
+            const insertVideo = this.db.prepare('INSERT OR REPLACE INTO videos (yid, data) VALUES (?, ?)');
+            const deleteVideo = this.db.prepare('DELETE FROM videos WHERE yid = ?');
+            const insertState = this.db.prepare('INSERT OR REPLACE INTO state (key, data) VALUES (?, ?)');
+
+            this.db.exec('BEGIN TRANSACTION');
+
+            const currentYids = new Set();
+            for (const video of this.database) {
+                if (!video || !video.yid) continue;
+                currentYids.add(video.yid);
+                const str = JSON.stringify(video);
+                if (this._cleanSnapshots.get(video.yid) !== str) {
+                    insertVideo.run(video.yid, str);
+                    this._cleanSnapshots.set(video.yid, str);
+                }
+            }
+
+            for (const yid of this._cleanSnapshots.keys()) {
+                if (!currentYids.has(yid)) {
+                    deleteVideo.run(yid);
+                    this._cleanSnapshots.delete(yid);
+                }
+            }
+
+            insertState.run('history', JSON.stringify(this.history));
+            insertState.run('playlists', JSON.stringify(this.playlists));
+            insertState.run('queue', JSON.stringify(this.queue));
+            insertState.run('favorites', JSON.stringify(this.favorites));
+            insertState.run('followedChannels', JSON.stringify(this.followedChannels));
+
+            this.db.exec('COMMIT');
+            if (global.log) global.log.debug("[DB] Sauvegarde SQLite réussie.");
         } catch (e) {
-            log.error(`[DB] Échec de la sauvegarde de la base de données: ${e.message}`, e);
+            console.error('[DB] SQLite save error', e);
+            if (this.db) {
+                try { this.db.exec('ROLLBACK'); } catch(err) {}
+            }
         }
     }
 
+
     loadDatabase() {
-        log.info("[DB] Chargement de la base de données depuis " + databaseFilePath);
-        if (fs.existsSync(databaseFilePath)) {
+        const sqliteFilePath = require('path').join(require('electron').app ? require('electron').app.getPath('userData') : process.cwd(), 'database.sqlite');
+        
+        if (fs.existsSync(databaseFilePath) && !fs.existsSync(sqliteFilePath)) {
             try {
                 const content = fs.readFileSync(databaseFilePath, 'utf8');
-                if (!content) {
-                    this.database = [];
-                    log.warn("[DB] Le fichier de base de données est vide.");
-                    return;
-                }
                 const data = JSON.parse(content);
                 this.database = Array.isArray(data.database) ? data.database : (Array.isArray(data) ? data : []);
                 this.history = Array.isArray(data.history) ? data.history : [];
@@ -466,9 +503,47 @@ export default class FileDatabase {
                 this.queue = Array.isArray(data.queue) ? data.queue : [];
                 this.favorites = Array.isArray(data.favorites) ? data.favorites : [];
                 this.followedChannels = Array.isArray(data.followedChannels) ? data.followedChannels : [];
-                log.info(`[DB] Base de données chargée avec succès. Entrées indexées : ${this.database.length} vidéos, ${this.playlists.length} playlists, ${this.followedChannels.length} chaînes suivies.`);
-            } catch (error) {
-                log.error(`[DB] Échec de la lecture de la base de données: ${error.message}`, error);
+                
+                this._cleanSnapshots = new Map();
+                this._executeSave();
+                
+                fs.renameSync(databaseFilePath, databaseFilePath + '.bak');
+                this._buildIndex();
+                return;
+            } catch(e) {
+                console.error('[DB] Migration error', e);
+            }
+        }
+
+        if (fs.existsSync(sqliteFilePath)) {
+            try {
+                const { DatabaseSync } = require('node:sqlite');
+                this.db = new DatabaseSync(sqliteFilePath);
+                this.db.exec(`
+                    CREATE TABLE IF NOT EXISTS videos (yid TEXT PRIMARY KEY, data TEXT);
+                    CREATE TABLE IF NOT EXISTS state (key TEXT PRIMARY KEY, data TEXT);
+                `);
+                this._cleanSnapshots = new Map();
+                this.database = [];
+                
+                const rows = this.db.prepare('SELECT * FROM videos').all();
+                for (const row of rows) {
+                    this.database.push(JSON.parse(row.data));
+                    this._cleanSnapshots.set(row.yid, row.data);
+                }
+
+                const getState = (key, def) => {
+                    const r = this.db.prepare('SELECT data FROM state WHERE key = ?').get(key);
+                    return r ? JSON.parse(r.data) : def;
+                };
+
+                this.history = getState('history', []);
+                this.playlists = getState('playlists', []);
+                this.queue = getState('queue', []);
+                this.favorites = getState('favorites', []);
+                this.followedChannels = getState('followedChannels', []);
+            } catch(e) {
+                console.error('[DB] SQLite load error', e);
                 this.database = [];
                 this.history = [];
                 this.playlists = [];
@@ -477,7 +552,12 @@ export default class FileDatabase {
                 this.followedChannels = [];
             }
         } else {
-            log.warn("[DB] Aucun fichier de base de données existant trouvé. Initialisation à vide.");
+            this.database = [];
+            this.history = [];
+            this.playlists = [];
+            this.queue = [];
+            this.favorites = [];
+            this.followedChannels = [];
         }
         this._buildIndex();
     }
