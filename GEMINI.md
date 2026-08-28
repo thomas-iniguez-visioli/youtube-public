@@ -1,5 +1,11 @@
 # Gemini CLI - Journal des modifications
 
+## [1.16.4] - 2026-08-28
+### Optimisé
+- **Migration vers SQLite (node:sqlite)** : Remplacement complet de la base de données JSON (`db.js`) par une implémentation SQLite asynchrone utilisant le module natif `node:sqlite`. Cette refonte élimine les pics de RAM et les micro-gels liés à `JSON.stringify` sur l'ensemble du catalogue.
+### Corrigé
+- **Faute de frappe dans `cross-spawn`** : Correction d'un bug majeur (`Object.asn`) dans le paquet npm `cross-spawn` bloquant la génération de l'installateur NSIS. La version a été mise à jour de force (`npm install cross-spawn@latest`) pour pérenniser la correction.
+
 ## [1.16.0] - 2026-08-25
 ### Ajouté
 - **Bascule vers Tailwind CSS & Réparation du suivi** : Remplacement complet de Bootstrap par Tailwind CSS v4 avec compilation statique pour le mode hors ligne. Correction des écouteurs de progression et de notifications WebSocket pour le suivi de chaînes dans l'interface et correction d'une exception TDZ de socket au démarrage.
