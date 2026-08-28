@@ -17,6 +17,7 @@
     "adm-zip": "^0.6.0",
     "axios": "^1.18.0",
     "cors": "^2.8.6",
+    "cross-spawn": "^7.0.6",
     "ejs": "^3.1.10",
     "electron-log": "^5.2.4",
     "electron-updater": "^6.8.9",
