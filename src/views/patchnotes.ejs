@@ -106,7 +106,25 @@
             </div>
             
             <div class="patchnotes-content">
-                <%- htmlContent %>
+                <% if (patchnotes && patchnotes.length > 0) { %>
+                    <% patchnotes.forEach(note => { %>
+                        <h2 class="mt-4 text-primary"><%= note.version %> <span class="text-muted" style="font-size: 0.9rem;">- <%= note.date %></span></h2>
+                        <% if (note.categories) { %>
+                            <% for (const [category, items] of Object.entries(note.categories)) { %>
+                                <h3 class="mt-3 text-secondary"><%= category %></h3>
+                                <ul class="list-group list-group-flush mb-3">
+                                    <% items.forEach(item => { %>
+                                        <li class="list-group-item bg-transparent text-light border-secondary">
+                                            <%- item.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/`(.*?)`/g, '<code>$1</code>') %>
+                                        </li>
+                                    <% }) %>
+                                </ul>
+                            <% } %>
+                        <% } %>
+                    <% }) %>
+                <% } else { %>
+                    <p class="text-muted">Aucune note de mise à jour disponible.</p>
+                <% } %>
             </div>
         </div>
     </div>
