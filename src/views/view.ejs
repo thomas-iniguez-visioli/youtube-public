@@ -33,6 +33,7 @@
             z-index: 999999 !important;
         }
     </style>
+    <script src="/winbox.bundle.js"></script>
 </head>
 <body>
     <!-- Toast Container -->
@@ -54,6 +55,7 @@
                         <input class="form-control me-2 rounded-pill ps-4" type="text" id="commandInput" placeholder="Coller une URL YouTube..." required>
                         <button class="btn btn-outline-light rounded-pill px-4" type="submit">Télécharger</button>
                         <button type="button" class="btn btn-outline-secondary rounded-pill ms-2" title="Changer le dossier de téléchargement" onclick="changeFolder()">📂</button>
+                    <button type="button" class="btn btn-outline-secondary rounded-pill ms-2" title="Détacher la barre" onclick="detachDownloadBar()">📌</button>
                     </div>
                     <small class="text-muted text-center mt-1" style="font-size: 0.65rem; color: #777 !important;">Fichier backlog : <%= typeof backlogFile !== 'undefined' ? backlogFile : '' %></small>
                 </form>
@@ -238,6 +240,14 @@
                 invertTime: false,
                 toggleInvert: true,
                 keyboard: { focused: true, global: true },
+                controls: [
+                    'play-large', 'restart', 'rewind', 'play', 'fast-forward',
+                    'progress', 'current-time', 'duration', 'mute', 'volume',
+                    'captions', 'settings', 'pip', 'airplay', 'download', 'fullscreen'
+                ],
+                settings: ['captions', 'quality', 'speed', 'loop'],
+                tooltips: { controls: true, seek: true },
+                speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2] }
             });
 
             // Reprendre à la position sauvegardée

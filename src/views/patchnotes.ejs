@@ -61,6 +61,7 @@
             font-size: 0.9em;
         }
     </style>
+    <script src="/winbox.bundle.js"></script>
 </head>
 <body>
     <!-- Toast Container -->
@@ -82,6 +83,7 @@
                         <input class="form-control me-2 rounded-pill ps-4" type="text" id="commandInput" placeholder="Coller une URL YouTube..." required>
                         <button class="btn btn-outline-light rounded-pill px-4" type="submit">Télécharger</button>
                         <button type="button" class="btn btn-outline-secondary rounded-pill ms-2" title="Changer le dossier de téléchargement" onclick="changeFolder()">📂</button>
+                    <button type="button" class="btn btn-outline-secondary rounded-pill ms-2" title="Détacher la barre" onclick="detachDownloadBar()">📌</button>
                     </div>
                     <small class="text-muted text-center mt-1" style="font-size: 0.65rem; color: #777 !important;">Fichier backlog : <%= typeof backlogFile !== 'undefined' ? backlogFile : '' %></small>
                 </form>

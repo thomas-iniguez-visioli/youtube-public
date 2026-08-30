@@ -19,6 +19,7 @@
     <script src="renderer.js"></script>
 
     <link rel="stylesheet" href="/style.css">
+    <script src="/winbox.bundle.js"></script>
 </head>
 <body class="bg-[#050505] text-neutral-100 min-h-screen font-sans" style="background-image: radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.08), transparent 25%), radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.08), transparent 25%); background-attachment: fixed;">
     <!-- Toast Container -->
@@ -39,6 +40,7 @@
                     <input class="bg-white/3 border border-white/5 text-white rounded-full px-5 py-2 text-sm w-full focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition" type="text" id="commandInput" placeholder="Coller une URL YouTube..." required>
                     <button class="bg-blue-600 hover:bg-blue-700 text-white rounded-full px-6 py-2 text-sm font-semibold transition shadow-lg shadow-blue-500/20" type="submit">Télécharger</button>
                     <button type="button" class="border border-white/10 hover:bg-white/5 rounded-full p-2 text-sm transition" title="Changer le dossier de téléchargement" onclick="changeFolder()">📂</button>
+                    <button type="button" class="border border-white/10 hover:bg-white/5 rounded-full p-2 text-sm transition ms-2 ml-2" title="Détacher la barre" onclick="detachDownloadBar()">📌</button>
                 </div>
                 <small class="text-[10px] text-neutral-500 text-center mt-1">Fichier backlog : <%= typeof backlogFile !== 'undefined' ? backlogFile : '' %></small>
             </form>
