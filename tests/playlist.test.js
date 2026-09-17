@@ -121,6 +121,7 @@ describe("Playlist System", () => {
         assert.ok(video, "Video should be indexed without an info JSON file");
         assert.strictEqual(video.uploader, "Uploader inconnu");
 
+        db.removeFile(videoId);
         fs.unlinkSync(videoPath);
     });
 });
