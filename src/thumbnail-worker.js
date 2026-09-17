@@ -53,6 +53,16 @@ const downloadImageWithRedirects = (imageUrl, cachePath, maxRedirects = 5) => {
   });
 };
 
+export function indexChannelVideos(dbEntries) {
+  const channelVideos = new Map();
+  for (const entry of dbEntries) {
+    if (entry.uploader && entry.channel_url && !channelVideos.has(entry.uploader)) {
+      channelVideos.set(entry.uploader, entry);
+    }
+  }
+  return channelVideos;
+}
+
 async function run() {
   const { dbEntries, thumbCacheDir } = workerData;
   let downloadedThumbnails = 0;
@@ -92,11 +102,13 @@ async function run() {
 
   // 2. Download channel logos
   const channels = [...new Set(dbEntries.map(v => v.uploader).filter(Boolean))];
+  const channelVideos = indexChannelVideos(dbEntries);
+
   for (const channelName of channels) {
     const safeUploader = channelName.replace(/[^a-zA-Z0-9_\-]/g, '_');
     const cachePath = path.join(thumbCacheDir, `channel_${safeUploader}.jpg`);
     if (!fs.existsSync(cachePath)) {
-      const video = dbEntries.find(v => v.uploader === channelName && v.channel_url);
+      const video = channelVideos.get(channelName);
       if (video && video.channel_url) {
         try {
           const html = await fetchHtmlWithRedirects(video.channel_url, {
@@ -133,6 +145,8 @@ async function run() {
   parentPort.postMessage({ type: 'done', downloadedThumbnails, downloadedLogos });
 }
 
-run().catch(err => {
-  parentPort.postMessage({ type: 'error', message: err.message });
-});
+if (parentPort) {
+  run().catch(err => {
+    parentPort.postMessage({ type: 'error', message: err.message });
+  });
+}
