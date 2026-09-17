@@ -245,7 +245,9 @@ export default class FileDatabase {
     }
 
     async readDatabaseAsync() {
-        if (!fs.existsSync(this.directoryPath)) {
+        try {
+            await fs.promises.access(this.directoryPath);
+        } catch (e) {
             log.warn(`[DB] Le répertoire ${this.directoryPath} n'existe pas, lecture asynchrone ignorée.`);
             return;
         }
@@ -314,21 +316,21 @@ export default class FileDatabase {
                     };
 
                     try {
-                        if (fs.existsSync(infoPath)) {
-                            const content = await fs.promises.readFile(infoPath, 'utf8');
-                            const info = JSON.parse(content);
-                            metadata = {
-                                uploader: info.uploader || 'Uploader inconnu',
-                                view_count: info.view_count || 0,
-                                like_count: info.like_count || 0,
-                                comment_count: info.comment_count || 0,
-                                display_id: info.display_id || videoId,
-                                channel_url: info.channel_url || info.uploader_url,
-                                playlist_title: info.playlist_title || info.playlist || null
-                            };
-                        }
+                        const content = await fs.promises.readFile(infoPath, 'utf8');
+                        const info = JSON.parse(content);
+                        metadata = {
+                            uploader: info.uploader || 'Uploader inconnu',
+                            view_count: info.view_count || 0,
+                            like_count: info.like_count || 0,
+                            comment_count: info.comment_count || 0,
+                            display_id: info.display_id || videoId,
+                            channel_url: info.channel_url || info.uploader_url,
+                            playlist_title: info.playlist_title || info.playlist || null
+                        };
                     } catch (e) {
-                        log.error(`[DB] Erreur lors de la lecture du fichier info JSON ${infoPath} : ${e.message}`, e);
+                        if (e.code !== 'ENOENT') {
+                            log.error(`[DB] Erreur lors de la lecture du fichier info JSON ${infoPath} : ${e.message}`, e);
+                        }
                     }
 
                     const newEntry = {

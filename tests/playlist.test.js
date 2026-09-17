@@ -109,4 +109,19 @@ describe("Playlist System", () => {
 
         fs.unlinkSync(playlistInfoPath);
     });
+
+    test("should index videos asynchronously when metadata is missing", async () => {
+        const videoId = "asyncmissing";
+        const videoPath = path.join(tempDir, `Video without metadata [${videoId}].mp4`);
+        fs.writeFileSync(videoPath, "fake video content");
+
+        await db.readDatabaseAsync();
+
+        const video = db.getFile(videoId);
+        assert.ok(video, "Video should be indexed without an info JSON file");
+        assert.strictEqual(video.uploader, "Uploader inconnu");
+
+        db.removeFile(videoId);
+        fs.unlinkSync(videoPath);
+    });
 });
