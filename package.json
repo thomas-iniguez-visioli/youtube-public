@@ -14,7 +14,7 @@
     "dist": "cmd /c \"set WIN_CSC_LINK=spartan_arbinger.pfx&& electron-builder --win\""
   },
   "dependencies": {
-    "adm-zip": "^0.6.0",
+    "adm-zip": "^0.6.1",
     "axios": "^1.18.0",
     "cors": "^2.8.6",
     "cross-spawn": "^7.0.6",
@@ -25,7 +25,7 @@
     "express": "^5.2.1",
     "express-rate-limit": "^7.5.0",
     "helmet": "^8.3.0",
-    "morgan": "^1.11.0",
+    "morgan": "^1.12.0",
     "rollbar": "^2.26.5",
     "socket.io": "^4.4.1",
     "unzipper": "^0.12.3",
