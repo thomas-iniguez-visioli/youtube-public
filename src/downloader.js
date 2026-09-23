@@ -72,6 +72,11 @@ function runDownload(ytdlpPath, args, logger, onVideoFinished, onProgress, onPro
     });
 
     let currentFilename = null;
+    // Les lignes "Destination" / "Merging" apparaissent AU DÉBUT du téléchargement
+    // ou au démarrage du merge ffmpeg : on collecte les fichiers et on n'émet
+    // onVideoFinished qu'après un exit code 0, pour éviter une fausse notification
+    // "terminé" (race condition downloader -> serveur).
+    const completedFiles = new Set();
 
     childProcess.stdout.on('data', (data) => {
       const output = data.toString();
@@ -83,21 +88,21 @@ function runDownload(ytdlpPath, args, logger, onVideoFinished, onProgress, onPro
         currentFilename = destMatchForTitle[1];
       }
 
-      // Detect video completion (merging format or finished downloading)
+      // Collecter les fichiers produits (émission différée à close(0))
       // Example: [ffmpeg] Merging formats into "C:\Users\alpha\Downloads\Video [ID].mp4"
-      if (onVideoFinished) {
+      {
         const destMatch = output.match(/\[download\] Destination: (.+)/);
         const mergeMatch = output.match(/Merging formats into "(.+)"/);
         const alreadyMatch = output.match(/\[download\] (.+) has already been downloaded/);
-        
+
         if (mergeMatch) {
-          onVideoFinished(mergeMatch[1]);
+          completedFiles.add(mergeMatch[1]);
         } else if (alreadyMatch) {
-          onVideoFinished(alreadyMatch[1]);
+          completedFiles.add(alreadyMatch[1]);
         } else if (destMatch) {
           const destFile = destMatch[1];
           if (destFile.endsWith('.mp4') && !/\.f\d+\.mp4$/.test(destFile) && !/\.temp\./.test(destFile)) {
-            onVideoFinished(destFile);
+            completedFiles.add(destFile);
           }
         }
       }
@@ -125,6 +130,12 @@ function runDownload(ytdlpPath, args, logger, onVideoFinished, onProgress, onPro
 
     childProcess.on('close', (code) => {
       if (code === 0) {
+        // Émettre uniquement maintenant : le processus a réussi, les fichiers existent.
+        if (onVideoFinished) {
+          for (const file of completedFiles) {
+            onVideoFinished(file);
+          }
+        }
         resolve();
       } else {
         reject(new Error(`ytdlp a quitté avec le code ${code}`));
@@ -302,6 +313,7 @@ async function gzipFile(filePath, logger) {
 
     worker.on('message', (message) => {
       if (message.success) {
+        if (message.warning && logger) logger.info(`Zipped with warning in worker: ${zipPath} : ${message.warning}`);
         if (logger) logger.info(`Zipped successfully in worker: ${zipPath}`);
         resolve();
       } else {

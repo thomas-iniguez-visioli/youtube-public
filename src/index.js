@@ -90,6 +90,14 @@ const cleanupDecompressedFilesOnStartup = () => {
     if (!fs.existsSync(storagePath)) return;
     const files = fs.readdirSync(storagePath);
     files.forEach((file) => {
+      // Supprimer les zip temporaires laissés par un crash pendant l'archivage
+      if (file.endsWith('.zip.tmp')) {
+        try {
+          fs.unlinkSync(path.join(storagePath, file));
+          log.info(`Nettoyage du zip temporaire : ${file}`);
+        } catch (e) {}
+        return;
+      }
       if (file.endsWith('.mp4') && files.includes(file + '.zip')) {
         const fullPath = path.join(storagePath, file);
         try {
@@ -119,7 +127,7 @@ const compressMissingVideosOnStartup = async () => {
         if (fs.existsSync(fullPath) && !fs.existsSync(gzPath) && !entry.keepUnzipped) {
           log.info(`Vidéo non compressée détectée au démarrage : ${entry.fileName}. Lancement de l'archivage...`);
           try {
-            await gzipFile(fullPath, logger);
+            await zipVideo(fullPath, logger);
             log.info(`Vidéo archivée en ZIP au démarrage : ${entry.fileName}`);
           } catch (e) {
             log.error(`Échec d'archivage au démarrage pour ${entry.fileName} : ${e.message}`);
@@ -333,7 +341,27 @@ class DownloadQueue {
   }
 }
 
-const downloadQueue = new DownloadQueue(2);
+const downloadQueue = new DownloadQueue(1);
+
+// Verrou anti-course pour gzip : empêche deux zips concurrents sur le même
+// chemin et l'archivage d'un mp4 en cours de décompression/lecture.
+const ongoingZips = new Set();
+const zipVideo = async (filePath, logger) => {
+  if (ongoingZips.has(filePath)) {
+    log.warn(`Archivage déjà en cours pour ${filePath}, opération ignorée.`);
+    return;
+  }
+  if (ongoingDecompressions.has(filePath)) {
+    log.warn(`Décompression en cours pour ${filePath}, archivage reporté.`);
+    return;
+  }
+  ongoingZips.add(filePath);
+  try {
+    await gzipFile(filePath, logger);
+  } finally {
+    ongoingZips.delete(filePath);
+  }
+};
 
 function setupElectronLogForwarding() {
   // Vérifie que log.hooks existe et est un tableau
@@ -379,7 +407,9 @@ setupElectronLogForwarding();
 
 // Surveillance du dossier vidéo pour mise à jour automatique de la DB
 const videoFolder = config.storagePath;
-let dbWatchTimeout;
+// Debounce par fichier : un seul timeout global était repoussé indéfiniment
+// pendant une activité continue (plusieurs téléchargements).
+const dbWatchTimeouts = new Map();
 if (fs.existsSync(videoFolder)) {
   fs.watch(videoFolder, (eventType, filename) => {
     const isTemp = filename && (
@@ -389,8 +419,9 @@ if (fs.existsSync(videoFolder)) {
       /\.f\d+\.mp4$/.test(filename)
     );
     if (filename && !isTemp && (filename.endsWith('.mp4') || filename.endsWith('.json'))) {
-      clearTimeout(dbWatchTimeout);
-      dbWatchTimeout = setTimeout(async () => {
+      clearTimeout(dbWatchTimeouts.get(filename));
+      dbWatchTimeouts.set(filename, setTimeout(async () => {
+        dbWatchTimeouts.delete(filename);
         log.info(`Modification détectée dans le dossier vidéo : ${filename}. Mise à jour de la base de données...`);
         await db.readDatabaseAsync();
         db.save();
@@ -398,7 +429,7 @@ if (fs.existsSync(videoFolder)) {
         if (typeof io !== 'undefined') {
           io.emit('db-updated');
         }
-      }, 5000); // Délai de 5s pour laisser le temps au fichier de se stabiliser (écriture finie)
+      }, 5000)); // Délai de 5s pour laisser le temps au fichier de se stabiliser (écriture finie)
     }
   });
 }
@@ -732,9 +763,14 @@ io.on('connection', (socket) => {
 
 let currentDownloadProcess = null;
 let isDownloadCancelled = false;
+// Paramètre (URL) du téléchargement en cours : sert à éviter qu'un refresh de
+// métadonnées (/watch -> downloaddata) réécrive le même .info.json que le
+// yt-dlp principal (deux écrivains = JSON corrompu).
+let currentDownloadParameter = null;
 
 const downloadbacklog = (parameter) => {
   return downloadQueue.add(() => new Promise((resolve, reject) => {
+    currentDownloadParameter = parameter;
     fs.appendFileSync(path.join(app.getPath('userData'), 'historic.txt'), `${parameter}\n`);
     const logFilePath = path.join(app.getPath('userData'), 'download.log');
     
@@ -757,11 +793,11 @@ const downloadbacklog = (parameter) => {
     };
 
     const notifiedVideos = new Set();
-    let downloadedFilePath = null;
+    const finishedFiles = [];
     let lastSpeed = null;
 
     runDownload(ytdlpPath, args, logger, (filePath) => {
-      downloadedFilePath = filePath;
+      finishedFiles.push(filePath);
       // Extract video ID from filename like "Title [ID].mp4"
       const match = filePath.match(/\[([^\]]+)\]\.(mp4|mkv|webm|avi)$/);
       if (match) {
@@ -827,27 +863,31 @@ const downloadbacklog = (parameter) => {
     })
       .then(async (res) => {
         currentDownloadProcess = null;
+        currentDownloadParameter = null;
         isDownloadCancelled = false; // Reset security
-        
+
         let finalTitle = 'La vidéo';
-        if (downloadedFilePath) {
-            finalTitle = path.basename(downloadedFilePath).replace(/ \[[a-zA-Z0-9_-]{11}\]\.(mp4|mkv|webm|avi|part|ytdl)$/, '').split('-').pop();
+        if (finishedFiles.length > 0) {
+          finalTitle = path.basename(finishedFiles[finishedFiles.length - 1]).replace(/ \[[a-zA-Z0-9_-]{11}\]\.(mp4|mkv|webm|avi|part|ytdl)$/, '').split('-').pop();
         }
 
-        if (downloadedFilePath && fs.existsSync(downloadedFilePath)) {
-          try {
-            if (io) {
-              io.emit('download-progress', {
-                parameter,
-                percent: 100,
-                eta: 'Archivage ZIP...',
-                speed: '',
-                backlogLength: backlog.length
-              });
+        // Archiver toutes les vidéos produites par ce run (et pas seulement la dernière)
+        for (const finishedFile of finishedFiles) {
+          if (finishedFile && fs.existsSync(finishedFile)) {
+            try {
+              if (io) {
+                io.emit('download-progress', {
+                  parameter,
+                  percent: 100,
+                  eta: 'Archivage ZIP...',
+                  speed: '',
+                  backlogLength: backlog.length
+                });
+              }
+              await zipVideo(finishedFile, logger);
+            } catch (compressErr) {
+              log.error(`Échec d'archivage de la vidéo : ${compressErr.message}`);
             }
-            await gzipFile(downloadedFilePath, logger);
-          } catch (compressErr) {
-            log.error(`Échec d'archivage de la vidéo : ${compressErr.message}`);
           }
         }
         await db.readDatabaseAsync(); // Final refresh
@@ -865,6 +905,7 @@ const downloadbacklog = (parameter) => {
       })
       .catch((err) => {
         currentDownloadProcess = null;
+        currentDownloadParameter = null;
         optimizeMemory();
         if (isDownloadCancelled) {
           isDownloadCancelled = false;
@@ -883,6 +924,18 @@ const downloaddata = (parameter) => {
   const denoPath = binaryResolver.deno;
 
   if (!ytdlpPath) return;
+
+  // Éviter deux processus yt-dlp sur le même .info.json : si le téléchargement
+  // principal concerne déjà cette vidéo, on saute le refresh de métadonnées.
+  if (currentDownloadParameter) {
+    const extractId = (u) => (String(u).match(/[?&]v=([a-zA-Z0-9_-]{11})/) || [])[1];
+    const currentId = extractId(currentDownloadParameter);
+    const targetId = extractId(parameter);
+    if (currentId && targetId && currentId === targetId) {
+      log.info(`Refresh métadonnées ignoré pour ${targetId} : téléchargement en cours.`);
+      return;
+    }
+  }
 
   const args = createMetadataArgs(parameter, ffmpegDir, config.storagePath, config.outputFileFormat, denoPath);
   
@@ -1299,9 +1352,25 @@ web.post("/download/cancel", function (req, res) {
   if (currentDownloadProcess) {
     try {
       isDownloadCancelled = true;
-      currentDownloadProcess.kill('SIGKILL');
+      // Tuer l'arbre de processus : sur Windows, kill() laisse les enfants
+      // (ffmpeg en cours de merge) écrire le mp4 en orphelin.
+      const proc = currentDownloadProcess;
+      if (process.platform === 'win32' && proc.pid) {
+        const killer = child.spawn('taskkill', ['/pid', String(proc.pid), '/T', '/F']);
+        const fallbackKill = (why) => {
+          log.warn(`taskkill a échoué (${why}), fallback kill()`);
+          try { proc.kill('SIGKILL'); } catch (err) {}
+        };
+        killer.on('error', () => fallbackKill('spawn'));
+        killer.on('exit', (code) => { if (code !== 0) fallbackKill(`exit ${code}`); });
+      } else {
+        proc.kill('SIGKILL');
+      }
       currentDownloadProcess = null;
-      isDownloading = false;
+      // Ne PAS mettre isDownloading = false ici : le finally de processBacklog
+      // est propriétaire de ce flag (il fait backlog.shift() d'abord). Le reset
+      // prématuré laissait l'intervalle repartir sur l'URL pas encore retirée,
+      // lançant un 2e yt-dlp sur le même fichier (race condition).
       log.info("Téléchargement annulé par l'utilisateur.");
       if (io) {
         io.emit('download-progress', {
@@ -1688,7 +1757,7 @@ web.post("/api/rezip", async (req, res) => {
   const videoPath = path.join(base, path.basename(entry.fileName));
   if (fs.existsSync(videoPath)) {
     log.info(`[Re-zip] Lancement de l'archivage manuel pour ${entry.fileName}`);
-    gzipFile(videoPath, { info: log.info, error: log.error })
+    zipVideo(videoPath, { info: log.info, error: log.error })
       .then(() => log.info(`[Re-zip] Terminé pour ${entry.fileName}`))
       .catch(e => log.error(`[Re-zip] Erreur pour ${entry.fileName}: ${e.message}`));
   }
@@ -2008,41 +2077,6 @@ web.get("/api/preload", async (req, res) => {
   res.json({ status: "ready" });
 });
 
-web.get("/api/preload", async (req, res) => {
-  const id = req.query.id;
-  if (!id) return res.json({ status: "ignored" });
-  
-  const fileData = db.getFile(id);
-  if (!fileData || !fileData.fileName) return res.json({ status: "ignored" });
-  
-  const fileName = path.basename(fileData.fileName);
-  const videoPath = path.join(base, fileName);
-  const gzPath = videoPath + '.zip';
-  
-  try {
-    const zipExists = await fs.promises.access(gzPath).then(() => true).catch(() => false);
-    if (zipExists && !ongoingDecompressions.has(videoPath)) {
-      const isFullyOnDisk = await fs.promises.stat(videoPath)
-        .then(s => s.size > 1000000)
-        .catch(() => false);
-          
-      if (!isFullyOnDisk) {
-        log.info(`[Smart Preload] Anticipation de la décompression pour la vidéo : ${fileName}`);
-        const decompressPromise = gunzipFile(gzPath, videoPath);
-        ongoingDecompressions.set(videoPath, decompressPromise);
-        decompressPromise
-          .then(() => ongoingDecompressions.delete(videoPath))
-          .catch((err) => {
-            ongoingDecompressions.delete(videoPath);
-            log.error(`[Smart Preload] Erreur décompression anticipée : ${err.message}`);
-          });
-        return res.json({ status: "started" });
-      }
-    }
-  } catch (e) {}
-  res.json({ status: "ready" });
-});
-
 web.get("/video", limiter, async function (req, res) {
   lastVideoRequestTime = Date.now();
   const range = req.headers.range;
@@ -2135,10 +2169,15 @@ web.get("/video", limiter, async function (req, res) {
 
   // Si le fichier décompressé n'existe pas ou est incomplet, on s'assure que l'extraction tourne ou qu'il se télécharge
   if (currentSize < end) {
-    const zipExists = await fs.promises.access(gzPath).then(() => true).catch(() => false);
-    if (zipExists) {
-      try {
-        if (!ongoingDecompressions.has(videoPath)) {
+    // Relance la décompression si le zip existe. Réévalué à chaque itération :
+    // le downloader peut finir pendant l'attente, créer le zip et supprimer le
+    // mp4 (race condition downloader <-> serveur). Sans ça, la boucle voyait un
+    // fichier disparu, plus aucune croissance, et renvoyait un timeout 500.
+    const ensureDecompress = async () => {
+      const zipOk = await fs.promises.access(gzPath).then(() => true).catch(() => false);
+      if (!zipOk) return false;
+      if (!ongoingDecompressions.has(videoPath)) {
+        try {
           const decompressPromise = gunzipFile(gzPath, videoPath);
           ongoingDecompressions.set(videoPath, decompressPromise);
           decompressPromise.then(() => {
@@ -2147,20 +2186,30 @@ web.get("/video", limiter, async function (req, res) {
             ongoingDecompressions.delete(videoPath);
             log.error(`Erreur de décompression en tâche de fond : ${err.message}`);
           });
+          // Le worker va réécrire le fichier : on repousse le timeout de croissance
+          noGrowthTime = Date.now();
+          lastWaitSize = 0;
+        } catch (err) {
+          log.error(`Erreur lors du lancement de la décompression asynchrone de ${fileName} : ${err.message}`);
         }
-      } catch (err) {
-        log.error(`Erreur lors du lancement de la décompression asynchrone de ${fileName} : ${err.message}`);
       }
-    }
+      return true;
+    };
 
-    // Attendre que les octets requis soient écrits sur le disque (attente asynchrone et douce de 100ms)
-    // Cela fonctionne aussi bien pour le Worker de décompression que pour le téléchargement via yt-dlp !
     const startTime = Date.now();
     let noGrowthTime = Date.now();
     let lastWaitSize = currentSize;
 
+    await ensureDecompress();
+
+    // Attendre que les octets requis soient écrits sur le disque (attente asynchrone et douce de 100ms)
+    // Cela fonctionne aussi bien pour le Worker de décompression que pour le téléchargement via yt-dlp !
     while (currentSize <= end) {
       await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Re-vérifier le zip : le mp4 peut avoir été supprimé au profit du zip
+      await ensureDecompress();
+
       try {
         const s = await fs.promises.stat(videoPath);
         if (s.size > lastWaitSize) {

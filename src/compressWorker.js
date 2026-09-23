@@ -11,11 +11,22 @@ async function run() {
     if (action === 'zip') {
       const zip = new AdmZip();
       zip.addLocalFile(filePath);
-      zip.writeZip(outputPath);
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
+      // Écriture atomique : un zip partiel ne doit jamais être visible sous le
+      // chemin final (le serveur /video fait existsSync dessus).
+      const tmpPath = outputPath + '.tmp';
+      zip.writeZip(tmpPath);
+      fs.renameSync(tmpPath, outputPath);
+      let unlinkWarning = null;
+      try {
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+      } catch (unlinkErr) {
+        // EBUSY/EPERM : le fichier est lu par le serveur. On garde le zip,
+        // le nettoyage au démarrage s'en chargera plus tard.
+        unlinkWarning = unlinkErr.message;
       }
-      parentPort.postMessage({ success: true });
+      parentPort.postMessage({ success: true, warning: unlinkWarning });
     } else if (action === 'unzip') {
       await new Promise((resolve, reject) => {
         let extracted = false;
@@ -42,9 +53,9 @@ async function run() {
       parentPort.postMessage({ success: false, error: `Action inconnue : ${action}` });
     }
   } catch (err) {
-    if (action === 'zip' && outputPath && fs.existsSync(outputPath)) {
+    if (action === 'zip' && outputPath && fs.existsSync(outputPath + '.tmp')) {
       try {
-        fs.unlinkSync(outputPath);
+        fs.unlinkSync(outputPath + '.tmp');
       } catch (e) {
         // Ignorer
       }
