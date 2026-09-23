@@ -14,7 +14,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
-
+function escapeHtml(str) {
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
 // --- Debounce utility ---
 function debounce(fn, delay) {
     let timer;
@@ -43,7 +50,7 @@ function showToast(title, message, type = 'primary', link = null) {
     toastContainer.insertAdjacentHTML('beforeend', `
         <div id="${toastId}" class="pointer-events-auto flex flex-col rounded-lg shadow-xl overflow-hidden transition-all duration-300 transform translate-y-2 opacity-0">
             <div class="${bgHeader} px-3 py-2 text-white font-bold flex justify-between items-center text-sm">
-                <span>${title}</span>
+                 <span>${escapeHtml(title)}</span>
                 <button type="button" class="text-white hover:text-gray-200 focus:outline-none ml-4" onclick="this.closest('#${toastId}').remove()">✕</button>
             </div>
             <div class="${bgBody} p-3 text-sm">
