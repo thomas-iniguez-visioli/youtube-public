@@ -12,6 +12,7 @@ import path from 'path';
 import os from 'os';
 import { updateFile } from './updater.js';
 import { createDownloadArgs, runDownload, createMetadataArgs, fetchSuggestions, compressVideo, gzipFile, gunzipFile } from './downloader.js';
+import { getHttpsAgent, getChromiumProxyConfig } from './proxy.js';
 import FileDatabase from './db.js';
 import { SuggestionCache } from './suggestionCache.js';
 const suggestionCache = new SuggestionCache();
@@ -81,6 +82,19 @@ process.on('unhandledRejection', (reason, promise) => {
 var booted = false;
 const { autoUpdater } = require("electron-updater");
 
+// Proxy système (HTTPS_PROXY / HTTP_PROXY / NO_PROXY) pour la session Electron :
+// electron-updater passe par le net stack Chromium et ignore les agents Node.
+const applyProxyFromEnv = async () => {
+  const cfg = getChromiumProxyConfig();
+  if (!cfg) return;
+  try {
+    await session.defaultSession.setProxy(cfg);
+    log.info(`Proxy configuré pour la session Electron : ${cfg.proxyRules} (bypass: ${cfg.proxyBypassRules})`);
+  } catch (err) {
+    log.warn(`Échec de configuration du proxy Electron : ${err.message}`);
+  }
+};
+
 let base = config.storagePath;
 const db = new FileDatabase(base);
 
@@ -145,7 +159,7 @@ const fetchHtmlWithRedirects = (targetUrl, headers = {}, maxRedirects = 5) => {
     if (maxRedirects <= 0) {
       return reject(new Error("Too many redirects"));
     }
-    https.get(targetUrl, { headers }, (res) => {
+    https.get(targetUrl, { headers, agent: getHttpsAgent(targetUrl) }, (res) => {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
         return fetchHtmlWithRedirects(res.headers.location, headers, maxRedirects - 1)
           .then(resolve)
@@ -169,7 +183,7 @@ const downloadImageWithRedirects = (imageUrl, cachePath, maxRedirects = 5) => {
     if (maxRedirects <= 0) {
       return reject(new Error("Too many redirects"));
     }
-    https.get(imageUrl, (res) => {
+    https.get(imageUrl, { agent: getHttpsAgent(imageUrl) }, (res) => {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
         return downloadImageWithRedirects(res.headers.location, cachePath, maxRedirects - 1)
           .then(resolve)
@@ -472,7 +486,7 @@ if (!fs.existsSync(path.join(app.getPath('userData'), "parsed.txt"))) {
 
 function getRedirectedUrl(url) {
   return new Promise((resolve, reject) => {
-    https.get(url, (res) => {
+    https.get(url, { agent: getHttpsAgent(url) }, (res) => {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
         resolve(res.headers.location);
       } else {
@@ -1035,7 +1049,7 @@ function ensureLocalAsset(bundleRelPath, destPath, force = false) {
 // Vérifie rapidement si internet est accessible (HEAD sur github)
 function isOnline() {
   return new Promise((resolve) => {
-    const req = https.request({ hostname: 'github.com', method: 'HEAD', path: '/', timeout: 3000 }, () => resolve(true));
+    const req = https.request({ hostname: 'github.com', method: 'HEAD', path: '/', timeout: 3000, agent: getHttpsAgent('https://github.com/') }, () => resolve(true));
     req.on('error', () => resolve(false));
     req.on('timeout', () => { req.destroy(); resolve(false); });
     req.end();
@@ -1964,7 +1978,7 @@ web.get("/thumbnail/:id", function (req, res) {
     return res.sendFile(cachePath);
   }
   const url = `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
-  https.get(url, (stream) => {
+  https.get(url, { agent: getHttpsAgent(url) }, (stream) => {
     if (stream.statusCode !== 200) return res.status(404).send("Not found");
     const chunks = [];
     stream.on('data', chunk => chunks.push(chunk));
@@ -2452,10 +2466,12 @@ if (!gotTheLock) {
     };
 
     if (app.isReady()) {
+      applyProxyFromEnv();
       showBootNotification();
       createWindow();
     } else {
       app.once('ready', () => {
+        applyProxyFromEnv();
         showBootNotification();
         createWindow();
       });

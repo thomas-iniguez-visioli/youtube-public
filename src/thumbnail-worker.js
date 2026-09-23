@@ -2,13 +2,14 @@ import { parentPort, workerData } from 'worker_threads';
 import fs from 'fs';
 import path from 'path';
 import https from 'https';
+import { getHttpsAgent } from './proxy.js';
 
 const fetchHtmlWithRedirects = (targetUrl, headers = {}, maxRedirects = 5) => {
   return new Promise((resolve, reject) => {
     if (maxRedirects <= 0) {
       return reject(new Error("Too many redirects"));
     }
-    https.get(targetUrl, { headers }, (res) => {
+    https.get(targetUrl, { headers, agent: getHttpsAgent(targetUrl) }, (res) => {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
         return fetchHtmlWithRedirects(res.headers.location, headers, maxRedirects - 1)
           .then(resolve)
@@ -32,7 +33,7 @@ const downloadImageWithRedirects = (imageUrl, cachePath, maxRedirects = 5) => {
     if (maxRedirects <= 0) {
       return reject(new Error("Too many redirects"));
     }
-    https.get(imageUrl, (res) => {
+    https.get(imageUrl, { agent: getHttpsAgent(imageUrl) }, (res) => {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
         return downloadImageWithRedirects(res.headers.location, cachePath, maxRedirects - 1)
           .then(resolve)

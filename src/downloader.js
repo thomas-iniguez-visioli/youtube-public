@@ -7,6 +7,7 @@ import binval from "./binaryResolver.js";
 import AdmZip from 'adm-zip';
 import { Worker } from 'worker_threads';
 import { fileURLToPath } from 'url';
+import { ytProxyArgs } from './proxy.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -41,6 +42,7 @@ function createDownloadArgs(parameter, ffmpegDir, storagePath, outputFileFormat,
   if (denoPath && fs.existsSync(denoPath)) {
     args.push('--js-runtimes', `deno:${denoPath}`);
   }
+  args.push(...ytProxyArgs());
   return args;
 }
 
@@ -164,6 +166,7 @@ function createMetadataArgs(parameter, ffmpegDir, storagePath, outputFileFormat,
   if (denoPath && fs.existsSync(denoPath)) {
     args.push('--js-runtimes', `deno:${denoPath}`);
   }
+  args.push(...ytProxyArgs());
   return args;
 }
 
@@ -181,6 +184,7 @@ function fetchSuggestions(ytdlpPath, query, denoPath) {
     if (denoPath && fs.existsSync(denoPath)) {
       args.push('--js-runtimes', `deno:${denoPath}`);
     }
+    args.push(...ytProxyArgs());
 
     const env = { ...process.env };
     const ytdlpDir = path.dirname(ytdlpPath);
@@ -311,22 +315,41 @@ async function gzipFile(filePath, logger) {
       reject(err);
     };
 
+    // Terminer le worker AVANT de résoudre : ses handles de fichiers doivent
+    // être libérés, sinon un rmSync/unlink ultérieur tombe sur un fichier
+    // "pending deletion" (ENOTEMPTY/EBUSY) et bloque sous Windows.
+    let done = false;
+    const settleAfterTerminate = (callback, value) => {
+      if (done) return;
+      done = true;
+      const finish = () => callback(value);
+      try {
+        const p = worker.terminate();
+        if (p && typeof p.then === 'function') p.then(finish, finish);
+        else finish();
+      } catch (e) {
+        finish();
+      }
+    };
+
     worker.on('message', (message) => {
       if (message.success) {
         if (message.warning && logger) logger.info(`Zipped with warning in worker: ${zipPath} : ${message.warning}`);
         if (logger) logger.info(`Zipped successfully in worker: ${zipPath}`);
-        resolve();
+        settleAfterTerminate(resolve);
       } else {
         if (logger) logger.info(`Failed to zip file in worker: ${message.error}`);
-        cleanupAndReject(new Error(message.error));
+        settleAfterTerminate(cleanupAndReject, new Error(message.error));
       }
     });
     worker.on('error', (err) => {
       if (logger) logger.info(`Worker zip error: ${err.message}`);
-      cleanupAndReject(err);
+      settleAfterTerminate(cleanupAndReject, err);
     });
     worker.on('exit', (code) => {
+      if (done) return;
       if (code !== 0) {
+        done = true;
         cleanupAndReject(new Error(`Worker stopped with exit code ${code}`));
       }
     });
@@ -340,21 +363,38 @@ async function gunzipFile(zipPath, outputPath, logger) {
     const worker = new Worker(workerPath, {
       workerData: { action: 'unzip', filePath: zipPath, outputPath }
     });
+    // Même logique que gzipFile : libérer les handles du worker avant de
+    // continuer, sous peine de bloquer sur rmSync (ENOTEMPTY) sous Windows.
+    let done = false;
+    const settleAfterTerminate = (callback, value) => {
+      if (done) return;
+      done = true;
+      const finish = () => callback(value);
+      try {
+        const p = worker.terminate();
+        if (p && typeof p.then === 'function') p.then(finish, finish);
+        else finish();
+      } catch (e) {
+        finish();
+      }
+    };
     worker.on('message', (message) => {
       if (message.success) {
         if (logger) logger.info(`Unzipped successfully in worker: ${outputPath}`);
-        resolve();
+        settleAfterTerminate(resolve);
       } else {
         if (logger) logger.info(`Failed to unzip file in worker: ${message.error}`);
-        reject(new Error(message.error));
+        settleAfterTerminate(reject, new Error(message.error));
       }
     });
     worker.on('error', (err) => {
       if (logger) logger.info(`Worker unzip error: ${err.message}`);
-      reject(err);
+      settleAfterTerminate(reject, err);
     });
     worker.on('exit', (code) => {
+      if (done) return;
       if (code !== 0) {
+        done = true;
         reject(new Error(`Worker stopped with exit code ${code}`));
       }
     });
