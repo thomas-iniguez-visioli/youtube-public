@@ -2,10 +2,11 @@ import fs from 'fs';
 import https from 'https';
 import path from 'path';
 import log from 'electron-log';
+import { getHttpsAgent } from './proxy.js';
 
 function get(url, dest) {
   return new Promise((resolve, reject) => {
-    https.get(url, (response) => {
+    https.get(url, { agent: getHttpsAgent(url) }, (response) => {
       if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
         return get(response.headers.location, dest).then(resolve).catch(reject);
       }
@@ -45,7 +46,7 @@ function get(url, dest) {
 
 function getInfo(url) {
   return new Promise((resolve, reject) => {
-    const req = https.request(url, { method: 'HEAD' }, (res) => {
+    const req = https.request(url, { method: 'HEAD', agent: getHttpsAgent(url) }, (res) => {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
         return getInfo(res.headers.location).then(resolve).catch(reject);
       }

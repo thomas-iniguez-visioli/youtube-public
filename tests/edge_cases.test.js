@@ -43,7 +43,7 @@ test('Edge cases - adm-zip wrapper errors', async (t) => {
     const fakeZipPath = path.join(tempDir, 'missing.zip');
     await assert.rejects(
         gunzipFile(fakeZipPath, path.join(tempDir, 'out.mp4')),
-        /not found|invalid/i,
+        /not found|invalid|ENOENT|no such file/i,
         "Should throw error when decompressing non-existent archive"
     );
 

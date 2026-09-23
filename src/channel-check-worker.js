@@ -1,5 +1,6 @@
 import { parentPort, workerData } from 'worker_threads';
 import child from 'child_process';
+import { ytProxyArgs } from './proxy.js';
 
 async function run() {
   const { ytdlpPath, followedChannels, existingIds } = workerData;
@@ -18,6 +19,7 @@ async function run() {
           '--flat-playlist',
           '--playlist-end', '5',
           '--print', 'id',
+          ...ytProxyArgs(),
           channelUrl
         ]);
 
