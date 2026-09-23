@@ -32,7 +32,7 @@ function createDownloadArgs(parameter, ffmpegDir, storagePath, outputFileFormat,
     '--write-playlist-metafiles',
     '--parse-metadata', 'playlist_title:.+ - (?P<folder_name>Videos|Shorts|Live)$',
     '--postprocessor-args', 'ffmpeg:-preset superfast',
-    '-o', path.join(storagePath, outputFileFormat),
+    '-o', path.join(storagePath, outputFileFormat),'--',
     parameter
   ];
   if (ffmpegDir) {
@@ -155,7 +155,7 @@ function createMetadataArgs(parameter, ffmpegDir, storagePath, outputFileFormat,
     '--write-playlist-metafiles',
     '--parse-metadata', 'playlist_title:.+ - (?P<folder_name>Videos|Shorts|Live)$',
     '-o', path.join(storagePath, outputFileFormat),
-    '-J',
+    '-J','--',
     parameter
   ];
   if (ffmpegDir) {
