@@ -1101,6 +1101,7 @@ async function build() {
     ['./client-dist/roboto-0.woff2',        'src/client-dist/roboto-0.woff2'],
     ['./client-dist/roboto-1.woff2',        'src/client-dist/roboto-1.woff2'],
     ['./client-dist/roboto-2.woff2',        'src/client-dist/roboto-2.woff2'],
+    ['./client-dist/winbox.bundle.js',      'src/client-dist/winbox.bundle.js'],
     ['./renderer.js',                       'src/renderer.js'],
     ['./views/index.ejs',                   'views/index.ejs'],
     ['./views/view.ejs',                    'views/view.ejs'],
@@ -1939,6 +1940,9 @@ web.get("/tailwind.css", function (req, res) {
 });
 web.get("/renderer.js", function (req, res) {
   serveStaticFile(req, res, "./src/renderer.js", "./renderer.js", "application/javascript");
+});
+web.get("/winbox.bundle.js", function (req, res) {
+  serveStaticFile(req, res, "./src/client-dist/winbox.bundle.js", "./client-dist/winbox.bundle.js", "application/javascript");
 });
 web.get("/socket.io.js", function (req, res) {
   serveStaticFile(req, res, "./src/client-dist/socket.io.js", "./client-dist/socket.io.js", "application/javascript");

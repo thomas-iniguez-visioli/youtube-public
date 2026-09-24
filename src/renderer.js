@@ -182,6 +182,7 @@ if (typeof io !== 'undefined') {
             progressContainer = document.createElement('div');
             progressContainer.id = 'global-download-progress';
             progressContainer.className = 'download-progress-container';
+            
             progressContainer.innerHTML = `
                 <div class="download-progress-card">
                     <div class="d-flex justify-content-between align-items-center mb-2">
@@ -201,12 +202,76 @@ if (typeof io !== 'undefined') {
             `;
             progressContainer.style.display = 'none';
             document.body.appendChild(progressContainer);
+            
+            // --- Drag logic ---
+            let isDragging = false;
+            let currentX = 0;
+            let currentY = 0;
+            let initialX = 0;
+            let initialY = 0;
+            let xOffset = 0;
+            let yOffset = 0;
+
+            const dragCard = progressContainer.querySelector('.download-progress-card');
+            dragCard.style.cursor = 'grab';
+            
+            dragCard.addEventListener('mousedown', function(e) {
+                if (e.target.tagName.toLowerCase() === 'button') return;
+                initialX = e.clientX - xOffset;
+                initialY = e.clientY - yOffset;
+                isDragging = true;
+                dragCard.style.cursor = 'grabbing';
+                // Prevent text selection (le "fond blanc dégeux")
+                e.preventDefault();
+                document.body.style.userSelect = 'none';
+            });
+
+            document.addEventListener('mouseup', function() {
+                if (!isDragging) return;
+                initialX = currentX;
+                initialY = currentY;
+                isDragging = false;
+                dragCard.style.cursor = 'grab';
+                document.body.style.userSelect = '';
+            });
+
+            document.addEventListener('mousemove', function(e) {
+                if (isDragging) {
+                    e.preventDefault();
+                    currentX = e.clientX - initialX;
+                    currentY = e.clientY - initialY;
+                    
+                    // Optionnel: Empêcher de sortir complètement de l'écran
+                    // Mais on va laisser libre pour l'instant
+                    xOffset = currentX;
+                    yOffset = currentY;
+                    
+                    progressContainer.style.transform = "translate3d(" + currentX + "px, " + currentY + "px, 0)";
+                }
+            });
+            // --- End Drag logic ---
         }
     });
 
     socket.on('download-progress', (data) => {
         if (progressContainer) {
             progressContainer.style.display = 'block';
+            console.log('Download progress! WinBox type:', typeof WinBox);
+              if (typeof WinBox !== 'undefined' && !window.progressWinBox) {
+                window.progressWinBox = new WinBox("Progression du téléchargement", {
+                    mount: progressContainer,
+                    width: "420px",
+                    height: "160px",
+                    x: "right",
+                    y: "top",
+                    background: "#2563eb",
+                    onclose: function() {
+                        window.progressWinBox = null;
+                        progressContainer.style.display = 'none';
+                        document.body.appendChild(progressContainer);
+                    }
+                });
+            }
             
             const titleEl = progressContainer.querySelector('.progress-title');
             const percentEl = progressContainer.querySelector('.progress-meta');
@@ -460,3 +525,27 @@ if (typeof io !== 'undefined') {
         }, 2000);
     });
 }
+
+let downloadWinBox = null;
+window.detachDownloadBar = function() {
+    if (downloadWinBox) return;
+    const form = document.getElementById('commandForm');
+    const originalParent = form.parentElement;
+    
+    downloadWinBox = new WinBox('T�l�chargement YouTube', {
+        mount: form,
+        width: '550px',
+        height: '150px',
+        x: 'center',
+        y: 'bottom',
+        background: '#2563eb',
+        onclose: function() {
+            originalParent.appendChild(form);
+            form.style.padding = '0px';
+            downloadWinBox = null;
+        }
+    });
+    form.style.padding = '15px';
+    form.style.width = '100%';
+};
+
