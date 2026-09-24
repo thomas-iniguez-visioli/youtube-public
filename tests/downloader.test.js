@@ -13,8 +13,8 @@ test('createDownloadArgs should generate correct arguments', (t) => {
   // Test without denoPath
   let args = createDownloadArgs(parameter, ffmpegDir, storagePath, outputFileFormat);
   assert.ok(!args.includes('deno'));
-
-  // Test with denoPath (logic in src/downloader.js adds --js-runtimes deno if denoPath exists)
+  assert.strictEqual(args[args.length - 2], '--');
+  assert.strictEqual(args[args.length - 1], parameter);
 });
 
 test('createMetadataArgs should generate correct arguments', (t) => {
@@ -29,6 +29,8 @@ test('createMetadataArgs should generate correct arguments', (t) => {
   assert.ok(args.includes('--simulate'));
   assert.ok(args.includes('--write-info-json'));
   assert.ok(args.includes('-J'));
+  assert.strictEqual(args[args.length - 2], '--');
+  assert.strictEqual(args[args.length - 1], parameter);
 });
 
 test('fetchSuggestions should reject on invalid ytdlp binary', async (t) => {
