@@ -1095,6 +1095,7 @@ async function build() {
     ['./client-dist/plyr.css',              'src/client-dist/plyr.css'],
     ['./client-dist/plyr.polyfilled.js',    'src/client-dist/plyr.polyfilled.js'],
     ['./client-dist/fuse.js',               'src/client-dist/fuse.js'],
+    ['./client-dist/winbox.bundle.js',      'src/client-dist/winbox.bundle.js'],
     ['./client-dist/roboto.css',            'src/client-dist/roboto.css'],
     ['./client-dist/favicon.ico',           'src/client-dist/favicon.ico'],
     ['./client-dist/roboto-0.woff2',        'src/client-dist/roboto-0.woff2'],
@@ -1959,6 +1960,9 @@ web.get("/plyr.polyfilled.js", function (req, res) {
 });
 web.get("/fuse.js", function (req, res) {
   serveStaticFile(req, res, "./src/client-dist/fuse.js", "./client-dist/fuse.js", "application/javascript");
+});
+web.get("/winbox.bundle.js", function (req, res) {
+  serveStaticFile(req, res, "./src/client-dist/winbox.bundle.js", "./client-dist/winbox.bundle.js", "application/javascript");
 });
 web.get("/roboto.css", function (req, res) {
   serveStaticFile(req, res, "./src/client-dist/roboto.css", "./client-dist/roboto.css", "text/css");
