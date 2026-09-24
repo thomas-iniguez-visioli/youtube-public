@@ -1,6 +1,6 @@
 import { parentPort, workerData } from 'worker_threads';
 import child from 'child_process';
-import { ytProxyArgs } from './proxy.js';
+import { ytProxyArgs, ytProxyEnv } from './proxy.js';
 
 async function run() {
   const { ytdlpPath, followedChannels, existingIds } = workerData;
@@ -21,7 +21,7 @@ async function run() {
           '--print', 'id',
           ...ytProxyArgs(),
           channelUrl
-        ]);
+        ], { env: ytProxyEnv() });
 
         let stdout = '';
         let stderr = '';

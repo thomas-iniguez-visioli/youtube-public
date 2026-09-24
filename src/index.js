@@ -1428,6 +1428,16 @@ web.get("/watch", function (req, res) {
 
   db.addToHistory(req.query.id);
 
+  // Anticiper la décompression pendant le rendu de la page : le lecteur
+  // demandera /video une seconde plus tard.
+  {
+    const watchVideoPath = path.join(base, path.basename(fileData.fileName));
+    const watchGzPath = watchVideoPath + '.zip';
+    resolveVideoSize(watchVideoPath, watchGzPath).then((expectedSize) => {
+      if (expectedSize) ensureVideoDecompress(watchVideoPath, watchGzPath, expectedSize, '/watch');
+    }).catch(() => {});
+  }
+
   const infoPath = path.join(config.storagePath, fileData.fileName.replace(".mp4", ".info.json"));
   
   let videodata = {
@@ -2055,40 +2065,123 @@ web.get("/channel-logo/:uploader", async function (req, res) {
 
 const decompressedFiles = new Map();
 const ongoingDecompressions = new Map();
+// Backoff après un échec de gunzip : évite de relancer un worker toutes les
+// 50 ms (createWriteStream tronque le mp4 à 0 à chaque tentative).
+const decompressFailures = new Map();
+
+async function fileExists(p) {
+  return fs.promises.access(p).then(() => true).catch(() => false);
+}
+
+// Démarre la décompression du zip -> mp4 si nécessaire.
+// - expectedSize : taille finale connue (zip/videoSizes) ; si le mp4 est déjà
+//   complet, on ne relance JAMAIS (sinon course : fin de unzip -> map vidée
+//   -> relance -> troncature à zéro -> boucle infinie de dézipper).
+async function ensureVideoDecompress(videoPath, gzPath, expectedSize, label = 'decompress') {
+  if (ongoingDecompressions.has(videoPath)) {
+    return ongoingDecompressions.get(videoPath);
+  }
+
+  const fail = decompressFailures.get(videoPath);
+  if (fail && Date.now() < fail.nextAt) return null;
+
+  if (expectedSize != null) {
+    try {
+      const s = await fs.promises.stat(videoPath);
+      if (s.size >= expectedSize) return null;
+    } catch (e) { /* mp4 absent : il faut décompresser */ }
+  }
+
+  if (!(await fileExists(gzPath))) return null;
+  // Double-check après les awaits : une autre requête a pu démarrer
+  if (ongoingDecompressions.has(videoPath)) {
+    return ongoingDecompressions.get(videoPath);
+  }
+
+  log.info(`[${label}] Décompression lancée : ${path.basename(videoPath)}`);
+  let decompressPromise;
+  try {
+    decompressPromise = gunzipFile(gzPath, videoPath);
+  } catch (err) {
+    const f = fail || { count: 0 };
+    f.count += 1;
+    f.nextAt = Date.now() + Math.min(30000, 1000 * f.count);
+    decompressFailures.set(videoPath, f);
+    log.error(`[${label}] Échec lancement décompression ${path.basename(videoPath)} : ${err.message}`);
+    return null;
+  }
+
+  ongoingDecompressions.set(videoPath, decompressPromise);
+  decompressPromise
+    .then(() => {
+      ongoingDecompressions.delete(videoPath);
+      decompressFailures.delete(videoPath);
+    })
+    .catch((err) => {
+      ongoingDecompressions.delete(videoPath);
+      const f = decompressFailures.get(videoPath) || { count: 0 };
+      f.count += 1;
+      f.nextAt = Date.now() + Math.min(30000, 1000 * f.count);
+      decompressFailures.set(videoPath, f);
+      log.error(`[${label}] Échec décompression ${path.basename(videoPath)} : ${err.message}`);
+    });
+  return decompressPromise;
+}
+
+// Taille déclarée du contenu non compressé d'un zip (cache videoSizes.json).
+async function resolveVideoSize(videoPath, gzPath) {
+  if (videoSizesCache[gzPath]) return videoSizesCache[gzPath];
+
+  if (await fileExists(gzPath)) {
+    try {
+      const zip = new AdmZip(gzPath);
+      const zipEntries = zip.getEntries();
+      if (zipEntries.length > 0) {
+        const videoSize = zipEntries[0].header.size;
+        videoSizesCache[gzPath] = videoSize;
+        fs.writeFile(videoSizesPath, JSON.stringify(videoSizesCache), (err) => {
+          if (err) log.error(`Erreur écriture videoSizes.json : ${err.message}`);
+        });
+        return videoSize;
+      }
+    } catch (zipErr) {
+      log.error(`Impossible de lire la taille du fichier dans le zip : ${zipErr.message}`);
+    }
+  }
+
+  try {
+    const s = await fs.promises.stat(videoPath);
+    return s.size;
+  } catch (e) {
+    return null;
+  }
+}
 
 web.get("/api/preload", async (req, res) => {
   const id = req.query.id;
   if (!id) return res.json({ status: "ignored" });
-  
+
   const fileData = db.getFile(id);
   if (!fileData || !fileData.fileName) return res.json({ status: "ignored" });
-  
+
   const fileName = path.basename(fileData.fileName);
   const videoPath = path.join(base, fileName);
   const gzPath = videoPath + '.zip';
-  
+
   try {
-    const zipExists = await fs.promises.access(gzPath).then(() => true).catch(() => false);
-    if (zipExists && !ongoingDecompressions.has(videoPath)) {
-      const isFullyOnDisk = await fs.promises.stat(videoPath)
-        .then(s => s.size > 1000000)
-        .catch(() => false);
-          
-      if (!isFullyOnDisk) {
-        log.info(`[Smart Preload] Anticipation de la décompression pour la vidéo : ${fileName}`);
-        const decompressPromise = gunzipFile(gzPath, videoPath);
-        ongoingDecompressions.set(videoPath, decompressPromise);
-        decompressPromise
-          .then(() => ongoingDecompressions.delete(videoPath))
-          .catch((err) => {
-            ongoingDecompressions.delete(videoPath);
-            log.error(`[Smart Preload] Erreur décompression anticipée : ${err.message}`);
-          });
-        return res.json({ status: "started" });
-      }
-    }
-  } catch (e) {}
-  res.json({ status: "ready" });
+    if (!(await fileExists(gzPath))) return res.json({ status: "ready" });
+    const expectedSize = await resolveVideoSize(videoPath, gzPath);
+    const alreadyOnDisk = expectedSize != null && await fs.promises.stat(videoPath)
+      .then(s => s.size >= expectedSize)
+      .catch(() => false);
+    if (alreadyOnDisk) return res.json({ status: "ready" });
+
+    log.info(`[Smart Preload] Anticipation de la décompression pour la vidéo : ${fileName}`);
+    const started = await ensureVideoDecompress(videoPath, gzPath, expectedSize, 'Smart Preload');
+    return res.json({ status: started ? "started" : "ready" });
+  } catch (e) {
+    res.json({ status: "ready" });
+  }
 });
 
 web.get("/video", limiter, async function (req, res) {
@@ -2104,37 +2197,7 @@ web.get("/video", limiter, async function (req, res) {
   if (!videoPath.startsWith(base)) return res.status(400).send("Invalid file path");
 
   const gzPath = videoPath + '.zip';
-
-  const zipExists = await fs.promises.access(gzPath).then(() => true).catch(() => false);
-  let videoSize;
-
-  if (zipExists) {
-    if (videoSizesCache[gzPath]) {
-      videoSize = videoSizesCache[gzPath];
-    } else {
-      try {
-        const zip = new AdmZip(gzPath);
-        const zipEntries = zip.getEntries();
-        if (zipEntries.length > 0) {
-          videoSize = zipEntries[0].header.size;
-          // Sauvegarder dans le cache
-          videoSizesCache[gzPath] = videoSize;
-          fs.writeFile(videoSizesPath, JSON.stringify(videoSizesCache), (err) => {
-            if (err) log.error(`Erreur écriture videoSizes.json : ${err.message}`);
-          });
-        }
-      } catch (zipErr) {
-        log.error(`Impossible de lire la taille du fichier dans le zip : ${zipErr.message}`);
-      }
-    }
-  }
-
-  if (!videoSize) {
-    try {
-      const s = await fs.promises.stat(videoPath);
-      videoSize = s.size;
-    } catch (e) {}
-  }
+  const videoSize = await resolveVideoSize(videoPath, gzPath);
 
   if (!videoSize) {
     return res.status(500).send("Taille de vidéo inconnue.");
@@ -2155,110 +2218,107 @@ web.get("/video", limiter, async function (req, res) {
     return res.status(416).send("Requested Range Not Satisfiable");
   }
 
-  // Vérifier asynchronement si la vidéo est complètement décompressée sur le disque
   let isVideoFullyOnDisk = false;
-  try {
-    const s = await fs.promises.stat(videoPath);
-    isVideoFullyOnDisk = s.size === videoSize;
-  } catch (e) {}
-
-  // Comme on est en localhost, on laisse de gros paquets (25 Mo ou 100 Mo) 
-  // pour s'assurer que l'en-tête MP4 (moov atom) n'est jamais tronqué, 
-  // ce qui cause des erreurs de "réponse tronquée" dans le lecteur.
-  const CHUNK_SIZE = isVideoFullyOnDisk 
-    ? 100 * 10 ** 6 // 100 Mo si le fichier est déjà complet
-    : (start === 0 ? 25 * 10 ** 6 : 5 * 10 ** 6); // 25 Mo au lancement pour sécuriser l'en-tête, puis 5 Mo.
-  
-  let end = !isNaN(clientEnd) ? Math.min(clientEnd, videoSize - 1) : Math.min(start + CHUNK_SIZE, videoSize - 1);
-  if (end - start > CHUNK_SIZE) {
-    end = start + CHUNK_SIZE;
-  }
-
-  // Vérifier la taille actuelle de la vidéo décompressée de manière asynchrone
   let currentSize = 0;
   try {
     const s = await fs.promises.stat(videoPath);
     currentSize = s.size;
+    isVideoFullyOnDisk = s.size >= videoSize;
   } catch (e) {}
 
-  // Si le fichier décompressé n'existe pas ou est incomplet, on s'assure que l'extraction tourne ou qu'il se télécharge
-  if (currentSize < end) {
-    // Relance la décompression si le zip existe. Réévalué à chaque itération :
-    // le downloader peut finir pendant l'attente, créer le zip et supprimer le
-    // mp4 (race condition downloader <-> serveur). Sans ça, la boucle voyait un
-    // fichier disparu, plus aucune croissance, et renvoyait un timeout 500.
-    const ensureDecompress = async () => {
-      const zipOk = await fs.promises.access(gzPath).then(() => true).catch(() => false);
-      if (!zipOk) return false;
-      if (!ongoingDecompressions.has(videoPath)) {
-        try {
-          const decompressPromise = gunzipFile(gzPath, videoPath);
-          ongoingDecompressions.set(videoPath, decompressPromise);
-          decompressPromise.then(() => {
-            ongoingDecompressions.delete(videoPath);
-          }).catch((err) => {
-            ongoingDecompressions.delete(videoPath);
-            log.error(`Erreur de décompression en tâche de fond : ${err.message}`);
-          });
-          // Le worker va réécrire le fichier : on repousse le timeout de croissance
-          noGrowthTime = Date.now();
-          lastWaitSize = 0;
-        } catch (err) {
-          log.error(`Erreur lors du lancement de la décompression asynchrone de ${fileName} : ${err.message}`);
-        }
-      }
-      return true;
-    };
+  // Gros paquets en localhost : l'en-tête MP4 (moov) ne doit jamais être tronqué.
+  // Si le client précise une fin, on la respecte (stream progressif) pour
+  // éviter d'empiler des allers-retours Range de 5 Mo avec attente entre chaque.
+  const CHUNK_SIZE = isVideoFullyOnDisk ? 100 * 10 ** 6 : 25 * 10 ** 6;
 
-    const startTime = Date.now();
-    let noGrowthTime = Date.now();
-    let lastWaitSize = currentSize;
-
-    await ensureDecompress();
-
-    // Attendre que les octets requis soient écrits sur le disque (attente asynchrone et douce de 100ms)
-    // Cela fonctionne aussi bien pour le Worker de décompression que pour le téléchargement via yt-dlp !
-    while (currentSize <= end) {
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      // Re-vérifier le zip : le mp4 peut avoir été supprimé au profit du zip
-      await ensureDecompress();
-
-      try {
-        const s = await fs.promises.stat(videoPath);
-        if (s.size > lastWaitSize) {
-          noGrowthTime = Date.now(); // Réinitialise le timeout si le fichier grandit (téléchargement ou décompression en cours)
-          lastWaitSize = s.size;
-        }
-        currentSize = s.size;
-      } catch (e) {
-        currentSize = 0;
-      }
-
-      if (Date.now() - noGrowthTime > 15000) { 
-        // 15 secondes sans aucun nouvel octet écrit : le téléchargement yt-dlp ou la décompression a probablement échoué/bloqué
-        return res.status(500).send("Timeout de chargement : la taille du fichier n'augmente plus.");
-      }
-      if (Date.now() - startTime > 60000) { 
-        // 60 secondes max pour répondre à la requête du navigateur
-        return res.status(500).send("Timeout global de chargement de la vidéo.");
-      }
-    }
+  let end = !isNaN(clientEnd) ? Math.min(clientEnd, videoSize - 1) : Math.min(start + CHUNK_SIZE, videoSize - 1);
+  if (end - start > CHUNK_SIZE && isVideoFullyOnDisk) {
+    end = start + CHUNK_SIZE;
   }
 
+  // Lancer/relancer la décompression si besoin AVANT d'écrire les octets,
+  // mais on répond tout de suite au lecteur (voir ci-dessous).
+  const needDecompress = currentSize <= end;
+  if (needDecompress) {
+    await ensureVideoDecompress(videoPath, gzPath, videoSize, '/video');
+  }
 
-
+  // En-têtes immédiats : le lecteur n'attend plus la fin du dézip avant le
+  // premier octet. Les données sont streamées dès qu'elles existent sur disque.
   res.writeHead(206, {
     "Content-Range": `bytes ${start}-${end}/${videoSize}`,
     "Accept-Ranges": "bytes",
     "Content-Length": end - start + 1,
     "Content-Type": "video/mp4",
   });
-  
-  // Pour chaque lecture de chunk, on rafraîchit l'inactivité
   decompressedFiles.set(videoPath, Date.now());
 
-  fs.createReadStream(videoPath, { start, end }).pipe(res);
+  let aborted = false;
+  const onClose = () => { aborted = true; };
+  res.on('close', onClose);
+  res.on('error', onClose);
+
+  let pos = start;
+  const startTime = Date.now();
+  let noGrowthTime = Date.now();
+  let lastWaitSize = currentSize;
+
+  try {
+    while (pos <= end && !aborted && !res.destroyed) {
+      let size = 0;
+      try {
+        const s = await fs.promises.stat(videoPath);
+        size = s.size;
+        if (size > lastWaitSize) {
+          noGrowthTime = Date.now();
+          lastWaitSize = size;
+        }
+      } catch (e) {
+        size = 0;
+      }
+
+      if (size > pos) {
+        const chunkEnd = Math.min(end, size - 1);
+        await new Promise((resolve, reject) => {
+          const rs = fs.createReadStream(videoPath, { start: pos, end: chunkEnd });
+          rs.on('error', reject);
+          rs.on('end', resolve);
+          rs.on('data', (chunk) => {
+            if (res.write(chunk)) return;
+            rs.pause();
+            res.once('drain', () => rs.resume());
+          });
+        });
+        pos = chunkEnd + 1;
+        decompressedFiles.set(videoPath, Date.now());
+        // Mp4 peut disparaître (zip concurrent) : on relance si nécessaire
+        if (pos <= end && size < videoSize) {
+          await ensureVideoDecompress(videoPath, gzPath, videoSize, '/video');
+        }
+      } else {
+        // Pas encore d'octets à cette position : décompression/téléchargement
+        await ensureVideoDecompress(videoPath, gzPath, videoSize, '/video');
+        await new Promise(resolve => setTimeout(resolve, 50));
+
+        if (Date.now() - noGrowthTime > 15000) {
+          log.warn(`[Video] Timeout croissance pour ${fileName} (pos=${pos}/${end})`);
+          break;
+        }
+        if (Date.now() - startTime > 60000) {
+          log.warn(`[Video] Timeout global pour ${fileName} (pos=${pos}/${end})`);
+          break;
+        }
+      }
+    }
+  } catch (err) {
+    log.error(`[Video] Erreur streaming ${fileName} : ${err.message}`);
+  } finally {
+    res.off('close', onClose);
+    res.off('error', onClose);
+    if (!res.writableEnded && !res.destroyed) {
+      res.end();
+    }
+  }
 });
 
 web.get("/api/unzip-permanent", async (req, res) => {
