@@ -1,6 +1,6 @@
 import assert from 'node:assert';
 import { test } from 'node:test';
-import { getProxyFor, getHttpsAgent, ytProxyArgs, getChromiumProxyConfig } from '../src/proxy.js';
+import { getProxyFor, getHttpsAgent, ytProxyArgs, ytProxyEnv, getChromiumProxyConfig } from '../src/proxy.js';
 import { createDownloadArgs, createMetadataArgs } from '../src/downloader.js';
 
 // Un seul test séquentiel : bun test exécute les tests en parallèle, un
@@ -29,6 +29,7 @@ test('proxy env: résolution, args yt-dlp, agent https et config Chromium', (t) 
   assert.strictEqual(getHttpsAgent('https://www.youtube.com/'), undefined);
   assert.deepStrictEqual(ytProxyArgs(), []);
   assert.strictEqual(getChromiumProxyConfig(), null);
+  assert.ok(!('HTTPS_PROXY' in ytProxyEnv()) || !ytProxyEnv().HTTPS_PROXY, 'pas d HTTPS_PROXY injecté sans config');
   assert.ok(!createMetadataArgs('https://www.youtube.com/watch?v=dQw4w9WgXcQ', null, 'C:/Dl', '%(title)s').includes('--proxy'));
 
   // 2. HTTPS_PROXY : tout est configuré
@@ -37,6 +38,7 @@ test('proxy env: résolution, args yt-dlp, agent https et config Chromium', (t) 
   assert.strictEqual(getProxyFor('https://www.youtube.com/'), 'http://127.0.0.1:8080');
   assert.deepStrictEqual(ytProxyArgs(), ['--proxy', 'http://127.0.0.1:8080']);
   assert.ok(getHttpsAgent('https://www.youtube.com/'), 'agent https créé');
+  assert.strictEqual(ytProxyEnv().HTTPS_PROXY, 'http://127.0.0.1:8080', 'HTTPS_PROXY injecté pour yt-dlp');
 
   const cfg = getChromiumProxyConfig();
   assert.ok(cfg, 'config Chromium créée');

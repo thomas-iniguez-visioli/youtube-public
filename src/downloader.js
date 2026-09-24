@@ -7,7 +7,7 @@ import binval from "./binaryResolver.js";
 import AdmZip from 'adm-zip';
 import { Worker } from 'worker_threads';
 import { fileURLToPath } from 'url';
-import { ytProxyArgs } from './proxy.js';
+import { ytProxyArgs, ytProxyEnv } from './proxy.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -57,7 +57,7 @@ function runDownload(ytdlpPath, args, logger, onVideoFinished, onProgress, onPro
     if (logger) logger.info(`Executing: "${ytdlpPath}" ${quotedArgs.join(' ')}`);
 
     // Add ytdlp directory to PATH so it can find deno.exe
-    const env = { ...process.env };
+    const env = ytProxyEnv();
     const ytdlpDir = path.dirname(ytdlpPath);
     if (process.platform === 'win32') {
       env.Path = `${ytdlpDir};${env.Path || ''}`;
@@ -186,7 +186,7 @@ function fetchSuggestions(ytdlpPath, query, denoPath) {
     }
     args.push(...ytProxyArgs());
 
-    const env = { ...process.env };
+    const env = ytProxyEnv();
     const ytdlpDir = path.dirname(ytdlpPath);
     if (process.platform === 'win32') {
       env.Path = `${ytdlpDir};${env.Path || ''}`;
