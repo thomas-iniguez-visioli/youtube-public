@@ -57,7 +57,13 @@
                 if (activeStep) {
                     activeStep.classList.remove('step-active');
                     activeStep.style.color = '#28a745'; // Vert bootstrap
-                    activeStep.innerHTML = '✓ ' + activeStep.textContent.replace('➜ ', '').replace('...', '') + ' <span style="font-size:0.75rem; color:#888;">(Terminé)</span>';
+                    const completedText = '✓ ' + activeStep.textContent.replace('➜ ', '').replace('...', '');
+                    activeStep.textContent = completedText + ' ';
+                    const doneSpan = document.createElement('span');
+                    doneSpan.style.fontSize = '0.75rem';
+                    doneSpan.style.color = '#888';
+                    doneSpan.textContent = '(Terminé)';
+                    activeStep.appendChild(doneSpan);
                 }
                 
                 // Créer et ajouter la nouvelle étape active
@@ -67,7 +73,7 @@
                 newStep.style.fontSize = '0.9rem';
                 newStep.style.color = '#ff0000'; // Rouge pour l'étape en cours
                 newStep.style.transition = 'color 0.3s ease';
-                newStep.innerHTML = '➜ ' + status + '...';
+                newStep.textContent = '➜ ' + status + '...';
                 container.appendChild(newStep);
             });
         }
