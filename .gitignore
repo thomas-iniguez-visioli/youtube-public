@@ -27,3 +27,4 @@ video/
 sessions/
 bin/
 
+*.pfx

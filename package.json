@@ -1,6 +1,6 @@
 {
   "name": "youtube",
-  "version": "1.17.0",
+  "version": "1.17.3",
   "type": "module",
   "description": "youtube local",
   "main": "src/index.js",
@@ -51,7 +51,12 @@
   "build": {
     "appId": "com.arbinger.youtube",
     "icon": "src/client-dist/app-icon.png",
+    "files": [
+      "**/*",
+      "!**/*.pfx"
+    ],
     "win": {
+      "publisherName": "CN=spartan_arbinger",
       "target": [
         "NSIS",
         "portable",
