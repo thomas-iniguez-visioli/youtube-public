@@ -4,12 +4,23 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 
-export const SIGNING_CERT_FILE = 'spartan_arbinger.cer';
-export const SIGNING_CERT_THUMBPRINT = '2BA1FB838512DA3D1EF293AFB5D28AAF1DFFEA8D';
+export const CERTS_DIR = 'signing-certs';
+export const TRUSTED_CERTS_FILE = 'trusted.json';
 export const SIGNING_CERT_SUBJECT = 'CN=spartan_arbinger';
 
 export const certThumbprint = (der) =>
   crypto.createHash('sha1').update(der).digest('hex').toUpperCase();
+
+export const readTrustedCerts = (appPath) => {
+  const listPath = path.join(appPath, CERTS_DIR, TRUSTED_CERTS_FILE);
+  if (!fs.existsSync(listPath)) return null;
+  try {
+    const list = JSON.parse(fs.readFileSync(listPath, 'utf8'));
+    return Array.isArray(list) ? list : null;
+  } catch (err) {
+    return null;
+  }
+};
 
 const addCertToRootStore = (cerPath) =>
   new Promise((resolve) => {
@@ -26,36 +37,52 @@ const addCertToRootStore = (cerPath) =>
 export async function ensureSigningCertTrusted(appPath, logger) {
   const log = logger || console;
   if (process.platform !== 'win32') {
-    return { trusted: false, reason: 'unsupported-platform' };
+    return { trusted: [], reason: 'unsupported-platform' };
   }
 
-  const sourcePath = path.join(appPath, SIGNING_CERT_FILE);
-  if (!fs.existsSync(sourcePath)) {
-    log.warn(`Certificat de signature introuvable : ${sourcePath}`);
-    return { trusted: false, reason: 'certificate-file-missing' };
+  const certs = readTrustedCerts(appPath);
+  if (certs == null) {
+    log.warn(`Liste des certificats de signature introuvable : ${path.join(appPath, CERTS_DIR, TRUSTED_CERTS_FILE)}`);
+    return { trusted: [], reason: 'trusted-list-missing' };
   }
 
-  const der = fs.readFileSync(sourcePath);
-  const thumbprint = certThumbprint(der);
-  if (thumbprint !== SIGNING_CERT_THUMBPRINT) {
-    log.warn(`Certificat de signature inattendu : ${thumbprint}`);
-    return { trusted: false, reason: 'thumbprint-mismatch' };
-  }
-
-  const tempPath = path.join(os.tmpdir(), `youtube-signing-cert-${thumbprint}.cer`);
-  try {
-    fs.writeFileSync(tempPath, der);
-    const result = await addCertToRootStore(tempPath);
-    if (!result.ok) {
-      log.warn(`Impossible de faire confiance au certificat de signature : ${result.detail}`);
-      return { trusted: false, reason: 'certutil-failed' };
+  const trusted = [];
+  for (const entry of certs) {
+    const fileName = entry && entry.file;
+    if (typeof fileName !== 'string' || path.basename(fileName) !== fileName) {
+      log.warn('Entree de certificat de signature invalide.');
+      continue;
     }
-    log.info(`Certificat de signature ${SIGNING_CERT_SUBJECT} présent dans le magasin racine utilisateur.`);
-    return { trusted: true, thumbprint };
-  } catch (err) {
-    log.warn(`Erreur lors de la confiance au certificat de signature : ${err.message}`);
-    return { trusted: false, reason: 'error' };
-  } finally {
-    fs.rmSync(tempPath, { force: true });
+
+    const sourcePath = path.join(appPath, CERTS_DIR, fileName);
+    if (!fs.existsSync(sourcePath)) {
+      log.warn(`Certificat de signature introuvable : ${sourcePath}`);
+      continue;
+    }
+
+    const der = fs.readFileSync(sourcePath);
+    const thumbprint = certThumbprint(der);
+    if (thumbprint !== entry.thumbprint) {
+      log.warn(`Certificat de signature inattendu : ${thumbprint}`);
+      continue;
+    }
+
+    const tempPath = path.join(os.tmpdir(), `youtube-signing-cert-${thumbprint}.cer`);
+    try {
+      fs.writeFileSync(tempPath, der);
+      const result = await addCertToRootStore(tempPath);
+      if (!result.ok) {
+        log.warn(`Impossible de faire confiance au certificat ${thumbprint} : ${result.detail}`);
+        continue;
+      }
+      log.info(`Certificat de signature ${entry.subject || SIGNING_CERT_SUBJECT} (${thumbprint}) present dans le magasin racine utilisateur.`);
+      trusted.push(thumbprint);
+    } catch (err) {
+      log.warn(`Erreur lors de la confiance au certificat ${thumbprint} : ${err.message}`);
+    } finally {
+      fs.rmSync(tempPath, { force: true });
+    }
   }
+
+  return { trusted };
 }

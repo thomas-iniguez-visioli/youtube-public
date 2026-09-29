@@ -1,0 +1,138 @@
+name: Rotation du certificat de signature
+
+on:
+  schedule:
+    - cron: '0 4 1 1 *'
+  workflow_dispatch:
+    inputs:
+      cutover:
+        description: 'Basculer WIN_CSC_LINK et WIN_CSC_KEY_PASSWORD apres publication de la release'
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+jobs:
+  rotate:
+    name: Generer et publier le nouveau certificat
+    runs-on: windows-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Generer le certificat
+        id: cert
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+          $bytes = New-Object byte[] 24
+          $rng.GetBytes($bytes)
+          $password = ($bytes | ForEach-Object { $_.ToString('x2') }) -join ''
+          $secure = ConvertTo-SecureString $password -AsPlainText -Force
+          $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject 'CN=spartan_arbinger' -FriendlyName 'spartan_arbinger' -KeyAlgorithm RSA -KeyLength 2048 -HashAlgorithm SHA256 -KeyExportPolicy Exportable -CertStoreLocation 'Cert:\CurrentUser\My' -NotAfter (Get-Date).AddYears(2)
+          $thumb = $cert.Thumbprint
+          New-Item -ItemType Directory -Force -Path signing-certs | Out-Null
+          Export-Certificate -Cert $cert -FilePath (Join-Path 'signing-certs' "$thumb.cer") | Out-Null
+          $pfxPath = Join-Path $env:RUNNER_TEMP 'rotated-signing.pfx'
+          Export-PfxCertificate -Cert $cert -FilePath $pfxPath -Password $secure | Out-Null
+          Set-Content -Path (Join-Path $env:RUNNER_TEMP 'link.b64') -Value ([Convert]::ToBase64String([IO.File]::ReadAllBytes($pfxPath))) -NoNewline -Encoding ascii
+          Set-Content -Path (Join-Path $env:RUNNER_TEMP 'password.txt') -Value $password -NoNewline -Encoding ascii
+          Remove-Item $pfxPath -Force
+          "thumbprint=$thumb" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "file=$thumb.cer" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Ajouter le certificat a la liste de confiance
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $listPath = 'signing-certs/trusted.json'
+          $incoming = '${{ steps.cert.outputs.thumbprint }}'
+          $existing = @()
+          if (Test-Path $listPath) {
+            $existing = @(Get-Content $listPath -Raw | ConvertFrom-Json)
+          }
+          $kept = @($existing | Where-Object { $_.thumbprint -and $_.thumbprint -ne $incoming } | Sort-Object addedAt | Select-Object -Last 2)
+          $kept += [pscustomobject]@{
+            file       = '${{ steps.cert.outputs.file }}'
+            thumbprint = $incoming
+            subject    = 'CN=spartan_arbinger'
+            addedAt    = (Get-Date -Format 'yyyy-MM-dd')
+          }
+          ConvertTo-Json -InputObject @($kept) -Depth 4 | Set-Content -Path $listPath -Encoding utf8
+          Get-Content $listPath
+
+      - name: Incrementer la version
+        shell: pwsh
+        run: |
+          node -e "const fs=require('fs');const raw=fs.readFileSync('package.json','utf8');const p=JSON.parse(raw);const v=p.version.split('.');const patch=Number.parseInt(v[2],10);if(!Number.isFinite(patch))throw new Error('version '+p.version);p.version=v[0]+'.'+v[1]+'.'+(patch+1);fs.writeFileSync('package.json',JSON.stringify(p,null,2)+(raw.endsWith('\n')?'\n':''));console.log('nouvelle version '+p.version)"
+
+      - name: Publier la confiance du nouveau certificat
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add signing-certs package.json
+          git status --short
+          git commit -m "chore: rotation du certificat de signature"
+          git push
+
+      - name: Attendre la release signee avec le certificat actuel
+        id: wait
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+        run: |
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          for ($i = 0; $i -lt 120; $i++) {
+            $raw = gh release view "v$version" --json assets,isDraft 2>$null
+            if ($LASTEXITCODE -eq 0 -and $raw) {
+              $info = $raw | ConvertFrom-Json
+              if (-not $info.isDraft -and $info.assets.Count -ge 2) {
+                "etat=publiee" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                exit 0
+              }
+            }
+            Start-Sleep -Seconds 30
+          }
+          "etat=timeout" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          throw "La release v$version n'a pas ete publiee en 60 minutes, cutover annule"
+
+      - name: Basculer le signing sur le nouveau certificat
+        id: cutover
+        if: ${{ github.event_name == 'schedule' || inputs.cutover }}
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          cmd /c "type `"$env:RUNNER_TEMP\link.b64`" | gh secret set WIN_CSC_LINK -R $env:GITHUB_REPOSITORY"
+          if ($LASTEXITCODE -ne 0) { throw 'echec de mise a jour de WIN_CSC_LINK' }
+          cmd /c "type `"$env:RUNNER_TEMP\password.txt`" | gh secret set WIN_CSC_KEY_PASSWORD -R $env:GITHUB_REPOSITORY"
+          if ($LASTEXITCODE -ne 0) { throw 'echec de mise a jour de WIN_CSC_KEY_PASSWORD' }
+          Remove-Item (Join-Path $env:RUNNER_TEMP 'link.b64'), (Join-Path $env:RUNNER_TEMP 'password.txt') -Force
+          Write-Host 'Secrets bascules sur le nouveau certificat'
+
+      - name: Resume
+        if: always()
+        shell: pwsh
+        run: |
+          $lines = @(
+            '### Rotation du certificat de signature',
+            '',
+            '| Champ | Valeur |',
+            '| --- | --- |',
+            '| Nouveau certificat | ${{ steps.cert.outputs.thumbprint }} |',
+            '| Fichier publie | ${{ steps.cert.outputs.file }} |',
+            '| Release attendue | v${{ steps.wait.outputs.version }} |',
+            '| Etat release | ${{ steps.wait.outputs.etat }} |',
+            '| Cutover secrets | ${{ steps.cutover.outcome }} |'
+          )
+          $lines | Add-Content -Path $env:GITHUB_STEP_SUMMARY
