@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.17.1] - 2026-09-24
+### Corrigé
+- **Ordre des arguments de téléchargement yt-dlp** : Repositionnement de l'indicateur de fin d'options `'--'` et du paramètre d'URL à la fin exacte de la liste des arguments dans `createDownloadArgs` et `createMetadataArgs`. Cela garantit que les options conditionnelles (`--ffmpeg-location`, `--js-runtimes`, `--proxy`) sont correctement analysées par `yt-dlp` en tant qu'options et non plus traitées comme des URLs à télécharger.
+
 ## [1.16.4] - 2026-08-28
 ### Optimisé
 - **Migration vers SQLite (node:sqlite)** : Remplacement complet de la base de données JSON (`db.js`) par une implémentation SQLite asynchrone utilisant le module natif `node:sqlite`. Cette refonte élimine les pics de RAM et les micro-gels liés à `JSON.stringify` sur l'ensemble du catalogue.

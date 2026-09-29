@@ -33,8 +33,7 @@ function createDownloadArgs(parameter, ffmpegDir, storagePath, outputFileFormat,
     '--write-playlist-metafiles',
     '--parse-metadata', 'playlist_title:.+ - (?P<folder_name>Videos|Shorts|Live)$',
     '--postprocessor-args', 'ffmpeg:-preset superfast',
-    '-o', path.join(storagePath, outputFileFormat),'--',
-    parameter
+    '-o', path.join(storagePath, outputFileFormat)
   ];
   if (ffmpegDir) {
     args.push('--ffmpeg-location', ffmpegDir);
@@ -43,6 +42,7 @@ function createDownloadArgs(parameter, ffmpegDir, storagePath, outputFileFormat,
     args.push('--js-runtimes', `deno:${denoPath}`);
   }
   args.push(...ytProxyArgs());
+  args.push('--', parameter);
   return args;
 }
 
@@ -157,8 +157,7 @@ function createMetadataArgs(parameter, ffmpegDir, storagePath, outputFileFormat,
     '--write-playlist-metafiles',
     '--parse-metadata', 'playlist_title:.+ - (?P<folder_name>Videos|Shorts|Live)$',
     '-o', path.join(storagePath, outputFileFormat),
-    '-J','--',
-    parameter
+    '-J'
   ];
   if (ffmpegDir) {
     args.push('--ffmpeg-location', ffmpegDir);
@@ -167,6 +166,7 @@ function createMetadataArgs(parameter, ffmpegDir, storagePath, outputFileFormat,
     args.push('--js-runtimes', `deno:${denoPath}`);
   }
   args.push(...ytProxyArgs());
+  args.push('--', parameter);
   return args;
 }
 
