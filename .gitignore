@@ -10,6 +10,7 @@ dist/*
 test-logrocket.js
 rollbar.config.js
 rollbar.config.cjs
+launchdarkly.config.cjs
 
 # User data and config
 database.json

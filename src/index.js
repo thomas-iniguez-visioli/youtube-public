@@ -34,6 +34,16 @@ const pkg = require('../package.json');
 const rollbarConfig = require('../rollbar.config.cjs');
 log.info('Rollbar config loaded:', rollbarConfig ? 'Yes' : 'No');
 const Rollbar = require('rollbar');
+// launchdarkly.config.cjs est ignore par git et genere en CI (voir README).
+// Son absence ne doit pas empecher l'application de demarrer.
+let launchDarklyConfig = null;
+try {
+  launchDarklyConfig = require('../launchdarkly.config.cjs');
+} catch {
+  log.warn('launchdarkly.config.cjs absent : LaunchDarkly est desactive.');
+}
+log.info('LaunchDarkly config loaded:', launchDarklyConfig ? 'Yes' : 'No');
+const LDElectron = require('launchdarkly-electron-client-sdk');
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -64,6 +74,29 @@ try {
 }
 
 const rollbar = new Rollbar(rollbarConfig);
+
+// Client LaunchDarkly (processus principal). Les fenêtres de rendu peuvent
+// obtenir un client miroir via LDElectron.initializeInRenderer().
+let ldClient = null;
+if (launchDarklyConfig && launchDarklyConfig.clientSideId) {
+  try {
+    ldClient = LDElectron.initializeInMain(
+      launchDarklyConfig.clientSideId,
+      { anonymous: true },
+      {}
+    );
+    ldClient.on('ready', () => {
+      log.info('LaunchDarkly client ready');
+    });
+    ldClient.on('error', (err) => {
+      log.error(`LaunchDarkly error: ${err.message}`);
+    });
+  } catch (err) {
+    log.error(`Echec de l'initialisation de LaunchDarkly : ${err.message}`);
+  }
+} else {
+  log.info('LaunchDarkly desactive : clientSideId absent.');
+}
 
 // Gestionnaire d'erreurs globales (zone blanche) pour transmission à Rollbar
 process.on('uncaughtException', (err) => {
