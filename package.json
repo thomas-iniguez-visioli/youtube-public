@@ -56,17 +56,19 @@
       "**/*",
       "!**/*.pfx"
     ],
-    "win": {
-      "publisherName": "CN=spartan_arbinger",
-      "target": [
-        "NSIS",
-        "portable",
-        "zip"
-      ],
-      "publish": [
-        "github"
-      ]
-    },
+   "win": {
+  "signtoolOptions": {
+    "publisherName": ["spartan_arbinger"]
+  },
+  "target": [
+    "nsis",
+    "portable",
+    "zip"
+  ],
+  "publish": [
+    "github"
+  ]
+},
     "mac": {
       "target": "dmg",
       "publish": [
