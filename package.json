@@ -11,7 +11,8 @@
     "postpush": "gh signoff",
     "start": "bun x @tailwindcss/cli -i src/client-dist/tailwind-input.css -o src/client-dist/tailwind.css && electron .",
     "test": "bun test ./tests/*.test.js",
-    "dist": "cmd /c \"set WIN_CSC_LINK=spartan_arbinger.pfx&& electron-builder --win\""
+    "dist": "electron-builder --win",
+"dist:local": "cmd /c \"set WIN_CSC_LINK=spartan_arbinger.pfx&& electron-builder --win\""
   },
   "dependencies": {
     "adm-zip": "^0.6.1",
