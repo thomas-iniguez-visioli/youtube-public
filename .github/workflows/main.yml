@@ -60,7 +60,20 @@ jobs:
 
       - name: Install dependencies
         run: bun install
-
+      - name: Setup LaunchDarkly config
+        shell: bash
+        env:
+          LD_CLIENT_ID: ${{ secrets.LAUNCHDARKLY_CLIENT_ID }}
+        run: |
+          if [ -z "$LD_CLIENT_ID" ]; then
+            echo "::warning::LAUNCHDARKLY_CLIENT_ID est vide, les feature flags utiliseront les valeurs par défaut"
+          fi
+          cat > launchdarkly.config.cjs <<EOF
+          module.exports = {
+            clientSideId: '${LD_CLIENT_ID}',
+            environment: 'production',
+          };
+          EOF
       - name: Setup Rollbar config
         run: |
          echo "module.exports = {
