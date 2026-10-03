@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.17.8",
+    "date": "2026-10-02",
+    "categories": {
+      "Corrigé": [
+        "**Réparation de la liaison LaunchDarkly** : Création d'un module centralisé `src/launchdarkly.js` qui initialise proprement le client SDK `launchdarkly-electron-client-sdk` avec un objet utilisateur valide (`{ key: 'anonymous-user', anonymous: true }`). Exposition des feature flags via des handlers IPC (`get-feature-flag`, `get-all-flags`), l'API preload Electron et des routes API Express (`/api/flags` et `/api/flags/:key`)."
+      ]
+    }
+  },
+  {
     "version": "1.17.1",
     "date": "2026-09-24",
     "categories": {

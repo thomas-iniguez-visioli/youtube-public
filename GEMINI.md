@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [1.17.8] - 2026-10-02
+### Corrigé
+- **Réparation de la liaison LaunchDarkly** : Création d'un module centralisé `src/launchdarkly.js` qui initialise proprement le client SDK `launchdarkly-electron-client-sdk` avec un objet utilisateur valide (`{ key: 'anonymous-user', anonymous: true }`). Exposition des feature flags via des handlers IPC (`get-feature-flag`, `get-all-flags`), l'API preload Electron et des routes API Express (`/api/flags` et `/api/flags/:key`).
+
 ## [1.17.1] - 2026-09-24
 ### Corrigé
 - **Ordre des arguments de téléchargement yt-dlp** : Repositionnement de l'indicateur de fin d'options `'--'` et du paramètre d'URL à la fin exacte de la liste des arguments dans `createDownloadArgs` et `createMetadataArgs`. Cela garantit que les options conditionnelles (`--ffmpeg-location`, `--js-runtimes`, `--proxy`) sont correctement analysées par `yt-dlp` en tant qu'options et non plus traitées comme des URLs à télécharger.
