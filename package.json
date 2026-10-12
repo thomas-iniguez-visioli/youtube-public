@@ -26,7 +26,7 @@
     "express": "^5.2.1",
     "express-rate-limit": "^7.5.0",
     "helmet": "^8.3.0",
-    "https-proxy-agent": "^7.0.6",
+    "https-proxy-agent": "^9.0.0",
     "launchdarkly-electron-client-sdk": "^1.7.0",
     "morgan": "^1.12.1",
     "proxy-from-env": "^2.1.0",
