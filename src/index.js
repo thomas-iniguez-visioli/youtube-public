@@ -29,7 +29,7 @@ let io = null;
 
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 
-import { initLaunchDarkly, getLDClient, getFeatureFlag, getAllFeatureFlags } from './launchdarkly.js';
+import { initLaunchDarkly, getLDClient, getFeatureFlag, getAllFeatureFlags, disableLaunchDarkly, isLaunchDarklyEnabled } from './launchdarkly.js';
 
 const require = createRequire(import.meta.url);
 const pkg = require('../package.json');
@@ -37,7 +37,13 @@ const rollbarConfig = require('../rollbar.config.cjs');
 log.info('Rollbar config loaded:', rollbarConfig ? 'Yes' : 'No');
 const Rollbar = require('rollbar');
 
-initLaunchDarkly();
+initLaunchDarkly()
+  .then(() => {
+    if (!isLaunchDarklyEnabled()) {
+      log.warn('LaunchDarkly indisponible : feature flags servis depuis le cache/local.');
+    }
+  })
+  .catch((err) => log.error(`LaunchDarkly indisponible : ${err.message}`));
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -796,14 +802,14 @@ const downloadbacklog = (parameter) => {
     
     const ytdlpPath = binaryResolver.ytdlp;
     const ffmpegDir = binaryResolver.ffmpegDir;
-    const denoPath = binaryResolver.deno;
+    const qjsPath = binaryResolver.qjs;
 
     if (!ytdlpPath) {
       log.error('yt-dlp non trouvé');
       return reject(new Error('yt-dlp non trouvé'));
     }
 
-    const args = createDownloadArgs(parameter, ffmpegDir, config.storagePath, config.outputFileFormat, denoPath);
+    const args = createDownloadArgs(parameter, ffmpegDir, config.storagePath, config.outputFileFormat, qjsPath);
 
     const logger = {
       info: (msg) => {
@@ -941,7 +947,7 @@ const downloadbacklog = (parameter) => {
 const downloaddata = (parameter) => {
   const ytdlpPath = binaryResolver.ytdlp;
   const ffmpegDir = binaryResolver.ffmpegDir;
-  const denoPath = binaryResolver.deno;
+  const qjsPath = binaryResolver.qjs;
 
   if (!ytdlpPath) return;
 
@@ -957,7 +963,7 @@ const downloaddata = (parameter) => {
     }
   }
 
-  const args = createMetadataArgs(parameter, ffmpegDir, config.storagePath, config.outputFileFormat, denoPath);
+  const args = createMetadataArgs(parameter, ffmpegDir, config.storagePath, config.outputFileFormat, qjsPath);
   
   runDownload(ytdlpPath, args, { info: (msg) => log.info(`Metadata Update: ${msg}`) })
     .then(async () => {
@@ -1123,18 +1129,19 @@ async function build() {
   const online = await isOnline();
   if (!online) {
     log.warn('Hors-ligne : téléchargement des binaires ignoré.');
+    // LaunchDarkly est un service cloud : pas de réseau, pas d'appels SDK.
+    disableLaunchDarkly('hors-ligne au démarrage');
     const validation = await binaryResolver.validateBinaries();
     log.info('Binary validation results (offline):', validation);
     if (isNewVersion) fs.writeFileSync(versionFilePath, currentVersion);
     return;
   }
 
-  const denoBinary = process.platform === 'win32' ? 'deno.exe' : 'deno';
-  const denoPath = path.join(app.getPath('userData'), denoBinary);
-  const denoUrl = process.platform === 'win32'
-    ? 'https://github.com/denoland/deno/releases/latest/download/deno-x86_64-pc-windows-msvc.zip'
-    : 'https://github.com/denoland/deno/releases/latest/download/deno-x86_64-unknown-linux-gnu.zip';
-  const denoZipPath = path.join(app.getPath('userData'), 'deno.zip');
+  const qjsBinary = process.platform === 'win32' ? 'qjs.exe' : 'qjs';
+  const qjsPath = path.join(app.getPath('userData'), qjsBinary);
+  const qjsUrl = process.platform === 'win32'
+    ? 'https://github.com/quickjs-ng/quickjs/releases/latest/download/qjs-windows-x86_64.exe'
+    : 'https://github.com/quickjs-ng/quickjs/releases/latest/download/qjs-linux-x86_64';
 
   const ffmpegZipUrl = process.platform === 'win32'
     ? 'https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip'
@@ -1162,7 +1169,7 @@ async function build() {
       ytdlpPath, isNewVersion
     ));
   }
-  if (!fs.existsSync(denoPath))    downloads.push(updateFile(denoUrl,      denoZipPath,   false));
+  if (!fs.existsSync(qjsPath)) downloads.push(updateFile(qjsUrl, qjsPath, false));
   if (!fs.existsSync(ffmpegExePath)) downloads.push(updateFile(ffmpegZipUrl, ffmpegZipPath, false));
 
   try {
@@ -1203,12 +1210,20 @@ async function build() {
       }
     }
 
-    // Extraction Deno si nécessaire
-    if (fs.existsSync(denoZipPath) && !fs.existsSync(denoPath)) {
-      log.info('Extraction de Deno...');
-      const unzipper = require('unzipper');
-      await fs.createReadStream(denoZipPath).pipe(unzipper.Extract({ path: app.getPath('userData') })).promise();
-      if (fs.existsSync(denoPath) && process.platform !== 'win32') fs.chmodSync(denoPath, '755');
+    // Droits d'exécution de QuickJS (binaires Linux/macOS livrés sans +x)
+    if (fs.existsSync(qjsPath) && process.platform !== 'win32') fs.chmodSync(qjsPath, '755');
+
+    // Nettoyage de l'ancien runner Deno remplacé par QuickJS
+    for (const legacy of ['deno.exe', 'deno.zip', 'deno']) {
+      const legacyPath = path.join(app.getPath('userData'), legacy);
+      if (fs.existsSync(legacyPath)) {
+        try {
+          fs.rmSync(legacyPath, { force: true });
+          log.info(`Ancien binaire Deno supprimé : ${legacy}`);
+        } catch (e) {
+          log.warn(`Impossible de supprimer l'ancien binaire Deno (${legacy}) : ${e.message}`);
+        }
+      }
     }
 
     if (isNewVersion) fs.writeFileSync(versionFilePath, currentVersion);
@@ -1635,7 +1650,7 @@ web.get("/api/related", async function (req, res) {
   const title = req.query.title || "";
   const uploader = req.query.uploader || "";
   const ytdlpPath = binaryResolver.ytdlp;
-  const denoPath = binaryResolver.deno;
+  const qjsPath = binaryResolver.qjs;
   if (!title || !ytdlpPath) {
     return res.json([]);
   }
@@ -1646,7 +1661,7 @@ web.get("/api/related", async function (req, res) {
     
     let rawResults = suggestionCache.get(cacheKey);
     if (!rawResults) {
-      rawResults = await fetchSuggestions(ytdlpPath, query, denoPath);
+      rawResults = await fetchSuggestions(ytdlpPath, query, qjsPath);
       suggestionCache.set(cacheKey, rawResults);
     }
     
@@ -1661,7 +1676,7 @@ web.get("/api/related", async function (req, res) {
 web.get("/api/remixes", async function (req, res) {
   const title = req.query.title || "";
   const ytdlpPath = binaryResolver.ytdlp;
-  const denoPath = binaryResolver.deno;
+  const qjsPath = binaryResolver.qjs;
   if (!title || !ytdlpPath) {
     return res.json([]);
   }
@@ -1672,7 +1687,7 @@ web.get("/api/remixes", async function (req, res) {
     
     let rawResults = suggestionCache.get(cacheKey);
     if (!rawResults) {
-      rawResults = await fetchSuggestions(ytdlpPath, query, denoPath);
+      rawResults = await fetchSuggestions(ytdlpPath, query, qjsPath);
       suggestionCache.set(cacheKey, rawResults);
     }
     
@@ -1864,13 +1879,13 @@ web.get("/patchnotes", function (req, res) {
 web.get("/suggestions", async function (req, res) {
   const query = req.query.q || "youtube trending";
   const ytdlpPath = binaryResolver.ytdlp;
-  const denoPath = binaryResolver.deno;
+  const qjsPath = binaryResolver.qjs;
   let results = [];
   let errorMsg = null;
 
   if (ytdlpPath) {
     try {
-      const rawResults = await fetchSuggestions(ytdlpPath, query, denoPath);
+      const rawResults = await fetchSuggestions(ytdlpPath, query, qjsPath);
       results = rawResults.filter(video => !db.getFile(video.id));
     } catch (e) {
       log.error(`Erreur suggestions: ${e.message}`);

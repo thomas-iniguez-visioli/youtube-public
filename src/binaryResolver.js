@@ -16,7 +16,7 @@ const isWin = process.platform === 'win32';
 const BINARIES = {
   ytdlp: isWin ? 'ytdlp.exe' : 'ytdlp',
   ffmpeg: isWin ? 'ffmpeg.exe' : 'ffmpeg',
-  deno: isWin ? 'deno.exe' : 'deno'
+  qjs: isWin ? 'qjs.exe' : 'qjs'
 };
 
 function resolvePath(name) {
@@ -60,8 +60,8 @@ const binaryResolver = {
   get ffmpeg() {
     return resolvePath('ffmpeg');
   },
-  get deno() {
-    return resolvePath('deno');
+  get qjs() {
+    return resolvePath('qjs');
   },
   get ffmpegDir() {
     const fPath = this.ffmpeg;
@@ -85,7 +85,7 @@ const binaryResolver = {
     return {
       ytdlp: await validate(this.ytdlp),
       ffmpeg: await validate(this.ffmpeg),
-      deno: await validate(this.deno)
+      qjs: await validate(this.qjs)
     };
   }
 };

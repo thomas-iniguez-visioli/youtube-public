@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.17.8-1",
+    "date": "2026-10-13",
+    "categories": {
+      "Changé": [
+        "**Runner JavaScript de yt-dlp : Deno remplacé par QuickJS** : Le runner téléchargé automatiquement est désormais `qjs` (quickjs-ng, binaire unique de ~2 Mo sans archive à extraire) au lieu de Deno. `binaryResolver` expose `qjs`, et les arguments yt-dlp passent désormais par `--no-js-runtimes --js-runtimes quickjs:<chemin>` : l'indicateur `--no-js-runtimes` est indispensable car Deno est le runtime activé par défaut par yt-dlp et primerait sur QuickJS (priorité plus basse). Les anciens fichiers `deno` / `deno.exe` / `deno.zip` du dossier de données sont nettoyés au démarrage."
+      ],
+      "Ajouté": [
+        "**LaunchDarkly désactivé quand il est indisponible** : `src/launchdarkly.js` bascule en mode désactivé dès qu'il ne peut pas fonctionner : configuration absente ou `clientSideId` vide, paquet SDK injoignable, ou échecs réseau au-delà des 5 tentatives. La désactivation ferme le client SDK, annule les tentatives de reconnexion et n'autorise plus aucune requête réseau ; les feature flags retombent sur le cache local puis sur les valeurs par défaut. L'application désactive aussi LaunchDarkly au démarrage hors-ligne, et le cache bascule en mémoire si `electron-json-storage` est absent."
+      ]
+    }
+  },
+  {
     "version": "1.17.8",
     "date": "2026-10-02",
     "categories": {

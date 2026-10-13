@@ -14,7 +14,7 @@ async function test() {
     console.log('Resolved Paths:');
     console.log('ytdlp:', binaryResolver.ytdlp);
     console.log('ffmpeg:', binaryResolver.ffmpeg);
-    console.log('deno:', binaryResolver.deno);
+    console.log('qjs:', binaryResolver.qjs);
     console.log('ffmpegDir:', binaryResolver.ffmpegDir);
 
     console.log('\nValidating Binaries...');

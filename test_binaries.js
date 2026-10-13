@@ -4,7 +4,7 @@ async function test() {
   console.log('Resolving binaries...');
   console.log('ytdlp:', binaryResolver.ytdlp);
   console.log('ffmpeg:', binaryResolver.ffmpeg);
-  console.log('deno:', binaryResolver.deno);
+  console.log('qjs:', binaryResolver.qjs);
   console.log('ffmpegDir:', binaryResolver.ffmpegDir);
 
   const validation = await binaryResolver.validateBinaries();

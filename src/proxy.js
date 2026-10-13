@@ -27,7 +27,7 @@ function getProxyFor(targetUrl) {
 }
 
 // Agent https pour appels Node (https.get / https.request).
-// Couvre aussi le téléchargement des binaires (yt-dlp/ffmpeg/deno) via updater.
+// Couvre aussi le téléchargement des binaires (yt-dlp/ffmpeg/qjs) via updater.
 // Retourne undefined si aucun proxy : comportement direct inchangé.
 function getHttpsAgent(targetUrl) {
   const proxy = proxyFor(targetUrl);

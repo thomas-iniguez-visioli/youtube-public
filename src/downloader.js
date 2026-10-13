@@ -22,7 +22,7 @@ function getBrowserForCookies() {
   return 'chrome';
 }
 
-function createDownloadArgs(parameter, ffmpegDir, storagePath, outputFileFormat, denoPath) {
+function createDownloadArgs(parameter, ffmpegDir, storagePath, outputFileFormat, qjsPath) {
   const args = [
     '--merge-output-format', 'mp4',
     '--update',
@@ -38,8 +38,11 @@ function createDownloadArgs(parameter, ffmpegDir, storagePath, outputFileFormat,
   if (ffmpegDir) {
     args.push('--ffmpeg-location', ffmpegDir);
   }
-  if (denoPath && fs.existsSync(denoPath)) {
-    args.push('--js-runtimes', `deno:${denoPath}`);
+  if (qjsPath && fs.existsSync(qjsPath)) {
+    // --no-js-runtimes désactive deno (activé par défaut par yt-dlp, y compris
+    // s'il est installé sur la machine ou laissé dans userData), sinon il
+    // primerait sur quickjs qui est un runtime de priorité inférieure.
+    args.push('--no-js-runtimes', '--js-runtimes', `quickjs:${qjsPath}`);
   }
   args.push(...ytProxyArgs());
   args.push('--', parameter);
@@ -56,7 +59,7 @@ function runDownload(ytdlpPath, args, logger, onVideoFinished, onProgress, onPro
     
     if (logger) logger.info(`Executing: "${ytdlpPath}" ${quotedArgs.join(' ')}`);
 
-    // Add ytdlp directory to PATH so it can find deno.exe
+    // Add ytdlp directory to PATH so it can find qjs.exe
     const env = ytProxyEnv();
     const ytdlpDir = path.dirname(ytdlpPath);
     if (process.platform === 'win32') {
@@ -146,7 +149,7 @@ function runDownload(ytdlpPath, args, logger, onVideoFinished, onProgress, onPro
   });
 }
 
-function createMetadataArgs(parameter, ffmpegDir, storagePath, outputFileFormat, denoPath) {
+function createMetadataArgs(parameter, ffmpegDir, storagePath, outputFileFormat, qjsPath) {
   const args = [
     '--write-info-json',
     '--newline',
@@ -162,15 +165,18 @@ function createMetadataArgs(parameter, ffmpegDir, storagePath, outputFileFormat,
   if (ffmpegDir) {
     args.push('--ffmpeg-location', ffmpegDir);
   }
-  if (denoPath && fs.existsSync(denoPath)) {
-    args.push('--js-runtimes', `deno:${denoPath}`);
+  if (qjsPath && fs.existsSync(qjsPath)) {
+    // --no-js-runtimes désactive deno (activé par défaut par yt-dlp, y compris
+    // s'il est installé sur la machine ou laissé dans userData), sinon il
+    // primerait sur quickjs qui est un runtime de priorité inférieure.
+    args.push('--no-js-runtimes', '--js-runtimes', `quickjs:${qjsPath}`);
   }
   args.push(...ytProxyArgs());
   args.push('--', parameter);
   return args;
 }
 
-function fetchSuggestions(ytdlpPath, query, denoPath) {
+function fetchSuggestions(ytdlpPath, query, qjsPath) {
   return new Promise((resolve, reject) => {
     if (!ytdlpPath || (!fs.existsSync(ytdlpPath) && !ytdlpPath.includes('/') && !ytdlpPath.includes('\\'))) {
       // Si le binaire n'existe pas et n'est pas un chemin absolu/relatif, on rejette directement
@@ -181,8 +187,8 @@ function fetchSuggestions(ytdlpPath, query, denoPath) {
       '--dump-single-json',
       `ytsearch24:${query}`
     ];
-    if (denoPath && fs.existsSync(denoPath)) {
-      args.push('--js-runtimes', `deno:${denoPath}`);
+    if (qjsPath && fs.existsSync(qjsPath)) {
+      args.push('--no-js-runtimes', '--js-runtimes', `quickjs:${qjsPath}`);
     }
     args.push(...ytProxyArgs());
 

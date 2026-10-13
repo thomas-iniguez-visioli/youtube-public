@@ -1,5 +1,11 @@
 # Gemini CLI - Journal des modifications
 
+## [1.17.8-1] - 2026-10-13
+### Changé
+- **Runner JavaScript de yt-dlp : Deno remplacé par QuickJS** : Le runner téléchargé automatiquement est désormais `qjs` (quickjs-ng, binaire unique de ~2 Mo sans archive à extraire) au lieu de Deno. `binaryResolver` expose `qjs`, et `createDownloadArgs` / `createMetadataArgs` / `fetchSuggestions` passent désormais `--no-js-runtimes --js-runtimes quickjs:<chemin>` : l'indicateur `--no-js-runtimes` est indispensable car Deno est le runtime activé par défaut par yt-dlp et primerait sur QuickJS (priorité plus basse). Les anciens fichiers `deno` / `deno.exe` / `deno.zip` du dossier de données sont nettoyés au démarrage.
+### Ajouté
+- **LaunchDarkly désactivé quand il est indisponible** : `src/launchdarkly.js` bascule en mode désactivé dès qu'il ne peut pas fonctionner : `launchdarkly.config.cjs` absent ou `clientSideId` vide, paquet `launchdarkly-electron-client-sdk` injoignable, ou échecs réseau au-delà des 5 tentatives (backoff). La désactivation ferme le client SDK, annule les tentatives de reconnexion et n'autorise plus aucune requête réseau ; les feature flags retombent alors sur le cache local puis sur les valeurs par défaut. Export de `disableLaunchDarkly()`, `isLaunchDarklyEnabled()` et `getLaunchDarklyStatus()` ; l'application désactive aussi LaunchDarkly au démarrage hors-ligne, et le cache bascule en mémoire si `electron-json-storage` est absent.
+
 ## [1.17.8] - 2026-10-02
 ### Corrigé
 - **Réparation de la liaison LaunchDarkly** : Création d'un module centralisé `src/launchdarkly.js` qui initialise proprement le client SDK `launchdarkly-electron-client-sdk` avec un objet utilisateur valide (`{ key: 'anonymous-user', anonymous: true }`). Exposition des feature flags via des handlers IPC (`get-feature-flag`, `get-all-flags`), l'API preload Electron et des routes API Express (`/api/flags` et `/api/flags/:key`).
