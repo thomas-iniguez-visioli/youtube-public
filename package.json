@@ -19,7 +19,7 @@
     "axios": "^1.20.0",
     "cors": "^2.8.6",
     "cross-spawn": "^7.0.6",
-    "ejs": "^3.1.10",
+    "ejs": "^7.0.0",
     "electron-log": "^5.2.4",
     "electron-updater": "^6.8.9",
     "escape-html": "^1.0.3",
