@@ -1,6 +1,6 @@
 {
   "name": "youtube",
-  "version": "1.17.8-1",
+  "version": "1.17.8",
   "type": "module",
   "description": "youtube local",
   "main": "src/index.js",
@@ -12,7 +12,7 @@
     "start": "bun x @tailwindcss/cli -i src/client-dist/tailwind-input.css -o src/client-dist/tailwind.css && electron .",
     "test": "bun test ./tests/*.test.js",
     "dist": "electron-builder --win",
-"dist:local": "cmd /c \"set WIN_CSC_LINK=spartan_arbinger.pfx&& electron-builder --win\""
+    "dist:local": "cmd /c \"set WIN_CSC_LINK=spartan_arbinger.pfx&& electron-builder --win\""
   },
   "dependencies": {
     "adm-zip": "^0.6.1",
@@ -57,19 +57,21 @@
       "**/*",
       "!**/*.pfx"
     ],
-   "win": {
-  "signtoolOptions": {
-    "publisherName": ["spartan_arbinger"]
-  },
-  "target": [
-    "nsis",
-    "portable",
-    "zip"
-  ],
-  "publish": [
-    "github"
-  ]
-},
+    "win": {
+      "signtoolOptions": {
+        "publisherName": [
+          "spartan_arbinger"
+        ]
+      },
+      "target": [
+        "nsis",
+        "portable",
+        "zip"
+      ],
+      "publish": [
+        "github"
+      ]
+    },
     "mac": {
       "target": "dmg",
       "publish": [
