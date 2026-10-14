@@ -33,7 +33,7 @@
     "rollbar": "^4.0.0",
     "socket.io": "^4.4.1",
     "unzipper": "^0.12.3",
-    "uuid": "^14.0.0"
+    "uuid": "^14.0.2"
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4.3.3",
