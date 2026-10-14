@@ -24,7 +24,7 @@
     "electron-updater": "^6.8.9",
     "escape-html": "^1.0.3",
     "express": "^5.2.1",
-    "express-rate-limit": "^7.5.0",
+    "express-rate-limit": "^8.0.0",
     "helmet": "^8.3.0",
     "https-proxy-agent": "^7.0.6",
     "launchdarkly-electron-client-sdk": "^1.7.0",
