@@ -4,5 +4,11 @@
     "thumbprint": "2BA1FB838512DA3D1EF293AFB5D28AAF1DFFEA8D",
     "subject": "CN=spartan_arbinger",
     "addedAt": "2026-09-29"
+  },
+  {
+    "file": "FAF8C6F36206BB586CDF75D28DA0EC885152B766.cer",
+    "thumbprint": "FAF8C6F36206BB586CDF75D28DA0EC885152B766",
+    "subject": "CN=spartan_arbinger",
+    "addedAt": "2026-10-14"
   }
 ]
