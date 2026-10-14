@@ -19,33 +19,105 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 120
     steps:
+      - name: Activer les chemins longs Git
+        shell: pwsh
+        run: git config --global core.longpaths true
+
       - name: Checkout
         uses: actions/checkout@v7
         with:
           token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Generer le certificat
         id: cert
         shell: pwsh
+        env:
+          PREV_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          PREV_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
         run: |
           $ErrorActionPreference = 'Stop'
+
           $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
           $bytes = New-Object byte[] 24
           $rng.GetBytes($bytes)
           $password = ($bytes | ForEach-Object { $_.ToString('x2') }) -join ''
           $secure = ConvertTo-SecureString $password -AsPlainText -Force
-          $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject 'CN=spartan_arbinger' -FriendlyName 'spartan_arbinger' -KeyAlgorithm RSA -KeyLength 2048 -HashAlgorithm SHA256 -KeyExportPolicy Exportable -CertStoreLocation 'Cert:\CurrentUser\My' -NotAfter (Get-Date).AddYears(2)
+
+          $signer = $null
+          if ($env:PREV_CSC_LINK -and $env:PREV_CSC_KEY_PASSWORD) {
+            $prevPfxPath = Join-Path $env:RUNNER_TEMP 'previous-signing.pfx'
+            [IO.File]::WriteAllBytes($prevPfxPath, [Convert]::FromBase64String($env:PREV_CSC_LINK))
+            $prevSecure = ConvertTo-SecureString $env:PREV_CSC_KEY_PASSWORD -AsPlainText -Force
+            $signer = Import-PfxCertificate -FilePath $prevPfxPath -CertStoreLocation 'Cert:\CurrentUser\My' -Password $prevSecure
+            Remove-Item $prevPfxPath -Force
+            Write-Host "Certificat precedent importe pour signature : $($signer.Thumbprint)"
+          }
+
+          $canSignCerts = $false
+          if ($signer) {
+            $basicConstraints = $signer.Extensions | Where-Object { $_.Oid.Value -eq '2.5.29.19' }
+            if ($basicConstraints) {
+              $bc = [System.Security.Cryptography.X509Certificates.X509BasicConstraintsExtension]$basicConstraints
+              $canSignCerts = $bc.CertificateAuthority
+            }
+          }
+
+          $subject = 'CN=spartan_arbinger'
+          $notAfter = (Get-Date).AddYears(2)
+          $common = @{
+            Subject           = $subject
+            FriendlyName      = 'spartan_arbinger'
+            KeyAlgorithm      = 'RSA'
+            KeyLength         = 2048
+            HashAlgorithm     = 'SHA256'
+            KeyExportPolicy   = 'Exportable'
+            CertStoreLocation = 'Cert:\CurrentUser\My'
+            NotAfter          = $notAfter
+          }
+
+          if ($canSignCerts) {
+            $cert = New-SelfSignedCertificate @common `
+              -Type Custom `
+              -Signer $signer `
+              -KeyUsage CertSign, CRLSign, DigitalSignature `
+              -TextExtension @(
+                '2.5.29.19={critical}{text}ca=true',
+                '2.5.29.37={text}1.3.6.1.5.5.7.3.3'
+              )
+            Write-Host "Nouveau certificat signe par $($signer.Thumbprint)"
+          } else {
+            if ($signer) {
+              Write-Host "Le certificat precedent ($($signer.Thumbprint)) ne possede pas l'extension CA ; creation auto-signeee capable de signer la prochaine rotation."
+            } else {
+              Write-Host 'Aucun certificat precedent disponible ; creation auto-signeee.'
+            }
+            $cert = New-SelfSignedCertificate @common `
+              -Type Custom `
+              -KeyUsage CertSign, CRLSign, DigitalSignature `
+              -TextExtension @(
+                '2.5.29.19={critical}{text}ca=true',
+                '2.5.29.37={text}1.3.6.1.5.5.7.3.3'
+              )
+          }
+
           $thumb = $cert.Thumbprint
           New-Item -ItemType Directory -Force -Path signing-certs | Out-Null
           Export-Certificate -Cert $cert -FilePath (Join-Path 'signing-certs' "$thumb.cer") | Out-Null
+
           $pfxPath = Join-Path $env:RUNNER_TEMP 'rotated-signing.pfx'
-          Export-PfxCertificate -Cert $cert -FilePath $pfxPath -Password $secure | Out-Null
+          if ($canSignCerts) {
+            Export-PfxCertificate -Cert $cert -FilePath $pfxPath -Password $secure -ChainOption BuildChain | Out-Null
+          } else {
+            Export-PfxCertificate -Cert $cert -FilePath $pfxPath -Password $secure | Out-Null
+          }
           Set-Content -Path (Join-Path $env:RUNNER_TEMP 'link.b64') -Value ([Convert]::ToBase64String([IO.File]::ReadAllBytes($pfxPath))) -NoNewline -Encoding ascii
           Set-Content -Path (Join-Path $env:RUNNER_TEMP 'password.txt') -Value $password -NoNewline -Encoding ascii
           Remove-Item $pfxPath -Force
+
           "thumbprint=$thumb" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           "file=$thumb.cer" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "signed-by=$($signer ? $signer.Thumbprint : 'self')" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
       - name: Ajouter le certificat a la liste de confiance
         shell: pwsh
@@ -57,7 +129,7 @@ jobs:
           if (Test-Path $listPath) {
             $existing = @(Get-Content $listPath -Raw | ConvertFrom-Json)
           }
-          $kept = @($existing | Where-Object { $_.thumbprint -and $_.thumbprint -ne $incoming } | Sort-Object addedAt | Select-Object -Last 2)
+          $kept = @($existing | Where-Object { $_.thumbprint -and $_.thumbprint -ne $incoming } | Sort-Object addedAt | Select-Object -Last 3)
           $kept += [pscustomobject]@{
             file       = '${{ steps.cert.outputs.file }}'
             thumbprint = $incoming
@@ -131,6 +203,7 @@ jobs:
             '| --- | --- |',
             '| Nouveau certificat | ${{ steps.cert.outputs.thumbprint }} |',
             '| Fichier publie | ${{ steps.cert.outputs.file }} |',
+            '| Signe par | ${{ steps.cert.outputs.signed-by }} |',
             '| Release attendue | v${{ steps.wait.outputs.version }} |',
             '| Etat release | ${{ steps.wait.outputs.etat }} |',
             '| Cutover secrets | ${{ steps.cutover.outcome }} |'
