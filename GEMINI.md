@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [2.0.3] - 2026-10-24
+### Changé
+- **Réorganisation de la barre de navigation** : Déplacement des boutons d'actions et de navigation (à partir du bouton Sponsor) sur une seconde ligne dédiée sous la barre de téléchargement et de configuration.
+
 ## [1.17.8-1] - 2026-10-13
 ### Changé
 - **Runner JavaScript de yt-dlp : Deno remplacé par QuickJS** : Le runner téléchargé automatiquement est désormais `qjs` (quickjs-ng, binaire unique de ~2 Mo sans archive à extraire) au lieu de Deno. `binaryResolver` expose `qjs`, et `createDownloadArgs` / `createMetadataArgs` / `fetchSuggestions` passent désormais `--no-js-runtimes --js-runtimes quickjs:<chemin>` : l'indicateur `--no-js-runtimes` est indispensable car Deno est le runtime activé par défaut par yt-dlp et primerait sur QuickJS (priorité plus basse). Les anciens fichiers `deno` / `deno.exe` / `deno.zip` du dossier de données sont nettoyés au démarrage.
