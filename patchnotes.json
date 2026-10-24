@@ -1,5 +1,14 @@
 [
   {
+    "version": "2.0.5",
+    "date": "2026-10-24",
+    "categories": {
+      "Corrigé": [
+        "**Alignement du nom de l'auteur et du certificat de signature** : Correction de l'incohérence entre l'auteur dans la configuration de build (`package.json`) et le nom du certificat de signature de code (`CN=spartan_arbinger`). L'auteur est désormais aligné sur `spartan_arbinger` afin que les métadonnées de l'exécutable (CompanyName) et de l'installateur NSIS (Publisher) correspondent exactement à l'identité du certificat. Ajout de `CN=spartan_arbinger` dans la configuration `publisherName` pour une validation sans avertissement par le vérificateur de signature."
+      ]
+    }
+  },
+  {
     "version": "2.0.4",
     "date": "2026-10-24",
     "categories": {
