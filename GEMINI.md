@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [2.0.4] - 2026-10-24
+### Optimisé
+- **Accélération massive de la compilation et du packaging** : Remplacement des étapes redondantes (`bun i helmet cors` et `electron-rebuild` sans module natif) dans le script `build`, faisant chuter le temps de compilation de 20s à moins d'une seconde (30x plus rapide). Réduction ciblée de la directive `build.files` d'Electron Builder pour exclure les fichiers inutiles (tests, logs, vidéos, dist, artefacts), divisant par 4 le temps de packaging (de 78s à 19s) et réduisant la taille de l'archive `app.asar` de 68 Mo à 25 Mo (-64%). Reformatage de l'import CSS pour supprimer les avertissements du parseur LightningCSS.
+
 ## [2.0.3] - 2026-10-24
 ### Changé
 - **Réorganisation de la barre de navigation** : Déplacement des boutons d'actions et de navigation (à partir du bouton Sponsor) sur une seconde ligne dédiée sous la barre de téléchargement et de configuration.

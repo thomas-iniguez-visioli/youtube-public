@@ -1,18 +1,19 @@
 {
   "name": "youtube",
-  "version": "2.0.3",
+  "version": "2.0.4",
   "type": "module",
   "description": "youtube local",
   "main": "src/index.js",
   "private": true,
   "scripts": {
-    "build": "bun i helmet cors ; bun x @tailwindcss/cli -i src/client-dist/tailwind-input.css -o src/client-dist/tailwind.css ; bun x electron-rebuild",
+    "build": "bun run tailwindcss -i src/client-dist/tailwind-input.css -o src/client-dist/tailwind.css --minify",
     "prepush": "bun test",
     "postpush": "gh signoff",
-    "start": "bun x @tailwindcss/cli -i src/client-dist/tailwind-input.css -o src/client-dist/tailwind.css && electron .",
-    "test": "bun test ./tests/*.test.js",
+    "start": "bun run tailwindcss -i src/client-dist/tailwind-input.css -o src/client-dist/tailwind.css ; electron .",
+    "test": "bun test",
     "dist": "electron-builder --win",
-    "dist:local": "cmd /c \"set WIN_CSC_LINK=spartan_arbinger.pfx&& electron-builder --win\""
+    "dist:local": "cmd /c \"set WIN_CSC_LINK=spartan_arbinger.pfx&& electron-builder --win\"",
+    "watch:css": "bun run tailwindcss -i src/client-dist/tailwind-input.css -o src/client-dist/tailwind.css --watch"
   },
   "dependencies": {
     "adm-zip": "^0.6.1",
@@ -54,8 +55,19 @@
     "appId": "com.arbinger.youtube",
     "icon": "src/client-dist/app-icon.png",
     "files": [
-      "**/*",
-      "!**/*.pfx"
+      "src/**/*",
+      "client-dist/**/*",
+      "signing-certs/**/*",
+      "package.json",
+      "patchnotes.json",
+      "rollbar.config.cjs",
+      "launchdarkly.config.cjs",
+      "!**/*.pfx",
+      "!**/*.map",
+      "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
+      "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
+      "!**/node_modules/*.d.ts",
+      "!**/node_modules/.bin"
     ],
     "win": {
       "signtoolOptions": {
@@ -93,6 +105,11 @@
         "repo": "youtube-public",
         "releaseType": "draft"
       }
-    ]
+    ],
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "differentialPackage": false
+    }
   }
 }
