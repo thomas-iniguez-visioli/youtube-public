@@ -40,3 +40,12 @@ test('certificate trust is skipped when the list is missing', async () => {
   assert.deepStrictEqual(result, { trusted: [], reason: 'trusted-list-missing' });
   assert.ok(messages.length > 0);
 });
+
+test('package.json author and build publisherName match certificate subject', () => {
+  const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'));
+  const certCn = SIGNING_CERT_SUBJECT.replace(/^CN=/, '');
+  assert.strictEqual(pkg.author, certCn, 'package.json author must match certificate CN');
+  const publisherNames = pkg.build?.win?.signtoolOptions?.publisherName || [];
+  assert.ok(publisherNames.includes(certCn), 'signtoolOptions.publisherName must contain certificate CN');
+  assert.ok(publisherNames.includes(SIGNING_CERT_SUBJECT), 'signtoolOptions.publisherName must contain certificate full DN');
+});

@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [2.0.5] - 2026-10-24
+### Corrigé
+- **Alignement du nom de l'auteur et du certificat de signature** : Correction de l'incohérence entre l'auteur dans la configuration de build (`package.json`) et le nom du certificat de signature de code (`CN=spartan_arbinger`). L'auteur est désormais aligné sur `spartan_arbinger` afin que les métadonnées de l'exécutable (CompanyName) et de l'installateur NSIS (Publisher) correspondent exactement à l'identité du certificat. Ajout de `CN=spartan_arbinger` dans la configuration `publisherName` pour une validation sans avertissement par le vérificateur de signature.
+
 ## [2.0.4] - 2026-10-24
 ### Optimisé
 - **Accélération massive de la compilation et du packaging** : Remplacement des étapes redondantes (`bun i helmet cors` et `electron-rebuild` sans module natif) dans le script `build`, faisant chuter le temps de compilation de 20s à moins d'une seconde (30x plus rapide). Réduction ciblée de la directive `build.files` d'Electron Builder pour exclure les fichiers inutiles (tests, logs, vidéos, dist, artefacts), divisant par 4 le temps de packaging (de 78s à 19s) et réduisant la taille de l'archive `app.asar` de 68 Mo à 25 Mo (-64%). Reformatage de l'import CSS pour supprimer les avertissements du parseur LightningCSS.
