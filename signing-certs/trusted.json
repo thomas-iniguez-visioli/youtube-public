@@ -10,5 +10,11 @@
     "thumbprint": "FAF8C6F36206BB586CDF75D28DA0EC885152B766",
     "subject": "CN=spartan_arbinger",
     "addedAt": "2026-10-14"
+  },
+  {
+    "file": "3D12F2F195501D6C55B51405B2B296E61DA68586.cer",
+    "thumbprint": "3D12F2F195501D6C55B51405B2B296E61DA68586",
+    "subject": "CN=spartan_arbinger",
+    "addedAt": "2026-10-25"
   }
 ]
