@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [2.1.4] - 2026-10-25
+### Sécurisé
+- **Architecture à 4 secrets pour l'isolation PKI (Root CA vs Leaf)** : Séparation stricte de l'Autorité Racine (`WIN_CA_LINK`, `WIN_CA_KEY_PASSWORD`) et du certificat de signature d'application (`WIN_CSC_LINK`, `WIN_CSC_KEY_PASSWORD`) dans des conteneurs PFX dédiés avec mots de passe indépendants. Le certificat de signature d'application n'expose plus la clé privée racine dans les builds quotidiens, et le workflow de rotation annuelle (`rotate-signing-cert.yml`) a été adapté pour maintenir automatiquement les 4 secrets lors du cutover.
+
 ## [2.1.3] - 2026-10-25
 ### Sécurisé
 - **Contre-signature du Root CA par le Root CA précédent** : Signature cryptographique de la nouvelle Autorité Racine (Root CA) par l'Autorité Racine précédente (`-Signer $prevCa`), assurant une chaîne de confiance ininterrompue d'une rotation à l'autre. Export de l'ensemble des clés privées dans le conteneur PFX multi-certificats (`X509Certificate2Collection`) pour que chaque rotation annuelle suivante dispose de la clé privée de l'autorité précédente pour signer la nouvelle.
