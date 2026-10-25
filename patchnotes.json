@@ -1,5 +1,14 @@
 [
   {
+    "version": "2.1.4",
+    "date": "2026-10-25",
+    "categories": {
+      "Sécurisé": [
+        "**Architecture à 4 secrets pour l'isolation PKI (Root CA vs Leaf)** : Séparation stricte de l'Autorité Racine (`WIN_CA_LINK`, `WIN_CA_KEY_PASSWORD`) et du certificat de signature d'application (`WIN_CSC_LINK`, `WIN_CSC_KEY_PASSWORD`) dans des conteneurs PFX dédiés avec mots de passe indépendants. Le certificat de signature d'application n'expose plus la clé privée racine dans les builds quotidiens, et le workflow de rotation annuelle (`rotate-signing-cert.yml`) a été adapté pour maintenir automatiquement les 4 secrets lors du cutover."
+      ]
+    }
+  },
+  {
     "version": "2.1.3",
     "date": "2026-10-25",
     "categories": {

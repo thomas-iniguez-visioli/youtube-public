@@ -29,45 +29,54 @@ jobs:
           token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
           fetch-depth: 1
 
-      - name: Generer le certificat
+      - name: Generer les certificats (PKI 2-tiers)
         id: cert
         shell: pwsh
         env:
+          PREV_CA_LINK: ${{ secrets.WIN_CA_LINK }}
+          PREV_CA_KEY_PASSWORD: ${{ secrets.WIN_CA_KEY_PASSWORD }}
           PREV_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
           PREV_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
         run: |
           $ErrorActionPreference = 'Stop'
 
+          # Mots de passe distincts pour les deux PFX
           $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
-          $bytes = New-Object byte[] 24
-          $rng.GetBytes($bytes)
-          $password = ($bytes | ForEach-Object { $_.ToString('x2') }) -join ''
-          $secure = ConvertTo-SecureString $password -AsPlainText -Force
+          $bytesCa = New-Object byte[] 24
+          $rng.GetBytes($bytesCa)
+          $caPassword = ($bytesCa | ForEach-Object { $_.ToString('x2') }) -join ''
 
-          # 1. Importer l'ancien signataire CA si disponible
+          $bytesCsc = New-Object byte[] 24
+          $rng.GetBytes($bytesCsc)
+          $cscPassword = ($bytesCsc | ForEach-Object { $_.ToString('x2') }) -join ''
+
+          # 1. Importer l'ancien signataire CA (depuis WIN_CA_LINK en priorite, ou fallback WIN_CSC_LINK)
           $prevCa = $null
-          if ($env:PREV_CSC_LINK -and $env:PREV_CSC_KEY_PASSWORD) {
-            $prevPfxPath = Join-Path $env:RUNNER_TEMP 'previous-signing.pfx'
-            [IO.File]::WriteAllBytes($prevPfxPath, [Convert]::FromBase64String($env:PREV_CSC_LINK))
-            $prevSecure = ConvertTo-SecureString $env:PREV_CSC_KEY_PASSWORD -AsPlainText -Force
+          $caLink = if ($env:PREV_CA_LINK) { $env:PREV_CA_LINK } else { $env:PREV_CSC_LINK }
+          $caPwd = if ($env:PREV_CA_KEY_PASSWORD) { $env:PREV_CA_KEY_PASSWORD } else { $env:PREV_CSC_KEY_PASSWORD }
+
+          if ($caLink -and $caPwd) {
+            $prevPfxPath = Join-Path $env:RUNNER_TEMP 'previous-ca.pfx'
+            [IO.File]::WriteAllBytes($prevPfxPath, [Convert]::FromBase64String($caLink))
+            $prevSecure = ConvertTo-SecureString $caPwd -AsPlainText -Force
             $imported = Import-PfxCertificate -FilePath $prevPfxPath -CertStoreLocation 'Cert:\CurrentUser\My' -Password $prevSecure
             Remove-Item $prevPfxPath -Force
             foreach ($c in $imported) {
               $bc = $c.Extensions | Where-Object { $_.Oid.Value -eq '2.5.29.19' }
-              if ($bc -and ([System.Security.Cryptography.X509Certificates.X509BasicConstraintsExtension]$bc).CertificateAuthority) {
+              if ($bc -and ([System.Security.Cryptography.X509Certificates.X509BasicConstraintsExtension]$bc).CertificateAuthority -and $c.HasPrivateKey) {
                 $prevCa = $c
                 break
               }
             }
             if ($prevCa) {
-              Write-Host "Certificat CA precedent importe : $($prevCa.Thumbprint)"
+              Write-Host "Certificat CA precedent importe pour contre-signature : $($prevCa.Thumbprint)"
             }
           }
 
           $subject = 'CN=spartan_arbinger'
 
-          # 2. Generer le certificat d'Autorite (CA)
-          # Sert a signer le certificat d'app actuel et le prochain certificat lors de la rotation annuelle
+          # 2. Generer le certificat d'Autorite Racine (Root CA)
+          # Signe par le Root CA precedent si disponible
           $caCommon = @{
             Subject           = $subject
             FriendlyName      = 'spartan_arbinger Root CA'
@@ -87,7 +96,7 @@ jobs:
               -TextExtension @(
                 '2.5.29.19={critical}{text}ca=true'
               )
-            Write-Host "Nouveau certificat CA signe par $($prevCa.Thumbprint)"
+            Write-Host "Nouveau certificat CA signe par le Root CA precedent $($prevCa.Thumbprint)"
           } else {
             $caCert = New-SelfSignedCertificate @caCommon `
               -Type Custom `
@@ -95,7 +104,7 @@ jobs:
               -TextExtension @(
                 '2.5.29.19={critical}{text}ca=true'
               )
-            Write-Host "Nouveau certificat CA racine auto-signe cree : $($caCert.Thumbprint)"
+            Write-Host "Certificat CA racine initial cree : $($caCert.Thumbprint)"
           }
 
           # 3. Generer le certificat de signature d'application (Code Signing Leaf)
@@ -127,19 +136,30 @@ jobs:
           Export-Certificate -Cert $caCert -FilePath (Join-Path 'signing-certs' "$caThumb.cer") | Out-Null
           Export-Certificate -Cert $appCert -FilePath (Join-Path 'signing-certs' "$appThumb.cer") | Out-Null
 
-          # 5. Exporter le PFX contenant le Leaf ET le Root CA avec leurs cles privees
-          # Permet a signtool de signer avec le leaf et au prochain workflow de reutiliser le Root CA precedent
-          $collection = [System.Security.Cryptography.X509Certificates.X509Certificate2Collection]::new()
-          $collection.Add($appCert) | Out-Null
-          $collection.Add($caCert) | Out-Null
-          if ($prevCa) { $collection.Add($prevCa) | Out-Null }
-          $pfxBytes = $collection.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Pfx, $password)
+          # 5a. Exporter le PFX Root CA (WIN_CA_LINK) avec ses cles privees pour les prochaines rotations
+          $caColl = [System.Security.Cryptography.X509Certificates.X509Certificate2Collection]::new()
+          $caColl.Add($caCert) | Out-Null
+          if ($prevCa) { $caColl.Add($prevCa) | Out-Null }
+          $caPfxBytes = $caColl.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Pfx, $caPassword)
 
-          $pfxPath = Join-Path $env:RUNNER_TEMP 'rotated-signing.pfx'
-          [System.IO.File]::WriteAllBytes($pfxPath, $pfxBytes)
-          Set-Content -Path (Join-Path $env:RUNNER_TEMP 'link.b64') -Value ([Convert]::ToBase64String($pfxBytes)) -NoNewline -Encoding ascii
-          Set-Content -Path (Join-Path $env:RUNNER_TEMP 'password.txt') -Value $password -NoNewline -Encoding ascii
-          Remove-Item $pfxPath -Force
+          $caPfxPath = Join-Path $env:RUNNER_TEMP 'ca.pfx'
+          [System.IO.File]::WriteAllBytes($caPfxPath, $caPfxBytes)
+          Set-Content -Path (Join-Path $env:RUNNER_TEMP 'ca_link.b64') -Value ([Convert]::ToBase64String($caPfxBytes)) -NoNewline -Encoding ascii
+          Set-Content -Path (Join-Path $env:RUNNER_TEMP 'ca_password.txt') -Value $caPassword -NoNewline -Encoding ascii
+          Remove-Item $caPfxPath -Force
+
+          # 5b. Exporter le PFX Leaf d'application (WIN_CSC_LINK) pour electron-builder
+          $leafColl = [System.Security.Cryptography.X509Certificates.X509Certificate2Collection]::new()
+          $leafColl.Add($appCert) | Out-Null
+          $leafColl.Add([System.Security.Cryptography.X509Certificates.X509Certificate2]::new($caCert.RawData)) | Out-Null
+          if ($prevCa) { $leafColl.Add([System.Security.Cryptography.X509Certificates.X509Certificate2]::new($prevCa.RawData)) | Out-Null }
+          $leafPfxBytes = $leafColl.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Pfx, $cscPassword)
+
+          $leafPfxPath = Join-Path $env:RUNNER_TEMP 'leaf.pfx'
+          [System.IO.File]::WriteAllBytes($leafPfxPath, $leafPfxBytes)
+          Set-Content -Path (Join-Path $env:RUNNER_TEMP 'csc_link.b64') -Value ([Convert]::ToBase64String($leafPfxBytes)) -NoNewline -Encoding ascii
+          Set-Content -Path (Join-Path $env:RUNNER_TEMP 'csc_password.txt') -Value $cscPassword -NoNewline -Encoding ascii
+          Remove-Item $leafPfxPath -Force
 
           "ca_thumbprint=$caThumb" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           "ca_file=$caThumb.cer" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
@@ -147,7 +167,7 @@ jobs:
           "app_file=$appThumb.cer" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           "thumbprint=$appThumb" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           "file=$appThumb.cer" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-          "signed-by=$caThumb" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "signed-by=$($prevCa ? $prevCa.Thumbprint : 'self')" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
       - name: Ajouter le certificat a la liste de confiance
         shell: pwsh
@@ -216,7 +236,7 @@ jobs:
           "etat=timeout" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           throw "La release v$version n'a pas ete publiee en 60 minutes, cutover annule"
 
-      - name: Basculer le signing sur le nouveau certificat
+      - name: Basculer le signing sur les nouveaux certificats (4 secrets)
         id: cutover
         if: ${{ github.event_name == 'schedule' || inputs.cutover }}
         shell: pwsh
@@ -224,12 +244,20 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
         run: |
           $ErrorActionPreference = 'Stop'
-          cmd /c "type `"$env:RUNNER_TEMP\link.b64`" | gh secret set WIN_CSC_LINK -R $env:GITHUB_REPOSITORY"
+          # 1. Mettre a jour les secrets de signature d'application (Leaf)
+          cmd /c "type `"$env:RUNNER_TEMP\csc_link.b64`" | gh secret set WIN_CSC_LINK -R $env:GITHUB_REPOSITORY"
           if ($LASTEXITCODE -ne 0) { throw 'echec de mise a jour de WIN_CSC_LINK' }
-          cmd /c "type `"$env:RUNNER_TEMP\password.txt`" | gh secret set WIN_CSC_KEY_PASSWORD -R $env:GITHUB_REPOSITORY"
+          cmd /c "type `"$env:RUNNER_TEMP\csc_password.txt`" | gh secret set WIN_CSC_KEY_PASSWORD -R $env:GITHUB_REPOSITORY"
           if ($LASTEXITCODE -ne 0) { throw 'echec de mise a jour de WIN_CSC_KEY_PASSWORD' }
-          Remove-Item (Join-Path $env:RUNNER_TEMP 'link.b64'), (Join-Path $env:RUNNER_TEMP 'password.txt') -Force
-          Write-Host 'Secrets bascules sur le nouveau certificat'
+
+          # 2. Mettre a jour les secrets de l'Autorite Racine (Root CA)
+          cmd /c "type `"$env:RUNNER_TEMP\ca_link.b64`" | gh secret set WIN_CA_LINK -R $env:GITHUB_REPOSITORY"
+          if ($LASTEXITCODE -ne 0) { throw 'echec de mise a jour de WIN_CA_LINK' }
+          cmd /c "type `"$env:RUNNER_TEMP\ca_password.txt`" | gh secret set WIN_CA_KEY_PASSWORD -R $env:GITHUB_REPOSITORY"
+          if ($LASTEXITCODE -ne 0) { throw 'echec de mise a jour de WIN_CA_KEY_PASSWORD' }
+
+          Remove-Item (Join-Path $env:RUNNER_TEMP 'csc_link.b64'), (Join-Path $env:RUNNER_TEMP 'csc_password.txt'), (Join-Path $env:RUNNER_TEMP 'ca_link.b64'), (Join-Path $env:RUNNER_TEMP 'ca_password.txt') -Force
+          Write-Host 'Les 4 secrets ont ete bascules avec succes sur le depot'
 
       - name: Resume
         if: always()
