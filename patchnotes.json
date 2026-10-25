@@ -1,5 +1,17 @@
 [
   {
+    "version": "2.1.6",
+    "date": "2026-10-25",
+    "categories": {
+      "Sécurisé": [
+        "**Enregistrement dans le magasin Éditeurs approuvés (TrustedPublisher)** : `ensureSigningCertTrusted()` installe désormais les certificats dans les magasins `Root` et `TrustedPublisher` de Windows via `certutil.exe`, garantissant que les exécutables et installateurs NSIS signés par `spartan_arbinger` sont pleinement reconnus comme fiables sans alerte SmartScreen."
+      ],
+      "Corrigé": [
+        "**Persistance et réconciliation du suivi de lecture TubeArchivist** : Normalisation des vidéos transmises à la vue dans `renderIndex()` et intégration de la table `watchProgressMap` dans `src/views/index.ejs`. L'état vu/non vu et la progression de lecture sont ainsi immédiatement restitués et conservés après filtrage ou rechargement."
+      ]
+    }
+  },
+  {
     "version": "2.1.5",
     "date": "2026-10-25",
     "categories": {

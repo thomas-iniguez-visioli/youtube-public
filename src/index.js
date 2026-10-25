@@ -1024,8 +1024,15 @@ web.set('views', path.join(app.getPath('userData'), 'views'));
 // Helper: rend index.ejs avec les données communes de la DB en une seule passe
 function renderIndex(res, results, channel, channelUrl = null, isFollowed = false, isUnzippedPage = false) {
   const historyLimit = Math.floor(db.database.length * 0.8);
+  const normalizedResults = Array.isArray(results)
+    ? results.map((v) => {
+        const wp = (db.watchProgress && v && v.yid && db.watchProgress[v.yid]) || (v && v.watchProgress);
+        return wp ? { ...v, watchProgress: wp, watched: Boolean(v.watched || wp.watched) } : v;
+      })
+    : results;
   res.render('index', {
-    results,
+    results: normalizedResults,
+    watchProgress: db.watchProgress || {},
     channel,
     channelUrl,
     isFollowed,
