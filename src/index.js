@@ -1835,7 +1835,7 @@ web.get("/api/subtitles/:id", function (req, res) {
   res.json({ yid, subtitles });
 });
 
-web.get("/subtitles/:id/:lang?", function (req, res) {
+web.get(["/subtitles/:id", "/subtitles/:id/:lang"], function (req, res) {
   const yid = path.basename(req.params.id);
   const lang = req.params.lang ? path.basename(req.params.lang) : null;
   try {
