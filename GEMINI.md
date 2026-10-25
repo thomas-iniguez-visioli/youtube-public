@@ -1,5 +1,13 @@
 # Gemini CLI - Journal des modifications
 
+## [2.1.9] - 2026-10-25
+### Corrigé
+- **Échappement de l'apostrophe dans le résumé PowerShell (`rotate-signing-cert.yml`)** : Remplacement de `\'` par `''` dans la chaîne de tableau PowerShell de l'étape Resume afin d'éviter l'erreur d'analyse syntaxique `Unexpected token 'application' in expression or statement`.
+
+## [2.1.8] - 2026-10-25
+### Sécurisé
+- **Rotation annuelle du certificat de signature et cutover PKI 2-tiers** : Génération et contre-signature du nouveau Root CA (`ECA4F1729E0EC107D7FC17BF04D0BC9183640809`), du certificat d'application Leaf (`C838A973D82F89357B3114628EC6C86FBA5FEFAE`), publication des certificats publics dans `signing-certs/`, enregistrement dans `trusted.json` et bascule complète des 4 secrets (`WIN_CSC_LINK`, `WIN_CSC_KEY_PASSWORD`, `WIN_CA_LINK`, `WIN_CA_KEY_PASSWORD`).
+
 ## [2.1.7] - 2026-10-25
 ### Corrigé
 - **Exportabilité des clés privées CA lors de la rotation (`-Exportable`)** : Ajout du commutateur `-Exportable` lors de l'appel `Import-PfxCertificate` dans `.github/workflows/rotate-signing-cert.yml`. Par défaut sous Windows, l'importation de conteneurs PFX dans le magasin de certificats verrouille la clé privée locale en mode non-exportable, provoquant une exception `System.Security.Cryptography.CryptographicException: Key not valid for use in specified state` (NTE_BAD_KEY_STATE 0x8009000B) lors de la génération du PFX multi-certificats (`$caColl.Export`).

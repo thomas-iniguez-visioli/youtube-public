@@ -281,7 +281,7 @@ jobs:
             '| Champ | Valeur |',
             '| --- | --- |',
             '| Certificat racine (CA) | ${{ steps.cert.outputs.ca_thumbprint }} (${{ steps.cert.outputs.ca_file }}) |',
-            '| Certificat d\'application | ${{ steps.cert.outputs.app_thumbprint }} (${{ steps.cert.outputs.app_file }}) |',
+            '| Certificat d''application | ${{ steps.cert.outputs.app_thumbprint }} (${{ steps.cert.outputs.app_file }}) |',
             '| Signe par | ${{ steps.cert.outputs.signed-by }} |',
             '| Release attendue | v${{ steps.wait.outputs.version }} |',
             '| Etat release | ${{ steps.wait.outputs.etat }} |',
