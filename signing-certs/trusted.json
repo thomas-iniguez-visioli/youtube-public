@@ -12,14 +12,20 @@
     "addedAt": "2026-10-25"
   },
   {
-    "file": "60A9541D83CE6D093FA84FA45E5DB3BDBD8E657C.cer",
-    "thumbprint": "60A9541D83CE6D093FA84FA45E5DB3BDBD8E657C",
+    "file": "F2ADEAEA7F4E167996CA4D4B6D65EFD24A2FE444.cer",
+    "thumbprint": "F2ADEAEA7F4E167996CA4D4B6D65EFD24A2FE444",
     "subject": "CN=spartan_arbinger",
     "addedAt": "2026-10-25"
   },
   {
-    "file": "5B423817E0DAC2850862614DA911B7EA39058355.cer",
-    "thumbprint": "5B423817E0DAC2850862614DA911B7EA39058355",
+    "file": "877A6896F675966DE459634F2837B31643E91C9F.cer",
+    "thumbprint": "877A6896F675966DE459634F2837B31643E91C9F",
+    "subject": "CN=spartan_arbinger",
+    "addedAt": "2026-10-25"
+  },
+  {
+    "file": "CFA87DBFA6DA8526FB702B17130DC63B6A47F190.cer",
+    "thumbprint": "CFA87DBFA6DA8526FB702B17130DC63B6A47F190",
     "subject": "CN=spartan_arbinger",
     "addedAt": "2026-10-25"
   }

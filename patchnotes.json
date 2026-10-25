@@ -1,5 +1,14 @@
 [
   {
+    "version": "2.1.3",
+    "date": "2026-10-25",
+    "categories": {
+      "Sécurisé": [
+        "**Contre-signature du Root CA par le Root CA précédent** : Signature cryptographique de la nouvelle Autorité Racine (Root CA) par l'Autorité Racine précédente (`-Signer $prevCa`), assurant une chaîne de confiance ininterrompue d'une rotation à l'autre. Export de l'ensemble des clés privées dans le conteneur PFX multi-certificats (`X509Certificate2Collection`) pour que chaque rotation annuelle suivante dispose de la clé privée de l'autorité précédente pour signer la nouvelle."
+      ]
+    }
+  },
+  {
     "version": "2.1.2",
     "date": "2026-10-25",
     "categories": {
