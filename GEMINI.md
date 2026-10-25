@@ -1,5 +1,10 @@
 # Gemini CLI - Journal des modifications
 
+## [2.0.11] - 2026-10-25
+### Corrigé
+- **Correction de la route de sous-titres Express 5 (path-to-regexp)** : Remplacement de la syntaxe de paramètre optionnel obsolète `/subtitles/:id/:lang?` (incompatible avec path-to-regexp v8 dans Express 5 et causant une TypeError au démarrage) par un tableau de routes explicites `['/subtitles/:id', '/subtitles/:id/:lang']`.
+- **Suppression du préfixe CN= dans publisherName et renforcement de la signature** : Retrait du préfixe `CN=` de la configuration `publisherName` dans `package.json` (annule l'ajout de la version 2.0.5) afin de respecter la convention du Common Name strict requise par electron-builder et Authenticode. Exécution immédiate de la vérification et de l'installation des certificats de signature racine (`ensureSigningCertTrusted`) dès la séquence de boot de l'application.
+
 ## [2.0.9] - 2026-10-25
 ### Ajouté
 - **Intégration LaunchDarkly pour les tests A/B (Experimentation)** : Attribution d'un identifiant utilisateur anonyme persistant (`launchdarkly-user-id`) pour un partitionnement cohérent des cohortes A/B, ajout de la méthode `trackEvent(eventName, data, metricValue)` pour enregistrer les conversions et métriques (visionnage, complétion, clics), support des variations d'expérimentation via `getExperimentVariation()`, et exposition complète côté frontend via les routes API Express (`/api/flags/track`, `/api/experiments/:key`) et l'API preload Electron.

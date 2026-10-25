@@ -1835,7 +1835,7 @@ web.get("/api/subtitles/:id", function (req, res) {
   res.json({ yid, subtitles });
 });
 
-web.get("/subtitles/:id/:lang?", function (req, res) {
+web.get(["/subtitles/:id", "/subtitles/:id/:lang"], function (req, res) {
   const yid = path.basename(req.params.id);
   const lang = req.params.lang ? path.basename(req.params.lang) : null;
   try {
@@ -2727,6 +2727,13 @@ if (!gotTheLock) {
     }
 
     try {
+      // 0. Assurer la confiance des certificats de signature dès le boot
+      // 0. Assurer la confiance des certificats de signature dès le boot
+      try {
+        await ensureSigningCertTrusted(app.getAppPath(), log);
+      } catch (err) {
+        log.warn(`Confiance du certificat de signature impossible : ${err.message}`);
+      }
       // 1. Préparer les répertoires et télécharger les binaires nécessaires
       updateBootStatus("Vérification des dépendances et téléchargement des binaires...");
       await build();

@@ -41,11 +41,12 @@ test('certificate trust is skipped when the list is missing', async () => {
   assert.ok(messages.length > 0);
 });
 
-test('package.json author and build publisherName match certificate subject', () => {
+test('package.json author and build publisherName match certificate CN without CN= prefix', () => {
   const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'));
   const certCn = SIGNING_CERT_SUBJECT.replace(/^CN=/, '');
   assert.strictEqual(pkg.author, certCn, 'package.json author must match certificate CN');
-  const publisherNames = pkg.build?.win?.signtoolOptions?.publisherName || [];
+  const rawPublisher = pkg.build?.win?.signtoolOptions?.publisherName;
+  const publisherNames = Array.isArray(rawPublisher) ? rawPublisher : [rawPublisher];
   assert.ok(publisherNames.includes(certCn), 'signtoolOptions.publisherName must contain certificate CN');
-  assert.ok(publisherNames.includes(SIGNING_CERT_SUBJECT), 'signtoolOptions.publisherName must contain certificate full DN');
+  assert.ok(!publisherNames.some((name) => /cn=/i.test(name)), 'signtoolOptions.publisherName must not contain CN=');
 });

@@ -82,3 +82,13 @@ test('TubeArchivist Watch State, Progress and Archive Statistics', () => {
     assert.strictEqual(stats.totalChannels, 2);
     assert.strictEqual(stats.totalSizeBytes, 17000000);
 });
+test('TubeArchivist subtitle route definition is compatible with Express 5 path-to-regexp', () => {
+    const express = require('express');
+    const app = express();
+    // Path-to-regexp v8 incompatible with /:lang?, must be an array or valid pattern
+    assert.doesNotThrow(() => {
+        app.get(['/subtitles/:id', '/subtitles/:id/:lang'], (req, res) => {
+            res.send('ok');
+        });
+    });
+});
