@@ -1,5 +1,14 @@
 [
   {
+    "version": "2.1.11",
+    "date": "2026-10-25",
+    "categories": {
+      "Corrigé": [
+        "**Déclenchement des workflows de merge de PR (GH_PAT & Concurrency)** : Utilisation de `GH_PAT` dans `pr-automerge.yml` lors du merge de PR pour permettre à GitHub de propager les événements `pull_request: [closed]` et `push: branches: [main]`, déblocage du `repository_dispatch` dans `update-version.yml` avec `GH_PAT`, suppression du plafonnement artificiel du patch à 10, et ajustement de la concurrence dans `main.yml` (`build-release-${{ github.ref }}` avec `cancel-in-progress: false`) pour éviter l'annulation prématurée des builds."
+      ]
+    }
+  },
+  {
     "version": "2.1.10",
     "date": "2026-10-25",
     "categories": {

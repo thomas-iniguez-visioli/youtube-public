@@ -1,5 +1,11 @@
 # Gemini CLI - Journal des modifications
 
+## [2.1.11] - 2026-10-25
+### Corrigé
+- **Déclenchement des workflows descendants après merge de PR (`GH_PAT`)** : Remplacement de `secrets.GITHUB_TOKEN` par `${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}` dans `.github/workflows/pr-automerge.yml`. En raison des règles anti-boucle de GitHub Actions, les fusions réalisées avec le jeton bot par défaut bloquaient tous les événements descendants (`pull_request: [closed]` et `push: branches: [main]`).
+- **Déblocage de `update-version.yml` et correction du SemVer** : Ajout du token `GH_PAT` pour l'étape `repository-dispatch`, suppression du bloc qui forçait la réinitialisation de `PATCH` à 0 lorsqu'il dépassait 10 (permettant la progression normale des versions SemVer).
+- **Isolation de la concurrence dans `main.yml`** : Remplacement du groupe hérité `"pages"` par `build-release-${{ github.ref }}` avec `cancel-in-progress: false`, empêchant l'annulation brutale des builds de release en cours.
+
 ## [2.1.10] - 2026-10-25
 ### Corrigé
 - **Authentification par empreinte épinglée pour autoUpdater (`CERT_E_UNTRUSTEDROOT`)** : Implémentation de `configureAutoUpdaterCodeSignatureVerifier()` dans `src/trustSigningCert.js` et liaison sur `autoUpdater` dans `src/index.js`. Lorsqu'une mise à jour téléchargée est rejetée par le validateur par défaut de Windows avec l'erreur `Status: 1` (`CERT_E_UNTRUSTEDROOT: Une chaîne de certificats a été traitée mais s’est terminée par un certificat racine qui n’est pas approuvé par le fournisseur d’approbation`), le vérificateur intercepte le résultat et valide l'intégrité de la mise à jour si l'empreinte SHA-1 du signataire (`SignerCertificate.Thumbprint`) correspond à la liste épinglée dans `signing-certs/trusted.json` et que le Common Name correspond à `spartan_arbinger`.
