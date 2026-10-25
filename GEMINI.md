@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [2.1.3] - 2026-10-25
+### Sécurisé
+- **Contre-signature du Root CA par le Root CA précédent** : Signature cryptographique de la nouvelle Autorité Racine (Root CA) par l'Autorité Racine précédente (`-Signer $prevCa`), assurant une chaîne de confiance ininterrompue d'une rotation à l'autre. Export de l'ensemble des clés privées dans le conteneur PFX multi-certificats (`X509Certificate2Collection`) pour que chaque rotation annuelle suivante dispose de la clé privée de l'autorité précédente pour signer la nouvelle.
+
 ## [2.1.2] - 2026-10-25
 ### Corrigé
 - **Correction du ReferenceError isWatched dans le rendu des cartes vidéo** : Déclaration explicite des variables `isWatched` et `progressPct` dans la boucle de rendu de `renderVideos` (`src/views/index.ejs`), restaurant l'affichage des badges de durée et des barres de progression de lecture TubeArchivist sans lever d'exception JavaScript.
