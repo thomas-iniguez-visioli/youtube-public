@@ -6,5 +6,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   selectFolder: () => ipcRenderer.invoke('select-folder'),
   onBootStatus: (callback) => ipcRenderer.on('boot-status', (event, status) => callback(status)),
   getFeatureFlag: (key, defaultValue) => ipcRenderer.invoke('get-feature-flag', key, defaultValue),
-  getAllFlags: () => ipcRenderer.invoke('get-all-flags')
+  getAllFlags: () => ipcRenderer.invoke('get-all-flags'),
+  trackEvent: (eventName, data, metricValue) => ipcRenderer.invoke('ld-track-event', eventName, data, metricValue),
+  getExperimentVariation: (flagKey, defaultValue) => ipcRenderer.invoke('get-experiment-variation', flagKey, defaultValue),
+  getUserContext: () => ipcRenderer.invoke('get-user-context')
 });

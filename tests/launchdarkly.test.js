@@ -1,6 +1,6 @@
 import assert from 'node:assert';
 import { test } from 'node:test';
-import { initLaunchDarkly, getLDClient, getFeatureFlag, getAllFeatureFlags, isLaunchDarklyReady, reloadFlags, disableLaunchDarkly, isLaunchDarklyEnabled, getLaunchDarklyStatus } from '../src/launchdarkly.js';
+import { initLaunchDarkly, getLDClient, getFeatureFlag, getAllFeatureFlags, isLaunchDarklyReady, reloadFlags, disableLaunchDarkly, isLaunchDarklyEnabled, getLaunchDarklyStatus, trackEvent, getExperimentVariation, getOrCreateUserId, getUserContext } from '../src/launchdarkly.js';
 
 test('LaunchDarkly module should handle missing config or invalid clientSideId gracefully', async (t) => {
   // With no config or empty clientSideId, client is null and functions return safe defaults
@@ -59,4 +59,29 @@ test('disableLaunchDarkly should be idempotent and keep degraded mode safe', asy
   await reloadFlags();
   assert.strictEqual(getFeatureFlag('flag-hors-ligne', 'fallback'), 'fallback');
   assert.deepStrictEqual(getAllFeatureFlags(), {});
+});
+
+
+test('LaunchDarkly A/B testing helpers provide persistent user context and metric tracking', async () => {
+  const userId1 = await getOrCreateUserId();
+  assert.ok(typeof userId1 === 'string' && userId1.length > 0, 'userId must be a non-empty string');
+  
+  const userId2 = await getOrCreateUserId();
+  assert.strictEqual(userId1, userId2, 'userId should be persistent across calls');
+
+  const context = await getUserContext();
+  assert.strictEqual(context.key, userId1);
+  assert.strictEqual(context.anonymous, true);
+  assert.ok(context.custom && context.custom.platform);
+
+  // Invalid event tracking
+  assert.strictEqual(trackEvent(''), false);
+  assert.strictEqual(trackEvent(null), false);
+
+  // Degraded mode tracking returns false without throwing
+  assert.strictEqual(trackEvent('video_view', { id: 'test123' }, 120), false);
+
+  // Experiment variation fallback
+  const variation = getExperimentVariation('ab-tubearchivist-ui', 'treatment');
+  assert.strictEqual(variation, 'treatment');
 });

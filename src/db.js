@@ -25,6 +25,7 @@ export default class FileDatabase {
         this.queue = [];
         this.favorites = [];
         this.followedChannels = [];
+        this.watchProgress = {};
         this.yidMap = new Map();
         this._playlistFileMtimes = {};
         this.loadDatabase();
@@ -48,7 +49,8 @@ export default class FileDatabase {
        return this.database.filter((entry) => {
          return entry.fileName.toLowerCase().includes(q) || 
                 (entry.tags && entry.tags.some(tag => tag.toLowerCase().includes(q))) ||
-                (entry.uploader && entry.uploader.toLowerCase().includes(q));
+                (entry.uploader && entry.uploader.toLowerCase().includes(q)) ||
+                 (entry.description && entry.description.toLowerCase().includes(q));
        });
      }
 
@@ -480,6 +482,7 @@ export default class FileDatabase {
             insertState.run('queue', JSON.stringify(this.queue));
             insertState.run('favorites', JSON.stringify(this.favorites));
             insertState.run('followedChannels', JSON.stringify(this.followedChannels));
+            insertState.run('watchProgress', JSON.stringify(this.watchProgress || {}));
 
             this.db.exec('COMMIT');
             if (global.log) global.log.debug("[DB] Sauvegarde SQLite réussie.");
@@ -505,6 +508,7 @@ export default class FileDatabase {
                 this.queue = Array.isArray(data.queue) ? data.queue : [];
                 this.favorites = Array.isArray(data.favorites) ? data.favorites : [];
                 this.followedChannels = Array.isArray(data.followedChannels) ? data.followedChannels : [];
+                this.watchProgress = (data && typeof data.watchProgress === 'object' && data.watchProgress) ? data.watchProgress : {};
                 
                 this._cleanSnapshots = new Map();
                 this._executeSave();
@@ -544,6 +548,7 @@ export default class FileDatabase {
                 this.queue = getState('queue', []);
                 this.favorites = getState('favorites', []);
                 this.followedChannels = getState('followedChannels', []);
+                this.watchProgress = getState('watchProgress', {});
             } catch(e) {
                 console.error('[DB] SQLite load error', e);
                 this.database = [];
@@ -552,6 +557,7 @@ export default class FileDatabase {
                 this.queue = [];
                 this.favorites = [];
                 this.followedChannels = [];
+                this.watchProgress = {};
             }
         } else {
             this.database = [];
@@ -560,6 +566,7 @@ export default class FileDatabase {
             this.queue = [];
             this.favorites = [];
             this.followedChannels = [];
+            this.watchProgress = {};
         }
         this._buildIndex();
     }
@@ -844,4 +851,131 @@ export default class FileDatabase {
         this.queue = [];
         this.saveDatabase();
     }
+
+    // TubeArchivist: Suivi de visionnage et statut "Vu"
+    getWatchProgress(yid) {
+        if (!yid) return { currentTime: 0, duration: 0, percentage: 0, watched: false, updatedAt: null };
+        const p = this.watchProgress && this.watchProgress[yid];
+        if (p) {
+            return {
+                currentTime: Number(p.currentTime) || 0,
+                duration: Number(p.duration) || 0,
+                percentage: Math.min(100, Math.max(0, Math.round(Number(p.percentage) || 0))),
+                watched: Boolean(p.watched),
+                updatedAt: p.updatedAt || null
+            };
+        }
+        return { currentTime: 0, duration: 0, percentage: 0, watched: false, updatedAt: null };
+    }
+
+    setWatchProgress(yid, currentTime, duration) {
+        if (!yid) return null;
+        const cur = Math.max(0, Number(currentTime) || 0);
+        const dur = Math.max(0, Number(duration) || 0);
+        const percentage = dur > 0 ? Math.min(100, Math.round((cur / dur) * 100)) : 0;
+        const previous = this.getWatchProgress(yid);
+
+        // Auto-marqué comme vu si >= 90% ou si déjà marqué comme vu
+        const watched = previous.watched || percentage >= 90;
+
+        if (!this.watchProgress) this.watchProgress = {};
+        this.watchProgress[yid] = {
+            currentTime: cur,
+            duration: dur,
+            percentage,
+            watched,
+            updatedAt: Date.now()
+        };
+
+        const file = this.getFile(yid);
+        if (file) {
+            file.watched = watched;
+            file.watchProgress = this.watchProgress[yid];
+            if (dur > 0 && !file.duration) file.duration = dur;
+        }
+
+        this.saveDatabase();
+        return this.watchProgress[yid];
+    }
+
+    toggleWatched(yid) {
+        if (!yid) return false;
+        const previous = this.getWatchProgress(yid);
+        const newWatched = !previous.watched;
+        const file = this.getFile(yid);
+        const dur = (previous.duration > 0 ? previous.duration : (file && file.duration ? file.duration : 0));
+
+        if (!this.watchProgress) this.watchProgress = {};
+        this.watchProgress[yid] = {
+            currentTime: newWatched ? dur : 0,
+            duration: dur,
+            percentage: newWatched ? 100 : 0,
+            watched: newWatched,
+            updatedAt: Date.now()
+        };
+
+        if (file) {
+            file.watched = newWatched;
+            file.watchProgress = this.watchProgress[yid];
+        }
+
+        this.saveDatabase();
+        return newWatched;
+    }
+
+    isWatched(yid) {
+        if (!yid || !this.watchProgress) return false;
+        return Boolean(this.watchProgress[yid] && this.watchProgress[yid].watched);
+    }
+
+    getWatchedVideos() {
+        return this.database.filter(entry => this.isWatched(entry.yid));
+    }
+
+    getUnwatchedVideos() {
+        return this.database.filter(entry => !this.isWatched(entry.yid));
+    }
+
+    // TubeArchivist: Statistiques de l'archive et métadonnées
+    getArchiveStats() {
+        const totalVideos = this.database.length;
+        const watchedCount = this.database.filter(v => this.isWatched(v.yid)).length;
+        const unwatchedCount = Math.max(0, totalVideos - watchedCount);
+        const inProgressCount = this.database.filter(v => {
+            const p = this.getWatchProgress(v.yid);
+            return !p.watched && p.percentage > 0;
+        }).length;
+        const totalDurationSeconds = this.database.reduce((acc, v) => acc + (Number(v.duration) || 0), 0);
+        const channels = this.getAllChannels();
+        const totalChannels = channels.length;
+        const followedChannelsCount = Array.isArray(this.followedChannels) ? this.followedChannels.length : 0;
+        const playlistsCount = Array.isArray(this.playlists) ? this.playlists.length : 0;
+        const favoritesCount = Array.isArray(this.favorites) ? this.favorites.length : 0;
+        const queueCount = Array.isArray(this.queue) ? this.queue.length : 0;
+
+        let totalSizeBytes = 0;
+        for (const entry of this.database) {
+            if (entry.size) totalSizeBytes += Number(entry.size) || 0;
+        }
+
+        return {
+            totalVideos,
+            watchedCount,
+            unwatchedCount,
+            inProgressCount,
+            watchedPercentage: totalVideos > 0 ? Math.round((watchedCount / totalVideos) * 100) : 0,
+            totalDurationSeconds,
+            totalDurationHours: (totalDurationSeconds / 3600).toFixed(1),
+            totalChannels,
+            followedChannelsCount,
+            playlistsCount,
+            favoritesCount,
+            queueCount,
+            totalSizeBytes,
+            totalSizeFormatted: totalSizeBytes > 1073741824 
+                ? (totalSizeBytes / 1073741824).toFixed(2) + ' Go' 
+                : (totalSizeBytes / 1048576).toFixed(1) + ' Mo'
+        };
+    }
+
 }

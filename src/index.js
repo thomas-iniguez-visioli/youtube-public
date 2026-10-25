@@ -29,7 +29,7 @@ let io = null;
 
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 
-import { initLaunchDarkly, getLDClient, getFeatureFlag, getAllFeatureFlags, disableLaunchDarkly, isLaunchDarklyEnabled } from './launchdarkly.js';
+import { initLaunchDarkly, getLDClient, getFeatureFlag, getAllFeatureFlags, disableLaunchDarkly, isLaunchDarklyEnabled, trackEvent, getExperimentVariation, getUserContext, getCurrentUserId } from './launchdarkly.js';
 
 const require = createRequire(import.meta.url);
 const pkg = require('../package.json');
@@ -1761,6 +1761,149 @@ web.get("/followed-channels", function (req, res) {
 
 web.get("/api/flags", function (req, res) {
   res.json(getAllFeatureFlags());
+});
+
+
+// ==========================================
+// LaunchDarkly A/B Testing & TubeArchivist Routes
+// ==========================================
+
+web.post("/api/flags/track", function (req, res) {
+  const { event, data, metric } = req.body || {};
+  const success = trackEvent(event, data, metric);
+  res.json({ success, event });
+});
+
+web.get("/api/experiments/:key", function (req, res) {
+  const key = path.basename(req.params.key);
+  const defaultVal = req.query.default || 'control';
+  res.json({ key, variation: getExperimentVariation(key, defaultVal) });
+});
+
+// TubeArchivist: Suivi de progression et statut "Vu"
+web.post("/api/video/progress", function (req, res) {
+  const { id, currentTime, duration } = req.body || {};
+  if (!id) return res.status(400).json({ error: "id requis" });
+  const progress = db.setWatchProgress(id, currentTime, duration);
+  if (progress && progress.watched) {
+    trackEvent('video_completed', { yid: id, duration });
+  }
+  trackEvent('video_progress', { yid: id, percentage: progress ? progress.percentage : 0 }, currentTime);
+  res.json({ success: true, progress });
+});
+
+web.post("/api/video/toggle-watched", function (req, res) {
+  const { id } = req.body || {};
+  if (!id) return res.status(400).json({ error: "id requis" });
+  const watched = db.toggleWatched(id);
+  trackEvent(watched ? 'video_marked_watched' : 'video_marked_unwatched', { yid: id });
+  res.json({ success: true, watched, progress: db.getWatchProgress(id) });
+});
+
+web.get("/api/video/status/:id", function (req, res) {
+  const yid = path.basename(req.params.id);
+  res.json({
+    yid,
+    watched: db.isWatched(yid),
+    progress: db.getWatchProgress(yid)
+  });
+});
+
+// TubeArchivist: Gestion des sous-titres
+web.get("/api/subtitles/:id", function (req, res) {
+  const yid = path.basename(req.params.id);
+  const subtitles = [];
+  try {
+    if (fs.existsSync(config.storagePath)) {
+      const files = fs.readdirSync(config.storagePath);
+      files.forEach(file => {
+        if (file.includes(`[${yid}]`) && file.endsWith('.vtt')) {
+          const parts = file.split('.');
+          const lang = parts.length >= 3 ? parts[parts.length - 2] : 'fr';
+          subtitles.push({
+            lang,
+            label: lang.toUpperCase(),
+            file,
+            src: `/subtitles/${encodeURIComponent(yid)}/${encodeURIComponent(lang)}`
+          });
+        }
+      });
+    }
+  } catch (err) {
+    log.warn(`Erreur scan sous-titres pour ${yid}: ${err.message}`);
+  }
+  res.json({ yid, subtitles });
+});
+
+web.get("/subtitles/:id/:lang?", function (req, res) {
+  const yid = path.basename(req.params.id);
+  const lang = req.params.lang ? path.basename(req.params.lang) : null;
+  try {
+    if (fs.existsSync(config.storagePath)) {
+      const files = fs.readdirSync(config.storagePath);
+      const matched = files.find(f => {
+        if (!f.includes(`[${yid}]`) || !f.endsWith('.vtt')) return false;
+        if (!lang) return true;
+        return f.includes(`.${lang}.vtt`);
+      });
+      if (matched) {
+        const fullPath = path.join(config.storagePath, matched);
+        res.setHeader('Content-Type', 'text/vtt; charset=utf-8');
+        return res.sendFile(fullPath);
+      }
+    }
+  } catch (e) {
+    log.warn(`Erreur lecture sous-titre ${yid}: ${e.message}`);
+  }
+  res.setHeader('Content-Type', 'text/vtt; charset=utf-8');
+  res.send('WEBVTT\n\n');
+});
+
+// TubeArchivist: Commentaires archivés
+web.get("/api/video/comments/:id", function (req, res) {
+  const yid = path.basename(req.params.id);
+  const fileData = db.getFile(yid);
+  if (!fileData) return res.json({ yid, comments: [] });
+  const infoPath = path.join(config.storagePath, fileData.fileName.replace('.mp4', '.info.json'));
+  if (fs.existsSync(infoPath)) {
+    try {
+      const info = JSON.parse(fs.readFileSync(infoPath, 'utf8'));
+      if (Array.isArray(info.comments)) {
+        const comments = info.comments.slice(0, 100).map(c => ({
+          author: c.author || 'Anonyme',
+          author_thumbnail: c.author_thumbnail || null,
+          text: c.text || '',
+          timestamp: c.timestamp || null,
+          like_count: c.like_count || 0
+        }));
+        return res.json({ yid, comments });
+      }
+    } catch (e) {
+      log.warn(`Erreur lecture commentaires pour ${yid}: ${e.message}`);
+    }
+  }
+  res.json({ yid, comments: [] });
+});
+
+// TubeArchivist: Tableau de bord & Export d'archive
+web.get("/api/archive/stats", function (req, res) {
+  res.json(db.getArchiveStats());
+});
+
+web.get("/api/archive/export", function (req, res) {
+  const exportData = {
+    appName: "YouTube Downloader & TubeArchivist",
+    exportedAt: new Date().toISOString(),
+    stats: db.getArchiveStats(),
+    videos: db.database,
+    playlists: db.getPlaylists(),
+    favorites: db.favorites,
+    followedChannels: db.followedChannels,
+    watchProgress: db.watchProgress || {}
+  };
+  res.setHeader('Content-Disposition', 'attachment; filename="youtube-archive-export.json"');
+  res.setHeader('Content-Type', 'application/json');
+  res.send(JSON.stringify(exportData, null, 2));
 });
 
 web.get("/api/flags/:key", function (req, res) {

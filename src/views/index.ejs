@@ -229,6 +229,125 @@
 
     <script>
         const allVideos = <%- JSON.stringify(results) %>;
+        // TubeArchivist Helpers & LaunchDarkly A/B Integration
+        let currentWatchStatusFilter = 'all';
+        let currentDurationFilter = 'all';
+        let currentSortCriteria = 'date_desc';
+
+        function formatDuration(seconds) {
+            if (!seconds || seconds <= 0) return '';
+            const s = Math.floor(seconds);
+            const hrs = Math.floor(s / 3600);
+            const mins = Math.floor((s % 3600) / 60);
+            const secs = s % 60;
+            const pad = (n) => (n < 10 ? '0' + n : n);
+            if (hrs > 0) return `${hrs}:${pad(mins)}:${pad(secs)}`;
+            return `${mins}:${pad(secs)}`;
+        }
+
+        function toggleArchiveStatsModal() {
+            const modal = document.getElementById('archiveStatsModal');
+            if (modal) modal.classList.toggle('hidden');
+        }
+
+        function filterByWatchStatus(status, el) {
+            currentWatchStatusFilter = status;
+            document.querySelectorAll('.tubearchivist-filter-btn').forEach(btn => {
+                btn.classList.remove('active', 'bg-blue-600', 'text-white');
+                btn.classList.add('bg-neutral-800', 'text-neutral-300');
+            });
+            if (el) {
+                el.classList.add('active', 'bg-blue-600', 'text-white');
+                el.classList.remove('bg-neutral-800', 'text-neutral-300');
+            }
+            if (window.electronAPI && window.electronAPI.trackEvent) {
+                window.electronAPI.trackEvent('tubearchivist_filter_status', { status });
+            }
+            applyAllFilters();
+        }
+
+        function filterByDuration(duration) {
+            currentDurationFilter = duration;
+            applyAllFilters();
+        }
+
+        function sortVideos(criteria) {
+            currentSortCriteria = criteria;
+            applyAllFilters();
+        }
+
+        function applyAllFilters() {
+            const query = (searchInput ? searchInput.value : '').toLowerCase().trim();
+            filteredVideos = allVideos.filter(video => {
+                // 1. Recherche texte
+                const matchesQuery = !query || 
+                    (video.fileName && video.fileName.toLowerCase().includes(query)) ||
+                    (video.uploader && video.uploader.toLowerCase().includes(query)) ||
+                    (video.description && video.description.toLowerCase().includes(query)) ||
+                    (Array.isArray(video.tags) && video.tags.some(t => t.toLowerCase().includes(query)));
+                if (!matchesQuery) return false;
+
+                // 2. Statut TubeArchivist
+                const isWatched = Boolean(video.watched || (video.watchProgress && video.watchProgress.watched));
+                const progressPct = video.watchProgress && video.watchProgress.percentage ? video.watchProgress.percentage : 0;
+                if (currentWatchStatusFilter === 'watched' && !isWatched) return false;
+                if (currentWatchStatusFilter === 'unwatched' && isWatched) return false;
+                if (currentWatchStatusFilter === 'in_progress' && (isWatched || progressPct === 0)) return false;
+
+                // 3. Durée
+                const dur = Number(video.duration) || 0;
+                if (currentDurationFilter === 'short' && (dur === 0 || dur >= 240)) return false;
+                if (currentDurationFilter === 'medium' && (dur < 240 || dur > 1200)) return false;
+                if (currentDurationFilter === 'long' && dur <= 1200) return false;
+
+                return true;
+            });
+
+            // Tri
+            if (currentSortCriteria === 'date_desc') {
+                filteredVideos.sort((a, b) => (b.mtime || 0) - (a.mtime || 0));
+            } else if (currentSortCriteria === 'date_asc') {
+                filteredVideos.sort((a, b) => (a.mtime || 0) - (b.mtime || 0));
+            } else if (currentSortCriteria === 'views_desc') {
+                filteredVideos.sort((a, b) => (b.view_count || 0) - (a.view_count || 0));
+            } else if (currentSortCriteria === 'duration_desc') {
+                filteredVideos.sort((a, b) => (b.duration || 0) - (a.duration || 0));
+            } else if (currentSortCriteria === 'title_asc') {
+                filteredVideos.sort((a, b) => (a.fileName || '').localeCompare(b.fileName || ''));
+            }
+
+            renderVideos();
+        }
+
+        async function toggleWatchedCard(yid, btn) {
+            try {
+                const res = await fetch('/api/video/toggle-watched', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: yid })
+                });
+                const data = await res.json();
+                if (data && data.success) {
+                    const video = allVideos.find(v => v.yid === yid);
+                    if (video) {
+                        video.watched = data.watched;
+                        video.watchProgress = data.progress;
+                    }
+                    if (btn) {
+                        btn.textContent = data.watched ? '✓ Vu' : '○ Non vu';
+                        if (data.watched) {
+                            btn.className = 'bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 rounded-lg px-2 py-1 text-[10px] font-bold transition';
+                        } else {
+                            btn.className = 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700 rounded-lg px-2 py-1 text-[10px] font-bold transition';
+                        }
+                    }
+                    applyAllFilters();
+                }
+            } catch(e) {
+                console.error("Erreur toggle watched:", e);
+            }
+        }
+
         let filteredVideos = [...allVideos];
         
         // Pagination
@@ -300,6 +419,7 @@
                 } else {
                     actionBtns += `<button class="bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg px-2.5 py-1 text-[10px] font-bold transition" onclick="event.preventDefault(); event.stopPropagation(); addToQueue('${result.yid}')">File</button>`;
                 }
+                actionBtns += `<button class="${isWatched ? 'bg-emerald-600/20 text-emerald-400 border border-emerald-500/30' : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'} rounded-lg px-2 py-1 text-[10px] font-bold transition" title="Basculer vu / non vu" onclick="event.preventDefault(); event.stopPropagation(); toggleWatchedCard('${result.yid}', this)">${isWatched ? '✓ Vu' : '○ Non vu'}</button>`;
                 actionBtns += `<button class="bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg px-2.5 py-1 text-[10px] font-bold border border-red-500/20 transition" onclick="event.preventDefault(); event.stopPropagation(); toggleFavorite('${result.yid}', this)">❤</button>`;
                 
                 if (isUnzippedPage) {
