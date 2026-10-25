@@ -33,6 +33,12 @@ function createDownloadArgs(parameter, ffmpegDir, storagePath, outputFileFormat,
     '--write-playlist-metafiles',
     '--parse-metadata', 'playlist_title:.+ - (?P<folder_name>Videos|Shorts|Live)$',
     '--postprocessor-args', 'ffmpeg:-preset superfast',
+    '--write-subs',
+    '--write-auto-subs',
+    '--sub-langs', 'fr.*,en.*,all',
+    '--convert-subs', 'vtt',
+    '--write-comments',
+    '--extractor-args', 'youtube:max_comments=100',
     '-o', path.join(storagePath, outputFileFormat)
   ];
   if (ffmpegDir) {

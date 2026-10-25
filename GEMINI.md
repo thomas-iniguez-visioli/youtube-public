@@ -1,5 +1,10 @@
 # Gemini CLI - Journal des modifications
 
+## [2.0.9] - 2026-10-25
+### Ajouté
+- **Intégration LaunchDarkly pour les tests A/B (Experimentation)** : Attribution d'un identifiant utilisateur anonyme persistant (`launchdarkly-user-id`) pour un partitionnement cohérent des cohortes A/B, ajout de la méthode `trackEvent(eventName, data, metricValue)` pour enregistrer les conversions et métriques (visionnage, complétion, clics), support des variations d'expérimentation via `getExperimentVariation()`, et exposition complète côté frontend via les routes API Express (`/api/flags/track`, `/api/experiments/:key`) et l'API preload Electron.
+- **Fonctionnalités TubeArchivist complètes** : Intégration du système de suivi de lecture (reprise automatique là où l'utilisateur s'était arrêté, statut interactif 'Vu' / 'Non vu' et auto-marquage à 90%), barre de progression rouge et badge de durée sur les cartes de vidéos, filtres d'archive par statut (Tous, Non vus, En cours, Vus) et durée, tableau de bord modal de statistiques d'archivage (`/api/archive/stats`), export complet de la bibliothèque (`/api/archive/export`), téléchargement et lecture des sous-titres (`/subtitles/:id`) et archivage/consultation hors-ligne des commentaires YouTube.
+
 ## [2.0.5] - 2026-10-24
 ### Corrigé
 - **Alignement du nom de l'auteur et du certificat de signature** : Correction de l'incohérence entre l'auteur dans la configuration de build (`package.json`) et le nom du certificat de signature de code (`CN=spartan_arbinger`). L'auteur est désormais aligné sur `spartan_arbinger` afin que les métadonnées de l'exécutable (CompanyName) et de l'installateur NSIS (Publisher) correspondent exactement à l'identité du certificat. Ajout de `CN=spartan_arbinger` dans la configuration `publisherName` pour une validation sans avertissement par le vérificateur de signature.

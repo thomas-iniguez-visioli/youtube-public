@@ -46,3 +46,58 @@ test('FileDatabase should parse filenames correctly', (t) => {
     fs.rmSync(userDataPath, { recursive: true, force: true });
     fs.rmSync(filesPath, { recursive: true, force: true });
 });
+
+
+test('FileDatabase should manage TubeArchivist watch progress and stats', (t) => {
+    const filesPath = path.resolve('./test-files-stats');
+    if (!fs.existsSync(filesPath)) fs.mkdirSync(filesPath, { recursive: true });
+    
+    const db = new FileDatabase(filesPath);
+    db.database = [
+        { yid: 'v1', fileName: 'Video 1 [v1].mp4', uploader: 'ChanA', duration: 100 },
+        { yid: 'v2', fileName: 'Video 2 [v2].mp4', uploader: 'ChanB', duration: 200 }
+    ];
+    db._buildIndex();
+
+    // 1. Initial state
+    assert.strictEqual(db.isWatched('v1'), false);
+    assert.deepStrictEqual(db.getWatchProgress('v1'), {
+        currentTime: 0,
+        duration: 0,
+        percentage: 0,
+        watched: false,
+        updatedAt: null
+    });
+
+    // 2. Set progress 50%
+    const p1 = db.setWatchProgress('v1', 50, 100);
+    assert.strictEqual(p1.percentage, 50);
+    assert.strictEqual(p1.watched, false);
+    assert.strictEqual(db.isWatched('v1'), false);
+
+    // 3. Set progress >= 90% -> auto-watched
+    const p2 = db.setWatchProgress('v1', 95, 100);
+    assert.strictEqual(p2.percentage, 95);
+    assert.strictEqual(p2.watched, true);
+    assert.strictEqual(db.isWatched('v1'), true);
+
+    // 4. Manual toggle watched
+    const toggled = db.toggleWatched('v2');
+    assert.strictEqual(toggled, true);
+    assert.strictEqual(db.isWatched('v2'), true);
+
+    const toggledBack = db.toggleWatched('v2');
+    assert.strictEqual(toggledBack, false);
+    assert.strictEqual(db.isWatched('v2'), false);
+
+    // 5. TubeArchivist Archive Stats
+    const stats = db.getArchiveStats();
+    assert.strictEqual(stats.totalVideos, 2);
+    assert.strictEqual(stats.watchedCount, 1);
+    assert.strictEqual(stats.unwatchedCount, 1);
+    assert.strictEqual(stats.totalDurationSeconds, 300);
+    assert.strictEqual(stats.totalChannels, 2);
+
+    // Clean up
+    fs.rmSync(filesPath, { recursive: true, force: true });
+});

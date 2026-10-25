@@ -1,9 +1,48 @@
 import { createRequire } from 'module';
+import crypto from 'crypto';
 import log from './logger.js';
 
 const require = createRequire(import.meta.url);
 
 const STORAGE_KEY = 'launchdarkly-flags-cache';
+const USER_ID_KEY = 'launchdarkly-user-id';
+let currentUserId = null;
+
+/**
+ * Récupère ou génère un identifiant anonyme persistant pour les tests A/B
+ */
+export function getOrCreateUserId() {
+  if (currentUserId) return Promise.resolve(currentUserId);
+  return new Promise((resolve) => {
+    storage.get(USER_ID_KEY, (err, data) => {
+      if (!err && data && typeof data.id === 'string' && data.id.trim()) {
+        currentUserId = data.id.trim();
+        resolve(currentUserId);
+      } else {
+        const newId = crypto.randomUUID ? crypto.randomUUID() : `user-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+        currentUserId = newId;
+        storage.set(USER_ID_KEY, { id: newId }, () => resolve(newId));
+      }
+    });
+  });
+}
+
+export function getCurrentUserId() {
+  return currentUserId || 'anonymous-user';
+}
+
+export async function getUserContext() {
+  const userId = await getOrCreateUserId();
+  return {
+    key: userId,
+    anonymous: true,
+    custom: {
+      platform: process.platform,
+      arch: process.arch
+    }
+  };
+}
+
 const MAX_RETRIES = 5;
 const BASE_DELAY = 1000; // 1 second
 const MAX_DELAY = 30000; // 30 seconds
@@ -259,7 +298,7 @@ export async function initLaunchDarkly() {
         return null;
       }
 
-      const user = { key: 'anonymous-user', anonymous: true };
+      const user = await getUserContext();
       await initializeWithRetry(
         launchDarklyConfig.clientSideId.trim(),
         user,
@@ -361,4 +400,45 @@ export async function reloadFlags() {
   } catch (err) {
     log.warn(`Erreur rechargement flags: ${err.message}`);
   }
+}
+
+
+/**
+ * Track an event for LaunchDarkly A/B testing / Experimentation
+ * @param {string} eventName - Nom de l'événement de conversion ou métrique
+ * @param {object} [data] - Métadonnées associées à l'événement
+ * @param {number} [metricValue] - Valeur numérique de la métrique (ex: durée, score)
+ */
+export function trackEvent(eventName, data = {}, metricValue = undefined) {
+  if (typeof eventName !== 'string' || !eventName.trim()) {
+    log.warn(`Nom d'événement A/B invalide: ${eventName}`);
+    return false;
+  }
+
+  const cleanEvent = eventName.trim();
+  try {
+    if (ldClient && typeof ldClient.track === 'function') {
+      if (typeof metricValue === 'number' && Number.isFinite(metricValue)) {
+        ldClient.track(cleanEvent, data, metricValue);
+      } else {
+        ldClient.track(cleanEvent, data);
+      }
+      log.debug(`[LaunchDarkly A/B] Événement tracké: ${cleanEvent}`, data);
+      return true;
+    } else {
+      log.debug(`[LaunchDarkly A/B] Événement non envoyé (client non prêt): ${cleanEvent}`);
+    }
+  } catch (err) {
+    log.warn(`Erreur lors du tracking LaunchDarkly (${cleanEvent}) : ${err.message}`);
+  }
+  return false;
+}
+
+/**
+ * Récupère la variation A/B attribuée pour un feature flag donné
+ * @param {string} flagKey - Clé du feature flag d'expérimentation
+ * @param {any} [defaultVariation='control'] - Variation par défaut
+ */
+export function getExperimentVariation(flagKey, defaultVariation = 'control') {
+  return getFeatureFlag(flagKey, defaultVariation);
 }

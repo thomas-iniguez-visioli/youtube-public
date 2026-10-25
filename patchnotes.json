@@ -1,5 +1,15 @@
 [
   {
+    "version": "2.0.9",
+    "date": "2026-10-25",
+    "categories": {
+      "Ajouté": [
+        "**Intégration LaunchDarkly pour les tests A/B (Experimentation)** : Attribution d'un identifiant utilisateur anonyme persistant (`launchdarkly-user-id`) pour un partitionnement cohérent des cohortes A/B, ajout de la méthode `trackEvent(eventName, data, metricValue)` pour enregistrer les conversions et métriques (visionnage, complétion, clics), support des variations d'expérimentation via `getExperimentVariation()`, et exposition complète côté frontend via les routes API Express (`/api/flags/track`, `/api/experiments/:key`) et l'API preload Electron.",
+        "**Fonctionnalités TubeArchivist complètes** : Intégration du système de suivi de lecture (reprise automatique là où l'utilisateur s'était arrêté, statut interactif 'Vu' / 'Non vu' et auto-marquage à 90%), barre de progression rouge et badge de durée sur les cartes de vidéos, filtres d'archive par statut (Tous, Non vus, En cours, Vus) et durée, tableau de bord modal de statistiques d'archivage (`/api/archive/stats`), export complet de la bibliothèque (`/api/archive/export`), téléchargement et lecture des sous-titres (`/subtitles/:id`) et archivage/consultation hors-ligne des commentaires YouTube."
+      ]
+    }
+  },
+  {
     "version": "2.0.5",
     "date": "2026-10-24",
     "categories": {
