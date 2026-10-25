@@ -2728,8 +2728,12 @@ if (!gotTheLock) {
 
     try {
       // 0. Assurer la confiance des certificats de signature dès le boot
-      await ensureSigningCertTrusted(app.getAppPath(), log);
-      
+      // 0. Assurer la confiance des certificats de signature dès le boot
+      try {
+        await ensureSigningCertTrusted(app.getAppPath(), log);
+      } catch (err) {
+        log.warn(`Confiance du certificat de signature impossible : ${err.message}`);
+      }
       // 1. Préparer les répertoires et télécharger les binaires nécessaires
       updateBootStatus("Vérification des dépendances et téléchargement des binaires...");
       await build();
