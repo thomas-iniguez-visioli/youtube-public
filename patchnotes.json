@@ -1,5 +1,23 @@
 [
   {
+    "version": "2.1.9",
+    "date": "2026-10-25",
+    "categories": {
+      "Corrigé": [
+        "**Échappement de l'apostrophe dans le Step Summary PowerShell** : Remplacement de l'échappement incorrect `\\'` par le doublement de l'apostrophe `''` dans la chaîne PowerShell de l'étape Résumé de `.github/workflows/rotate-signing-cert.yml`."
+      ]
+    }
+  },
+  {
+    "version": "2.1.8",
+    "date": "2026-10-25",
+    "categories": {
+      "Sécurisé": [
+        "**Rotation annuelle du certificat de signature et cutover PKI 2-tiers** : Déploiement de la nouvelle autorité racine (Root CA `ECA4F1729E0EC107D7FC17BF04D0BC9183640809`), du certificat d'application (`C838A973D82F89357B3114628EC6C86FBA5FEFAE`) et bascule automatique des 4 secrets de signature GitHub."
+      ]
+    }
+  },
+  {
     "version": "2.1.7",
     "date": "2026-10-25",
     "categories": {
