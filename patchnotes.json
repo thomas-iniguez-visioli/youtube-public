@@ -1,5 +1,17 @@
 [
   {
+    "version": "2.0.12",
+    "date": "2026-10-25",
+    "categories": {
+      "Corrigé": [
+        "**Correction du ReferenceError isWatched dans le rendu des cartes vidéo** : Déclaration explicite des variables `isWatched` et `progressPct` dans la boucle de rendu de `renderVideos` (`src/views/index.ejs`), restaurant l'affichage des badges de durée et des barres de progression de lecture TubeArchivist sans lever d'exception JavaScript."
+      ],
+      "Sécurisé": [
+        "**Architecture PKI 2-tiers pour la rotation annuelle des certificats** : Restructuration du workflow `.github/workflows/rotate-signing-cert.yml` pour générer deux certificats lors de chaque cycle de régénération : une autorité racine (Root CA, `ca=true`, `KeyUsage CertSign, CRLSign`) capable de signer le certificat d'application et de contresigner le certificat suivant, et un certificat feuille de signature de code (Code Signing Leaf, `ca=false`, `KeyUsage DigitalSignature`, EKU Code Signing) validé par Authenticode sans erreur de contraintes de base (Basic Constraints). Export et enregistrement des deux certificats dans `signing-certs/trusted.json` pour intégration automatique dans les magasins `Root` et `TrustedPublisher`."
+      ]
+    }
+  },
+  {
     "version": "2.0.11",
     "date": "2026-10-25",
     "categories": {

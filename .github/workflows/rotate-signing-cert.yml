@@ -44,95 +44,129 @@ jobs:
           $password = ($bytes | ForEach-Object { $_.ToString('x2') }) -join ''
           $secure = ConvertTo-SecureString $password -AsPlainText -Force
 
-          $signer = $null
+          # 1. Importer l'ancien signataire CA si disponible
+          $prevCa = $null
           if ($env:PREV_CSC_LINK -and $env:PREV_CSC_KEY_PASSWORD) {
             $prevPfxPath = Join-Path $env:RUNNER_TEMP 'previous-signing.pfx'
             [IO.File]::WriteAllBytes($prevPfxPath, [Convert]::FromBase64String($env:PREV_CSC_LINK))
             $prevSecure = ConvertTo-SecureString $env:PREV_CSC_KEY_PASSWORD -AsPlainText -Force
-            $signer = Import-PfxCertificate -FilePath $prevPfxPath -CertStoreLocation 'Cert:\CurrentUser\My' -Password $prevSecure
+            $imported = Import-PfxCertificate -FilePath $prevPfxPath -CertStoreLocation 'Cert:\CurrentUser\My' -Password $prevSecure
             Remove-Item $prevPfxPath -Force
-            Write-Host "Certificat precedent importe pour signature : $($signer.Thumbprint)"
-          }
-
-          $canSignCerts = $false
-          if ($signer) {
-            $basicConstraints = $signer.Extensions | Where-Object { $_.Oid.Value -eq '2.5.29.19' }
-            if ($basicConstraints) {
-              $bc = [System.Security.Cryptography.X509Certificates.X509BasicConstraintsExtension]$basicConstraints
-              $canSignCerts = $bc.CertificateAuthority
+            foreach ($c in $imported) {
+              $bc = $c.Extensions | Where-Object { $_.Oid.Value -eq '2.5.29.19' }
+              if ($bc -and ([System.Security.Cryptography.X509Certificates.X509BasicConstraintsExtension]$bc).CertificateAuthority) {
+                $prevCa = $c
+                break
+              }
+            }
+            if ($prevCa) {
+              Write-Host "Certificat CA precedent importe : $($prevCa.Thumbprint)"
             }
           }
 
           $subject = 'CN=spartan_arbinger'
-          $notAfter = (Get-Date).AddYears(2)
-          $common = @{
+
+          # 2. Generer le certificat d'Autorite (CA)
+          # Sert a signer le certificat d'app actuel et le prochain certificat lors de la rotation annuelle
+          $caCommon = @{
             Subject           = $subject
-            FriendlyName      = 'spartan_arbinger'
+            FriendlyName      = 'spartan_arbinger Root CA'
             KeyAlgorithm      = 'RSA'
             KeyLength         = 2048
             HashAlgorithm     = 'SHA256'
             KeyExportPolicy   = 'Exportable'
             CertStoreLocation = 'Cert:\CurrentUser\My'
-            NotAfter          = $notAfter
+            NotAfter          = (Get-Date).AddYears(5)
           }
 
-          if ($canSignCerts) {
-            $cert = New-SelfSignedCertificate @common `
+          if ($prevCa) {
+            $caCert = New-SelfSignedCertificate @caCommon `
               -Type Custom `
-              -Signer $signer `
-              -KeyUsage DigitalSignature `
+              -Signer $prevCa `
+              -KeyUsage CertSign, CRLSign `
               -TextExtension @(
-                '2.5.29.37={text}1.3.6.1.5.5.7.3.3'
+                '2.5.29.19={critical}{text}ca=true'
               )
-            Write-Host "Nouveau certificat signe par $($signer.Thumbprint)"
+            Write-Host "Nouveau certificat CA signe par $($prevCa.Thumbprint)"
           } else {
-            if ($signer) {
-              Write-Host "Le certificat precedent ($($signer.Thumbprint)) ; creation auto-signee pour signature de code."
-            } else {
-              Write-Host 'Aucun certificat precedent disponible ; creation auto-signee pour signature de code.'
-            }
-            $cert = New-SelfSignedCertificate @common `
+            $caCert = New-SelfSignedCertificate @caCommon `
               -Type Custom `
-              -KeyUsage DigitalSignature `
+              -KeyUsage CertSign, CRLSign `
               -TextExtension @(
-                '2.5.29.37={text}1.3.6.1.5.5.7.3.3'
+                '2.5.29.19={critical}{text}ca=true'
               )
+            Write-Host "Nouveau certificat CA racine auto-signe cree : $($caCert.Thumbprint)"
           }
 
-          $thumb = $cert.Thumbprint
+          # 3. Generer le certificat de signature d'application (Code Signing Leaf)
+          # Signe par le CA ci-dessus, KeyUsage DigitalSignature, EKU CodeSigning, sans ca=true
+          $appCommon = @{
+            Subject           = $subject
+            FriendlyName      = 'spartan_arbinger Code Signing'
+            KeyAlgorithm      = 'RSA'
+            KeyLength         = 2048
+            HashAlgorithm     = 'SHA256'
+            KeyExportPolicy   = 'Exportable'
+            CertStoreLocation = 'Cert:\CurrentUser\My'
+            NotAfter          = (Get-Date).AddYears(2)
+          }
+
+          $appCert = New-SelfSignedCertificate @appCommon `
+            -Type Custom `
+            -Signer $caCert `
+            -KeyUsage DigitalSignature `
+            -TextExtension @(
+              '2.5.29.37={text}1.3.6.1.5.5.7.3.3'
+            )
+          Write-Host "Certificat de signature d'application cree : $($appCert.Thumbprint) (signe par $($caCert.Thumbprint))"
+
+          # 4. Exporter les 2 certificats publics .cer dans signing-certs/
           New-Item -ItemType Directory -Force -Path signing-certs | Out-Null
-          Export-Certificate -Cert $cert -FilePath (Join-Path 'signing-certs' "$thumb.cer") | Out-Null
+          $caThumb = $caCert.Thumbprint
+          $appThumb = $appCert.Thumbprint
+          Export-Certificate -Cert $caCert -FilePath (Join-Path 'signing-certs' "$caThumb.cer") | Out-Null
+          Export-Certificate -Cert $appCert -FilePath (Join-Path 'signing-certs' "$appThumb.cer") | Out-Null
 
+          # 5. Exporter le PFX de signature de l'app (avec la chaine CA complete)
           $pfxPath = Join-Path $env:RUNNER_TEMP 'rotated-signing.pfx'
-          if ($canSignCerts) {
-            Export-PfxCertificate -Cert $cert -FilePath $pfxPath -Password $secure -ChainOption BuildChain | Out-Null
-          } else {
-            Export-PfxCertificate -Cert $cert -FilePath $pfxPath -Password $secure | Out-Null
-          }
+          Export-PfxCertificate -Cert $appCert -FilePath $pfxPath -Password $secure -ChainOption BuildChain | Out-Null
           Set-Content -Path (Join-Path $env:RUNNER_TEMP 'link.b64') -Value ([Convert]::ToBase64String([IO.File]::ReadAllBytes($pfxPath))) -NoNewline -Encoding ascii
           Set-Content -Path (Join-Path $env:RUNNER_TEMP 'password.txt') -Value $password -NoNewline -Encoding ascii
           Remove-Item $pfxPath -Force
 
-          "thumbprint=$thumb" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-          "file=$thumb.cer" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-          "signed-by=$($signer ? $signer.Thumbprint : 'self')" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "ca_thumbprint=$caThumb" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "ca_file=$caThumb.cer" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "app_thumbprint=$appThumb" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "app_file=$appThumb.cer" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "thumbprint=$appThumb" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "file=$appThumb.cer" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "signed-by=$caThumb" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
       - name: Ajouter le certificat a la liste de confiance
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           $listPath = 'signing-certs/trusted.json'
-          $incoming = '${{ steps.cert.outputs.thumbprint }}'
           $existing = @()
           if (Test-Path $listPath) {
             $existing = @(Get-Content $listPath -Raw | ConvertFrom-Json)
           }
-          $kept = @($existing | Where-Object { $_.thumbprint -and $_.thumbprint -ne $incoming } | Sort-Object addedAt | Select-Object -Last 3)
+          $caThumb = '${{ steps.cert.outputs.ca_thumbprint }}'
+          $appThumb = '${{ steps.cert.outputs.app_thumbprint }}'
+          $incoming = @($caThumb, $appThumb)
+          $kept = @($existing | Where-Object { $_.thumbprint -and $_.thumbprint -notin $incoming } | Sort-Object addedAt | Select-Object -Last 4)
+          $today = (Get-Date -Format 'yyyy-MM-dd')
           $kept += [pscustomobject]@{
-            file       = '${{ steps.cert.outputs.file }}'
-            thumbprint = $incoming
+            file       = '${{ steps.cert.outputs.ca_file }}'
+            thumbprint = $caThumb
             subject    = 'CN=spartan_arbinger'
-            addedAt    = (Get-Date -Format 'yyyy-MM-dd')
+            addedAt    = $today
+          }
+          $kept += [pscustomobject]@{
+            file       = '${{ steps.cert.outputs.app_file }}'
+            thumbprint = $appThumb
+            subject    = 'CN=spartan_arbinger'
+            addedAt    = $today
           }
           ConvertTo-Json -InputObject @($kept) -Depth 4 | Set-Content -Path $listPath -Encoding utf8
           Get-Content $listPath
@@ -199,8 +233,8 @@ jobs:
             '',
             '| Champ | Valeur |',
             '| --- | --- |',
-            '| Nouveau certificat | ${{ steps.cert.outputs.thumbprint }} |',
-            '| Fichier publie | ${{ steps.cert.outputs.file }} |',
+            '| Certificat racine (CA) | ${{ steps.cert.outputs.ca_thumbprint }} (${{ steps.cert.outputs.ca_file }}) |',
+            '| Certificat d\'application | ${{ steps.cert.outputs.app_thumbprint }} (${{ steps.cert.outputs.app_file }}) |',
             '| Signe par | ${{ steps.cert.outputs.signed-by }} |',
             '| Release attendue | v${{ steps.wait.outputs.version }} |',
             '| Etat release | ${{ steps.wait.outputs.etat }} |',
