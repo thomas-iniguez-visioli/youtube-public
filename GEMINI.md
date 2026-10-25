@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [2.1.5] - 2026-10-25
+### Sécurisé
+- **Sanctuarisation absolue des clés privées et exclusion Git/Build** : Exclusion stricte de toutes les extensions de clés et certificats privés (`*.pfx`, `*.p12`, `*.key`, `*.pem`, `*.pkcs12`) dans `.gitignore` et dans la configuration de packaging `build.files` de `package.json`. Les clés privées sont exclusivement isolées dans les secrets GitHub (`WIN_CSC_LINK`, `WIN_CSC_KEY_PASSWORD`, `WIN_CA_LINK`, `WIN_CA_KEY_PASSWORD`) et les seuls fichiers archivés dans le dépôt sont les certificats publics `.cer` (validés `HasPrivateKey=False`).
+
 ## [2.1.4] - 2026-10-25
 ### Sécurisé
 - **Architecture à 4 secrets pour l'isolation PKI (Root CA vs Leaf)** : Séparation stricte de l'Autorité Racine (`WIN_CA_LINK`, `WIN_CA_KEY_PASSWORD`) et du certificat de signature d'application (`WIN_CSC_LINK`, `WIN_CSC_KEY_PASSWORD`) dans des conteneurs PFX dédiés avec mots de passe indépendants. Le certificat de signature d'application n'expose plus la clé privée racine dans les builds quotidiens, et le workflow de rotation annuelle (`rotate-signing-cert.yml`) a été adapté pour maintenir automatiquement les 4 secrets lors du cutover.

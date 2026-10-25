@@ -1,5 +1,14 @@
 [
   {
+    "version": "2.1.5",
+    "date": "2026-10-25",
+    "categories": {
+      "Sécurisé": [
+        "**Sanctuarisation absolue des clés privées et exclusion Git/Build** : Exclusion stricte de toutes les extensions de clés et certificats privés (`*.pfx`, `*.p12`, `*.key`, `*.pem`, `*.pkcs12`) dans `.gitignore` et dans la configuration de packaging `build.files` de `package.json`. Les clés privées sont exclusivement isolées dans les secrets GitHub (`WIN_CSC_LINK`, `WIN_CSC_KEY_PASSWORD`, `WIN_CA_LINK`, `WIN_CA_KEY_PASSWORD`) et les seuls fichiers archivés dans le dépôt sont les certificats publics `.cer` (validés `HasPrivateKey=False`)."
+      ]
+    }
+  },
+  {
     "version": "2.1.4",
     "date": "2026-10-25",
     "categories": {
