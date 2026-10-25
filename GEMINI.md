@@ -1,5 +1,11 @@
 # Gemini CLI - Journal des modifications
 
+## [2.1.6] - 2026-10-25
+### Sécurisé
+- **Enregistrement dans le magasin Éditeurs approuvés (TrustedPublisher)** : `ensureSigningCertTrusted()` installe désormais les certificats dans les magasins `Root` et `TrustedPublisher` de Windows via `certutil.exe`, garantissant que les exécutables et installateurs NSIS signés par `spartan_arbinger` sont pleinement reconnus comme fiables sans alerte SmartScreen.
+### Corrigé
+- **Persistance et réconciliation du suivi de lecture TubeArchivist** : Normalisation des vidéos transmises à la vue dans `renderIndex()` et intégration de la table `watchProgressMap` dans `src/views/index.ejs`. L'état vu/non vu et la progression de lecture sont ainsi immédiatement restitués et conservés après filtrage ou rechargement.
+
 ## [2.1.5] - 2026-10-25
 ### Sécurisé
 - **Sanctuarisation absolue des clés privées et exclusion Git/Build** : Exclusion stricte de toutes les extensions de clés et certificats privés (`*.pfx`, `*.p12`, `*.key`, `*.pem`, `*.pkcs12`) dans `.gitignore` et dans la configuration de packaging `build.files` de `package.json`. Les clés privées sont exclusivement isolées dans les secrets GitHub (`WIN_CSC_LINK`, `WIN_CSC_KEY_PASSWORD`, `WIN_CA_LINK`, `WIN_CA_KEY_PASSWORD`) et les seuls fichiers archivés dans le dépôt sont les certificats publics `.cer` (validés `HasPrivateKey=False`).

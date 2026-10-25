@@ -229,6 +229,7 @@
 
     <script>
         const allVideos = <%- JSON.stringify(results) %>;
+        const watchProgressMap = <%- JSON.stringify(typeof watchProgress !== 'undefined' ? watchProgress : {}) %>;
         // TubeArchivist Helpers & LaunchDarkly A/B Integration
         let currentWatchStatusFilter = 'all';
         let currentDurationFilter = 'all';
@@ -288,8 +289,9 @@
                 if (!matchesQuery) return false;
 
                 // 2. Statut TubeArchivist
-                const isWatched = Boolean(video.watched || (video.watchProgress && video.watchProgress.watched));
-                const progressPct = video.watchProgress && video.watchProgress.percentage ? video.watchProgress.percentage : 0;
+                const wp = video.watchProgress || (watchProgressMap && watchProgressMap[video.yid]);
+                const isWatched = Boolean(video.watched || (wp && wp.watched));
+                const progressPct = wp && typeof wp.percentage === 'number' ? wp.percentage : (isWatched ? 100 : 0);
                 if (currentWatchStatusFilter === 'watched' && !isWatched) return false;
                 if (currentWatchStatusFilter === 'unwatched' && isWatched) return false;
                 if (currentWatchStatusFilter === 'in_progress' && (isWatched || progressPct === 0)) return false;
@@ -383,8 +385,9 @@
             const pageVideos = filteredVideos.slice(start, end);
 
             pageVideos.forEach(result => {
-                const isWatched = Boolean(result.watched || (result.watchProgress && result.watchProgress.watched));
-                const progressPct = result.watchProgress && typeof result.watchProgress.percentage === 'number' ? result.watchProgress.percentage : (isWatched ? 100 : 0);
+                const wp = result.watchProgress || (watchProgressMap && watchProgressMap[result.yid]);
+                const isWatched = Boolean(result.watched || (wp && wp.watched));
+                const progressPct = wp && typeof wp.percentage === 'number' ? wp.percentage : (isWatched ? 100 : 0);
                 let playlistParam = '';
                 if (channel) {
                     if (channel.startsWith('Playlist : ')) {
