@@ -1,5 +1,14 @@
 [
   {
+    "version": "2.0.11",
+    "date": "2026-10-25",
+    "categories": {
+      "Corrigé": [
+        "**Suppression du préfixe CN= dans publisherName et renforcement de la signature** : Retrait du préfixe `CN=` de la configuration `publisherName` dans `package.json` afin de respecter la convention du Common Name strict requise par electron-builder et Authenticode. Exécution immédiate de la vérification et de l'installation des certificats de signature racine (`ensureSigningCertTrusted`) dès la séquence de boot de l'application."
+      ]
+    }
+  },
+  {
     "version": "2.0.9",
     "date": "2026-10-25",
     "categories": {

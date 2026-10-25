@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [2.0.11] - 2026-10-25
+### Corrigé
+- **Suppression du préfixe CN= dans publisherName et renforcement de la signature** : Retrait du préfixe `CN=` de la configuration `publisherName` dans `package.json` afin de respecter la convention du Common Name strict requise par electron-builder et Authenticode. Exécution immédiate de la vérification et de l'installation des certificats de signature racine (`ensureSigningCertTrusted`) dès la séquence de boot de l'application.
+
 ## [2.0.9] - 2026-10-25
 ### Ajouté
 - **Intégration LaunchDarkly pour les tests A/B (Experimentation)** : Attribution d'un identifiant utilisateur anonyme persistant (`launchdarkly-user-id`) pour un partitionnement cohérent des cohortes A/B, ajout de la méthode `trackEvent(eventName, data, metricValue)` pour enregistrer les conversions et métriques (visionnage, complétion, clics), support des variations d'expérimentation via `getExperimentVariation()`, et exposition complète côté frontend via les routes API Express (`/api/flags/track`, `/api/experiments/:key`) et l'API preload Electron.
