@@ -383,6 +383,8 @@
             const pageVideos = filteredVideos.slice(start, end);
 
             pageVideos.forEach(result => {
+                const isWatched = Boolean(result.watched || (result.watchProgress && result.watchProgress.watched));
+                const progressPct = result.watchProgress && typeof result.watchProgress.percentage === 'number' ? result.watchProgress.percentage : (isWatched ? 100 : 0);
                 let playlistParam = '';
                 if (channel) {
                     if (channel.startsWith('Playlist : ')) {
@@ -433,6 +435,8 @@
                     <div class="video-thumb-container relative aspect-video bg-neutral-950 overflow-hidden">
                         <img data-src="/thumbnail/${result.yid}" src="" class="video-thumbnail w-full h-full object-cover lazy" alt="Thumbnail" loading="lazy">
                         ${result.isGz ? '<span class="absolute bottom-2 right-2 bg-neutral-900/90 text-neutral-300 text-[9px] px-1.5 py-0.5 rounded border border-neutral-750 font-semibold">📦 zip</span>' : ''}
+                        ${result.duration ? `<span class="absolute bottom-2 left-2 bg-black/80 text-neutral-200 text-[10px] px-1.5 py-0.5 rounded font-mono font-medium">${formatDuration(result.duration)}</span>` : ''}
+                        ${progressPct > 0 ? `<div class="absolute bottom-0 left-0 right-0 h-1 bg-neutral-800/80 overflow-hidden"><div class="h-full bg-red-600 transition-all" style="width: ${progressPct}%"></div></div>` : ''}
                     </div>
                     <div class="video-info flex-1 flex flex-col justify-between gap-3">
                         <div class="min-w-0 relative z-10">
