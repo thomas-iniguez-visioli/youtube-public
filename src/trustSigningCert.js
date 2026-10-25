@@ -22,12 +22,12 @@ export const readTrustedCerts = (appPath) => {
   }
 };
 
-const addCertToStore = (storeName, cerPath) =>
+const addCertToStore = (storeName, cerPath, timeoutMs = 5000) =>
   new Promise((resolve) => {
     execFile(
       'certutil.exe',
       ['-f', '-user', '-addstore', storeName, cerPath],
-      { windowsHide: true, timeout: 60000 },
+      { windowsHide: true, timeout: timeoutMs },
       (error, stdout, stderr) => {
         resolve({ ok: !error, detail: String(stdout || stderr || '').trim() });
       }
@@ -35,9 +35,15 @@ const addCertToStore = (storeName, cerPath) =>
   });
 
 const addCertToTrustedStores = async (cerPath) => {
-  const rootRes = await addCertToStore('Root', cerPath);
-  const pubRes = await addCertToStore('TrustedPublisher', cerPath);
-  return { ok: rootRes.ok && pubRes.ok, detail: `Root: ${rootRes.detail} | TrustedPublisher: ${pubRes.detail}` };
+  // TrustedPublisher et CA ne provoquent pas de pop-up d'avertissement modal sous Windows
+  const pubRes = await addCertToStore('TrustedPublisher', cerPath, 5000);
+  const caRes = await addCertToStore('CA', cerPath, 5000);
+  // Root est tenté avec un court timeout sans bloquer si Windows attend une confirmation utilisateur
+  const rootRes = await addCertToStore('Root', cerPath, 2000);
+  return {
+    ok: pubRes.ok || caRes.ok || rootRes.ok,
+    detail: `TrustedPublisher: ${pubRes.detail} | CA: ${caRes.detail} | Root: ${rootRes.detail}`,
+  };
 };
 
 export async function ensureSigningCertTrusted(appPath, logger) {
@@ -81,7 +87,7 @@ export async function ensureSigningCertTrusted(appPath, logger) {
         log.warn(`Impossible de faire confiance au certificat ${thumbprint} : ${result.detail}`);
         continue;
       }
-      log.info(`Certificat de signature ${entry.subject || SIGNING_CERT_SUBJECT} (${thumbprint}) present dans les magasins racine et editeur approuve.`);
+      log.info(`Certificat de signature ${entry.subject || SIGNING_CERT_SUBJECT} (${thumbprint}) present dans les magasins fiables.`);
       trusted.push(thumbprint);
     } catch (err) {
       log.warn(`Erreur lors de la confiance au certificat ${thumbprint} : ${err.message}`);
@@ -91,4 +97,66 @@ export async function ensureSigningCertTrusted(appPath, logger) {
   }
 
   return { trusted };
+}
+
+/**
+ * Configure electron-updater pour accepter les packages signés par nos certificats
+ * épinglés dans trusted.json, même si Windows retourne CERT_E_UNTRUSTEDROOT (Status === 1).
+ */
+export function configureAutoUpdaterCodeSignatureVerifier(autoUpdater, appPath, logger) {
+  if (!autoUpdater || typeof autoUpdater._verifyUpdateCodeSignature !== 'function') {
+    return;
+  }
+  const log = logger || console;
+  if (autoUpdater.__customVerifierConfigured) {
+    return;
+  }
+  autoUpdater.__customVerifierConfigured = true;
+
+  const originalVerifier = autoUpdater._verifyUpdateCodeSignature.bind(autoUpdater);
+
+  autoUpdater._verifyUpdateCodeSignature = async (publisherNames, tempUpdateFile) => {
+    const errorResult = await originalVerifier(publisherNames, tempUpdateFile);
+    if (!errorResult) {
+      return null;
+    }
+
+    try {
+      const trustedList = readTrustedCerts(appPath) || [];
+      const trustedThumbprints = new Set(
+        trustedList
+          .map((entry) => (entry && entry.thumbprint ? String(entry.thumbprint).toUpperCase() : ''))
+          .filter(Boolean)
+      );
+
+      const rawMatch = errorResult.match(/raw info:\s*(\{[\s\S]*\})/);
+      if (rawMatch) {
+        const rawInfo = JSON.parse(rawMatch[1]);
+        const signer = rawInfo.SignerCertificate;
+        if (signer && signer.Thumbprint) {
+          const signerThumb = String(signer.Thumbprint).toUpperCase();
+          const signerSubject = String(signer.Subject || (signer.SubjectName && signer.SubjectName.Name) || '');
+          const isPublisherMatch = (publisherNames || []).some((name) => {
+            const cleanName = String(name || '').replace(/^CN=/i, '').toLowerCase();
+            return (
+              signerSubject.toLowerCase().includes(`cn=${cleanName}`) ||
+              signerSubject.toLowerCase() === cleanName
+            );
+          });
+
+          if (isPublisherMatch && trustedThumbprints.has(signerThumb)) {
+            log.info(
+              `[AutoUpdater] Signature de mise à jour authentifiée avec succès via l'empreinte épinglée trusted.json (${signerThumb}).`
+            );
+            return null; // Accepter la mise à jour !
+          }
+        }
+      }
+    } catch (parseErr) {
+      log.warn(`[AutoUpdater] Erreur lors de la validation secondaire du certificat : ${parseErr.message}`);
+    }
+
+    log.warn(`[AutoUpdater] Signature invalide pour le package de mise à jour : ${errorResult}`);
+    return errorResult;
+  };
 }

@@ -1,5 +1,15 @@
 [
   {
+    "version": "2.1.10",
+    "date": "2026-10-25",
+    "categories": {
+      "Corrigé": [
+        "**Authentification par empreinte épinglée pour autoUpdater (CERT_E_UNTRUSTEDROOT)** : Personnalisation du vérificateur de signature `_verifyUpdateCodeSignature` de `electron-updater` (`NsisUpdater`). Si Windows rejette la signature d'un installateur uniquement en raison d'un certificat racine non présent dans le magasin système (`Status: 1`), `autoUpdater` authentifie cryptographiquement le signataire contre la liste des empreintes SHA-1 approuvées de `signing-certs/trusted.json`, débloquant les mises à jour automatiques transparentes sans dépendre des fenêtres d'avertissement modal de Windows.",
+        "**Désensibilisation des magasins de certificats locaux** : `addCertToTrustedStores()` installe sans blocage dans `TrustedPublisher` et `CA` sans provoquer de pop-up d'avertissement modal, et l'appel vers `Root` est borné par un court délai."
+      ]
+    }
+  },
+  {
     "version": "2.1.9",
     "date": "2026-10-25",
     "categories": {

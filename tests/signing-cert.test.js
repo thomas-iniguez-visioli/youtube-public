@@ -10,6 +10,7 @@ import {
   certThumbprint,
   ensureSigningCertTrusted,
   readTrustedCerts,
+  configureAutoUpdaterCodeSignatureVerifier,
 } from '../src/trustSigningCert.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -49,4 +50,53 @@ test('package.json author and build publisherName match certificate CN without C
   const publisherNames = Array.isArray(rawPublisher) ? rawPublisher : [rawPublisher];
   assert.ok(publisherNames.includes(certCn), 'signtoolOptions.publisherName must contain certificate CN');
   assert.ok(!publisherNames.some((name) => /cn=/i.test(name)), 'signtoolOptions.publisherName must not contain CN=');
+});
+
+test('configureAutoUpdaterCodeSignatureVerifier accepts when standard verification passes', async () => {
+  const fakeUpdater = {
+    _verifyUpdateCodeSignature: async () => null,
+  };
+  configureAutoUpdaterCodeSignatureVerifier(fakeUpdater, path.join(__dirname, '..'));
+  const res = await fakeUpdater._verifyUpdateCodeSignature(['spartan_arbinger'], 'test.exe');
+  assert.strictEqual(res, null);
+});
+
+test('configureAutoUpdaterCodeSignatureVerifier falls back to trusted.json when Windows returns Status: 1 (untrusted root)', async () => {
+  const list = readTrustedCerts(path.join(__dirname, '..'));
+  const pinnedThumb = list[0].thumbprint;
+  const rawInfoError = `Sign verification failed, installer signed with incorrect certificate: publisherNames: spartan_arbinger, raw info: ${JSON.stringify({
+    SignerCertificate: {
+      Thumbprint: pinnedThumb,
+      Subject: 'CN=spartan_arbinger',
+      Issuer: 'CN=spartan_arbinger',
+    },
+    Status: 1,
+    StatusMessage: 'Une chaîne de certificats a été traitée mais s’est terminée par un certificat racine qui n’est pas approuvé',
+  })}`;
+
+  const fakeUpdater = {
+    _verifyUpdateCodeSignature: async () => rawInfoError,
+  };
+  configureAutoUpdaterCodeSignatureVerifier(fakeUpdater, path.join(__dirname, '..'));
+  const res = await fakeUpdater._verifyUpdateCodeSignature(['spartan_arbinger'], 'test.exe');
+  assert.strictEqual(res, null, 'Must accept update when thumbprint is in trusted.json');
+});
+
+test('configureAutoUpdaterCodeSignatureVerifier rejects unknown thumbprint or mismatched publisher', async () => {
+  const rawInfoUnknown = `Sign verification failed, installer signed with incorrect certificate: publisherNames: spartan_arbinger, raw info: ${JSON.stringify({
+    SignerCertificate: {
+      Thumbprint: '0000000000000000000000000000000000000000',
+      Subject: 'CN=spartan_arbinger',
+      Issuer: 'CN=spartan_arbinger',
+    },
+    Status: 1,
+    StatusMessage: 'Une chaîne de certificats a été traitée mais s’est terminée par un certificat racine qui n’est pas approuvé',
+  })}`;
+
+  const fakeUpdater = {
+    _verifyUpdateCodeSignature: async () => rawInfoUnknown,
+  };
+  configureAutoUpdaterCodeSignatureVerifier(fakeUpdater, path.join(__dirname, '..'));
+  const res = await fakeUpdater._verifyUpdateCodeSignature(['spartan_arbinger'], 'test.exe');
+  assert.strictEqual(res, rawInfoUnknown, 'Must reject unknown thumbprint');
 });

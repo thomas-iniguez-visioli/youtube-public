@@ -11,7 +11,7 @@ import escapeHtml from 'escape-html';
 import path from 'path';
 import os from 'os';
 import { updateFile } from './updater.js';
-import { ensureSigningCertTrusted } from './trustSigningCert.js';
+import { ensureSigningCertTrusted, configureAutoUpdaterCodeSignatureVerifier } from './trustSigningCert.js';
 import { createDownloadArgs, runDownload, createMetadataArgs, fetchSuggestions, compressVideo, gzipFile, gunzipFile } from './downloader.js';
 import { getHttpsAgent, getChromiumProxyConfig } from './proxy.js';
 import FileDatabase from './db.js';
@@ -530,6 +530,7 @@ const checkAndInstallUpdate = () => {
 // Move initial autoUpdater check to background or deferred
 const initAutoUpdater = async () => {
   await ensureSigningCertTrusted(app.getAppPath(), log);
+  configureAutoUpdaterCodeSignatureVerifier(autoUpdater, app.getAppPath(), log);
   autoUpdater.disableDifferentialDownload = true;
   getRedirectedUrl("https://github.com/thomas-iniguez-visioli/youtube-public/releases/latest").then((url)=>{
     log.info("AutoUpdater Feed URL: " + url.replace("tag","download")+"")

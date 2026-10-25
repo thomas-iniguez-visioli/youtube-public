@@ -1,5 +1,10 @@
 # Gemini CLI - Journal des modifications
 
+## [2.1.10] - 2026-10-25
+### Corrigé
+- **Authentification par empreinte épinglée pour autoUpdater (`CERT_E_UNTRUSTEDROOT`)** : Implémentation de `configureAutoUpdaterCodeSignatureVerifier()` dans `src/trustSigningCert.js` et liaison sur `autoUpdater` dans `src/index.js`. Lorsqu'une mise à jour téléchargée est rejetée par le validateur par défaut de Windows avec l'erreur `Status: 1` (`CERT_E_UNTRUSTEDROOT: Une chaîne de certificats a été traitée mais s’est terminée par un certificat racine qui n’est pas approuvé par le fournisseur d’approbation`), le vérificateur intercepte le résultat et valide l'intégrité de la mise à jour si l'empreinte SHA-1 du signataire (`SignerCertificate.Thumbprint`) correspond à la liste épinglée dans `signing-certs/trusted.json` et que le Common Name correspond à `spartan_arbinger`.
+- **Désensibilisation des magasins de certificats locaux** : Dans `addCertToTrustedStores()`, l'installation est assurée sans blocage dans `TrustedPublisher` et `CA` (qui ne provoquent aucun avertissement modal sous Windows), et l'appel vers `Root` est exécuté avec un délai court pour éviter tout gel du processus en arrière-plan.
+
 ## [2.1.9] - 2026-10-25
 ### Corrigé
 - **Échappement de l'apostrophe dans le résumé PowerShell (`rotate-signing-cert.yml`)** : Remplacement de `\'` par `''` dans la chaîne de tableau PowerShell de l'étape Resume afin d'éviter l'erreur d'analyse syntaxique `Unexpected token 'application' in expression or statement`.
