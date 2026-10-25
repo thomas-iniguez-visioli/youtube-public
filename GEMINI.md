@@ -3,7 +3,7 @@
 ## [2.0.11] - 2026-10-25
 ### Corrigé
 - **Correction de la route de sous-titres Express 5 (path-to-regexp)** : Remplacement de la syntaxe de paramètre optionnel obsolète `/subtitles/:id/:lang?` (incompatible avec path-to-regexp v8 dans Express 5 et causant une TypeError au démarrage) par un tableau de routes explicites `['/subtitles/:id', '/subtitles/:id/:lang']`.
-- **Suppression du préfixe CN= dans publisherName et renforcement de la signature** : Retrait du préfixe `CN=` de la configuration `publisherName` dans `package.json` afin de respecter la convention du Common Name strict requise par electron-builder et Authenticode. Exécution immédiate de la vérification et de l'installation des certificats de signature racine (`ensureSigningCertTrusted`) dès la séquence de boot de l'application.
+- **Suppression du préfixe CN= dans publisherName et renforcement de la signature** : Retrait du préfixe `CN=` de la configuration `publisherName` dans `package.json` (annule l'ajout de la version 2.0.5) afin de respecter la convention du Common Name strict requise par electron-builder et Authenticode. Exécution immédiate de la vérification et de l'installation des certificats de signature racine (`ensureSigningCertTrusted`) dès la séquence de boot de l'application.
 
 ## [2.0.9] - 2026-10-25
 ### Ajouté
