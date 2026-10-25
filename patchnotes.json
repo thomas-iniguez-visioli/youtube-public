@@ -1,5 +1,14 @@
 [
   {
+    "version": "2.1.7",
+    "date": "2026-10-25",
+    "categories": {
+      "Corrigé": [
+        "**Exportabilité des clés privées CA lors de la rotation (`-Exportable`)** : Ajout du flag `-Exportable` lors de `Import-PfxCertificate` dans `.github/workflows/rotate-signing-cert.yml`. Sans ce paramètre, Windows interdisait l'accès en ré-export à la clé privée de l'autorité racine précédente (« Key not valid for use in specified state / NTE_BAD_KEY_STATE »), bloquant la génération du conteneur PFX multi-certificats de la chaîne CA."
+      ]
+    }
+  },
+  {
     "version": "2.1.6",
     "date": "2026-10-25",
     "categories": {
