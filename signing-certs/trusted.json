@@ -1,11 +1,5 @@
 [
   {
-    "file": "FAF8C6F36206BB586CDF75D28DA0EC885152B766.cer",
-    "thumbprint": "FAF8C6F36206BB586CDF75D28DA0EC885152B766",
-    "subject": "CN=spartan_arbinger",
-    "addedAt": "2026-10-14"
-  },
-  {
     "file": "3D12F2F195501D6C55B51405B2B296E61DA68586.cer",
     "thumbprint": "3D12F2F195501D6C55B51405B2B296E61DA68586",
     "subject": "CN=spartan_arbinger",
@@ -26,6 +20,18 @@
   {
     "file": "2996A82430660F913406B0E35D68DB812721ED76.cer",
     "thumbprint": "2996A82430660F913406B0E35D68DB812721ED76",
+    "subject": "CN=spartan_arbinger",
+    "addedAt": "2026-10-25"
+  },
+  {
+    "file": "ECA4F1729E0EC107D7FC17BF04D0BC9183640809.cer",
+    "thumbprint": "ECA4F1729E0EC107D7FC17BF04D0BC9183640809",
+    "subject": "CN=spartan_arbinger",
+    "addedAt": "2026-10-25"
+  },
+  {
+    "file": "C838A973D82F89357B3114628EC6C86FBA5FEFAE.cer",
+    "thumbprint": "C838A973D82F89357B3114628EC6C86FBA5FEFAE",
     "subject": "CN=spartan_arbinger",
     "addedAt": "2026-10-25"
   }
