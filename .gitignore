@@ -29,3 +29,7 @@ sessions/
 bin/
 
 *.pfx
+*.p12
+*.key
+*.pem
+*.pkcs12
