@@ -127,10 +127,17 @@ jobs:
           Export-Certificate -Cert $caCert -FilePath (Join-Path 'signing-certs' "$caThumb.cer") | Out-Null
           Export-Certificate -Cert $appCert -FilePath (Join-Path 'signing-certs' "$appThumb.cer") | Out-Null
 
-          # 5. Exporter le PFX de signature de l'app (avec la chaine CA complete)
+          # 5. Exporter le PFX contenant le Leaf ET le Root CA avec leurs cles privees
+          # Permet a signtool de signer avec le leaf et au prochain workflow de reutiliser le Root CA precedent
+          $collection = [System.Security.Cryptography.X509Certificates.X509Certificate2Collection]::new()
+          $collection.Add($appCert) | Out-Null
+          $collection.Add($caCert) | Out-Null
+          if ($prevCa) { $collection.Add($prevCa) | Out-Null }
+          $pfxBytes = $collection.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Pfx, $password)
+
           $pfxPath = Join-Path $env:RUNNER_TEMP 'rotated-signing.pfx'
-          Export-PfxCertificate -Cert $appCert -FilePath $pfxPath -Password $secure -ChainOption BuildChain | Out-Null
-          Set-Content -Path (Join-Path $env:RUNNER_TEMP 'link.b64') -Value ([Convert]::ToBase64String([IO.File]::ReadAllBytes($pfxPath))) -NoNewline -Encoding ascii
+          [System.IO.File]::WriteAllBytes($pfxPath, $pfxBytes)
+          Set-Content -Path (Join-Path $env:RUNNER_TEMP 'link.b64') -Value ([Convert]::ToBase64String($pfxBytes)) -NoNewline -Encoding ascii
           Set-Content -Path (Join-Path $env:RUNNER_TEMP 'password.txt') -Value $password -NoNewline -Encoding ascii
           Remove-Item $pfxPath -Force
 
