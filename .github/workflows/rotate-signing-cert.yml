@@ -80,23 +80,21 @@ jobs:
             $cert = New-SelfSignedCertificate @common `
               -Type Custom `
               -Signer $signer `
-              -KeyUsage CertSign, CRLSign, DigitalSignature `
+              -KeyUsage DigitalSignature `
               -TextExtension @(
-                '2.5.29.19={critical}{text}ca=true',
                 '2.5.29.37={text}1.3.6.1.5.5.7.3.3'
               )
             Write-Host "Nouveau certificat signe par $($signer.Thumbprint)"
           } else {
             if ($signer) {
-              Write-Host "Le certificat precedent ($($signer.Thumbprint)) ne possede pas l'extension CA ; creation auto-signeee capable de signer la prochaine rotation."
+              Write-Host "Le certificat precedent ($($signer.Thumbprint)) ; creation auto-signee pour signature de code."
             } else {
-              Write-Host 'Aucun certificat precedent disponible ; creation auto-signeee.'
+              Write-Host 'Aucun certificat precedent disponible ; creation auto-signee pour signature de code.'
             }
             $cert = New-SelfSignedCertificate @common `
               -Type Custom `
-              -KeyUsage CertSign, CRLSign, DigitalSignature `
+              -KeyUsage DigitalSignature `
               -TextExtension @(
-                '2.5.29.19={critical}{text}ca=true',
                 '2.5.29.37={text}1.3.6.1.5.5.7.3.3'
               )
           }

@@ -22,17 +22,23 @@ export const readTrustedCerts = (appPath) => {
   }
 };
 
-const addCertToRootStore = (cerPath) =>
+const addCertToStore = (storeName, cerPath) =>
   new Promise((resolve) => {
     execFile(
       'certutil.exe',
-      ['-f', '-user', '-addstore', 'Root', cerPath],
+      ['-f', '-user', '-addstore', storeName, cerPath],
       { windowsHide: true, timeout: 60000 },
       (error, stdout, stderr) => {
         resolve({ ok: !error, detail: String(stdout || stderr || '').trim() });
       }
     );
   });
+
+const addCertToTrustedStores = async (cerPath) => {
+  const rootRes = await addCertToStore('Root', cerPath);
+  const pubRes = await addCertToStore('TrustedPublisher', cerPath);
+  return { ok: rootRes.ok && pubRes.ok, detail: `Root: ${rootRes.detail} | TrustedPublisher: ${pubRes.detail}` };
+};
 
 export async function ensureSigningCertTrusted(appPath, logger) {
   const log = logger || console;
@@ -70,12 +76,12 @@ export async function ensureSigningCertTrusted(appPath, logger) {
     const tempPath = path.join(os.tmpdir(), `youtube-signing-cert-${thumbprint}.cer`);
     try {
       fs.writeFileSync(tempPath, der);
-      const result = await addCertToRootStore(tempPath);
+      const result = await addCertToTrustedStores(tempPath);
       if (!result.ok) {
         log.warn(`Impossible de faire confiance au certificat ${thumbprint} : ${result.detail}`);
         continue;
       }
-      log.info(`Certificat de signature ${entry.subject || SIGNING_CERT_SUBJECT} (${thumbprint}) present dans le magasin racine utilisateur.`);
+      log.info(`Certificat de signature ${entry.subject || SIGNING_CERT_SUBJECT} (${thumbprint}) present dans les magasins racine et editeur approuve.`);
       trusted.push(thumbprint);
     } catch (err) {
       log.warn(`Erreur lors de la confiance au certificat ${thumbprint} : ${err.message}`);
