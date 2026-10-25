@@ -31,7 +31,7 @@ jobs:
       - name: Auto-merge PR
         if: success()
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
         run: |
           # Tente d'activer l'auto-merge de GitHub, sinon force le merge immédiat
           gh pr merge ${{ github.event.pull_request.number }} --merge --auto || gh pr merge ${{ github.event.pull_request.number }} --merge
