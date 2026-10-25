@@ -1,12 +1,12 @@
 {
   "name": "youtube",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "type": "module",
   "description": "youtube local",
   "main": "src/index.js",
   "private": true,
   "scripts": {
-    "build": "bun run tailwindcss -i src/client-dist/tailwind-input.css -o src/client-dist/tailwind.css --minify",
+    "build": "tailwindcss -i src/client-dist/tailwind-input.css -o src/client-dist/tailwind.css --minify",
     "prepush": "bun test",
     "postpush": "gh signoff",
     "start": "bun run tailwindcss -i src/client-dist/tailwind-input.css -o src/client-dist/tailwind.css ; electron .",

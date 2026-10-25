@@ -1,5 +1,12 @@
 # Gemini CLI - Journal des modifications
 
+## [2.1.2] - 2026-10-25
+### Corrigé
+- **Correction du ReferenceError isWatched dans le rendu des cartes vidéo** : Déclaration explicite des variables `isWatched` et `progressPct` dans la boucle de rendu de `renderVideos` (`src/views/index.ejs`), restaurant l'affichage des badges de durée et des barres de progression de lecture TubeArchivist sans lever d'exception JavaScript.
+- **Compatibilité du script build pour l'environnement CI sans Bun** : Utilisation directe du binaire `tailwindcss` dans le script `build` de `package.json` afin d'assurer le succès des builds CI exécutés via `npm run build`.
+### Sécurisé
+- **Architecture PKI 2-tiers pour la rotation des certificats et signature NSIS Authenticode** : Intégration de la génération de deux certificats séparés lors de la rotation : une autorité racine (Root CA, `ca=true`, `KeyUsage CertSign, CRLSign`) capable de signer le certificat d'application et de contresigner le certificat suivant, et un certificat feuille de signature de code (Code Signing Leaf, `ca=false`, `KeyUsage DigitalSignature`, EKU Code Signing) validé par Authenticode sans erreur de contraintes de base (Basic Constraints). Export et enregistrement des deux certificats dans `signing-certs/trusted.json` et mise à jour des secrets `WIN_CSC_LINK` et `WIN_CSC_KEY_PASSWORD` avec la chaîne complète.
+
 ## [2.0.11] - 2026-10-25
 ### Corrigé
 - **Correction de la route de sous-titres Express 5 (path-to-regexp)** : Remplacement de la syntaxe de paramètre optionnel obsolète `/subtitles/:id/:lang?` (incompatible avec path-to-regexp v8 dans Express 5 et causant une TypeError au démarrage) par un tableau de routes explicites `['/subtitles/:id', '/subtitles/:id/:lang']`.
