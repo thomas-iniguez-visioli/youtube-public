@@ -52,6 +52,7 @@ jobs:
 
           # 1. Importer l'ancien signataire CA (depuis WIN_CA_LINK en priorite, ou fallback WIN_CSC_LINK)
           $prevCa = $null
+          $prevCas = @()
           $caLink = if ($env:PREV_CA_LINK) { $env:PREV_CA_LINK } else { $env:PREV_CSC_LINK }
           $caPwd = if ($env:PREV_CA_KEY_PASSWORD) { $env:PREV_CA_KEY_PASSWORD } else { $env:PREV_CSC_KEY_PASSWORD }
 
@@ -59,16 +60,16 @@ jobs:
             $prevPfxPath = Join-Path $env:RUNNER_TEMP 'previous-ca.pfx'
             [IO.File]::WriteAllBytes($prevPfxPath, [Convert]::FromBase64String($caLink))
             $prevSecure = ConvertTo-SecureString $caPwd -AsPlainText -Force
-            $imported = Import-PfxCertificate -FilePath $prevPfxPath -CertStoreLocation 'Cert:\CurrentUser\My' -Password $prevSecure
+            $imported = Import-PfxCertificate -FilePath $prevPfxPath -CertStoreLocation 'Cert:\CurrentUser\My' -Password $prevSecure -Exportable
             Remove-Item $prevPfxPath -Force
             foreach ($c in $imported) {
               $bc = $c.Extensions | Where-Object { $_.Oid.Value -eq '2.5.29.19' }
               if ($bc -and ([System.Security.Cryptography.X509Certificates.X509BasicConstraintsExtension]$bc).CertificateAuthority -and $c.HasPrivateKey) {
-                $prevCa = $c
-                break
+                $prevCas += $c
               }
             }
-            if ($prevCa) {
+            if ($prevCas.Count -gt 0) {
+              $prevCa = $prevCas | Sort-Object NotAfter -Descending | Select-Object -First 1
               Write-Host "Certificat CA precedent importe pour contre-signature : $($prevCa.Thumbprint)"
             }
           }
@@ -139,7 +140,13 @@ jobs:
           # 5a. Exporter le PFX Root CA (WIN_CA_LINK) avec ses cles privees pour les prochaines rotations
           $caColl = [System.Security.Cryptography.X509Certificates.X509Certificate2Collection]::new()
           $caColl.Add($caCert) | Out-Null
-          if ($prevCa) { $caColl.Add($prevCa) | Out-Null }
+          if ($prevCas.Count -gt 0) {
+            foreach ($oldCa in $prevCas) {
+              if ($oldCa.Thumbprint -ne $caCert.Thumbprint) {
+                $caColl.Add($oldCa) | Out-Null
+              }
+            }
+          }
           $caPfxBytes = $caColl.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Pfx, $caPassword)
 
           $caPfxPath = Join-Path $env:RUNNER_TEMP 'ca.pfx'
@@ -152,7 +159,11 @@ jobs:
           $leafColl = [System.Security.Cryptography.X509Certificates.X509Certificate2Collection]::new()
           $leafColl.Add($appCert) | Out-Null
           $leafColl.Add([System.Security.Cryptography.X509Certificates.X509Certificate2]::new($caCert.RawData)) | Out-Null
-          if ($prevCa) { $leafColl.Add([System.Security.Cryptography.X509Certificates.X509Certificate2]::new($prevCa.RawData)) | Out-Null }
+          if ($prevCas.Count -gt 0) {
+            foreach ($oldCa in $prevCas) {
+              $leafColl.Add([System.Security.Cryptography.X509Certificates.X509Certificate2]::new($oldCa.RawData)) | Out-Null
+            }
+          }
           $leafPfxBytes = $leafColl.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Pfx, $cscPassword)
 
           $leafPfxPath = Join-Path $env:RUNNER_TEMP 'leaf.pfx'
@@ -167,7 +178,8 @@ jobs:
           "app_file=$appThumb.cer" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           "thumbprint=$appThumb" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           "file=$appThumb.cer" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-          "signed-by=$($prevCa ? $prevCa.Thumbprint : 'self')" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          $signedBy = if ($prevCa) { $prevCa.Thumbprint } else { 'self' }
+          "signed-by=$signedBy" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
       - name: Ajouter le certificat a la liste de confiance
         shell: pwsh

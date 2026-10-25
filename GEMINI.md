@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [2.1.7] - 2026-10-25
+### Corrigé
+- **Exportabilité des clés privées CA lors de la rotation (`-Exportable`)** : Ajout du commutateur `-Exportable` lors de l'appel `Import-PfxCertificate` dans `.github/workflows/rotate-signing-cert.yml`. Par défaut sous Windows, l'importation de conteneurs PFX dans le magasin de certificats verrouille la clé privée locale en mode non-exportable, provoquant une exception `System.Security.Cryptography.CryptographicException: Key not valid for use in specified state` (NTE_BAD_KEY_STATE 0x8009000B) lors de la génération du PFX multi-certificats (`$caColl.Export`).
+
 ## [2.1.6] - 2026-10-25
 ### Sécurisé
 - **Enregistrement dans le magasin Éditeurs approuvés (TrustedPublisher)** : `ensureSigningCertTrusted()` installe désormais les certificats dans les magasins `Root` et `TrustedPublisher` de Windows via `certutil.exe`, garantissant que les exécutables et installateurs NSIS signés par `spartan_arbinger` sont pleinement reconnus comme fiables sans alerte SmartScreen.
