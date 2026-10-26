@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [2.1.13] - 2026-10-26
+### Ajouté
+- **Publication automatique sur dev-null.sh lors des releases** : Ajout du workflow GitHub Actions `.github/workflows/dev-null.yml` utilisant l'action `dev-null-sh/dev-null.sh/.github/actions/commit@production` pour poster automatiquement un message contenant le nom de la release et son URL sur dev-null.sh dès qu'une release est publiée (`release: [published]`).
+
 ## [2.1.11] - 2026-10-25
 ### Corrigé
 - **Déclenchement des workflows descendants après merge de PR (`GH_PAT`)** : Remplacement de `secrets.GITHUB_TOKEN` par `${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}` dans `.github/workflows/pr-automerge.yml`. En raison des règles anti-boucle de GitHub Actions, les fusions réalisées avec le jeton bot par défaut bloquaient tous les événements descendants (`pull_request: [closed]` et `push: branches: [main]`).
