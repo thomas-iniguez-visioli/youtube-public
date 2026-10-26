@@ -1,0 +1,18 @@
+name: /dev/null
+
+on:
+  release:
+    types: [published]
+
+permissions: {}
+
+jobs:
+  commit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: dev-null-sh/dev-null.sh/.github/actions/commit@production
+        with:
+          body: |
+            Released ${{ github.event.release.name }}.
+            ${{ github.event.release.html_url }}
+          ssh-key: ${{ secrets.DEVNULL_SSH_KEY }}

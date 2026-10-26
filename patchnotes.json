@@ -1,5 +1,14 @@
 [
   {
+    "version": "2.1.13",
+    "date": "2026-10-26",
+    "categories": {
+      "Ajouté": [
+        "**Publication automatique sur dev-null.sh lors des releases** : Ajout du workflow GitHub Actions `.github/workflows/dev-null.yml` utilisant l'action `dev-null-sh/dev-null.sh/.github/actions/commit@production` pour poster automatiquement un message contenant le nom de la release et son URL sur dev-null.sh dès qu'une release est publiée (événement `release: [published]`)."
+      ]
+    }
+  },
+  {
     "version": "2.1.11",
     "date": "2026-10-25",
     "categories": {
