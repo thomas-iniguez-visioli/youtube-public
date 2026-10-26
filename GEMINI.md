@@ -1,5 +1,9 @@
 # Gemini CLI - Journal des modifications
 
+## [2.1.15] - 2026-10-26
+### Ajouté
+- **Inclusion des notes de version dans les annonces dev-null.sh** : Extraction automatique des catégories et modifications depuis `patchnotes.json` lors de l'exécution du workflow `.github/workflows/dev-null.yml` via `actions/github-script`, avec mise en forme Markdown complète et fallback dynamique.
+
 ## [2.1.13] - 2026-10-26
 ### Ajouté
 - **Publication automatique sur dev-null.sh lors des releases** : Ajout du workflow GitHub Actions `.github/workflows/dev-null.yml` utilisant l'action `dev-null-sh/dev-null.sh/.github/actions/commit@production` pour poster automatiquement un message contenant le nom de la release et son URL sur dev-null.sh dès qu'une release est publiée (`release: [published]`).

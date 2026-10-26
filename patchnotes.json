@@ -1,5 +1,14 @@
 [
   {
+    "version": "2.1.15",
+    "date": "2026-10-26",
+    "categories": {
+      "Ajouté": [
+        "**Inclusion des notes de version dans les annonces dev-null.sh** : Extraction automatique des catégories et modifications depuis `patchnotes.json` lors de l'exécution du workflow `.github/workflows/dev-null.yml` via `actions/github-script`, avec mise en forme Markdown complète et fallback dynamique."
+      ]
+    }
+  },
+  {
     "version": "2.1.13",
     "date": "2026-10-26",
     "categories": {

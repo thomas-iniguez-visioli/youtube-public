@@ -4,15 +4,63 @@ on:
   release:
     types: [published]
 
-permissions: {}
+permissions:
+  contents: read
 
 jobs:
   commit:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Generate Release Message
+        id: message
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const release = context.payload.release || {};
+            const releaseName = release.name || release.tag_name || 'Nouvelle version';
+            const releaseUrl = release.html_url || '';
+            const rawVersion = (release.tag_name || '').replace(/^v/, '');
+
+            let notesText = '';
+            try {
+              if (fs.existsSync('patchnotes.json')) {
+                const notes = JSON.parse(fs.readFileSync('patchnotes.json', 'utf8'));
+                const entry = notes.find(n => n.version === rawVersion) || notes.find(n => n.version === releaseName) || notes[0];
+                if (entry && entry.categories) {
+                  const parts = [];
+                  for (const [category, items] of Object.entries(entry.categories)) {
+                    parts.push(`### ${category}`);
+                    for (const item of items) {
+                      parts.push(`- ${item}`);
+                    }
+                  }
+                  notesText = parts.join('\n');
+                }
+              }
+            } catch (err) {
+              core.warning('Impossible de lire patchnotes.json: ' + err.message);
+            }
+
+            if (!notesText && release.body && !release.body.includes('YouTube Downloader Extension')) {
+              notesText = release.body;
+            }
+
+            let body = `Released ${releaseName}.\n${releaseUrl}`;
+            if (notesText) {
+              body += `\n\n${notesText}`;
+            }
+
+            if (body.length > 3900) {
+              body = body.slice(0, 3890) + '\n...';
+            }
+
+            core.setOutput('body', body);
+
       - uses: dev-null-sh/dev-null.sh/.github/actions/commit@production
         with:
-          body: |
-            Released ${{ github.event.release.name }}.
-            ${{ github.event.release.html_url }}
+          body: ${{ steps.message.outputs.body }}
           ssh-key: ${{ secrets.DEVNULL_SSH_KEY }}
