@@ -15,6 +15,7 @@
 
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
 const args = process.argv.slice(2);
 
@@ -34,7 +35,7 @@ const dailyIncrement = parseInt(getArgValue('--increment', process.env.ROLLOUT_D
 
 // Charger la date de release depuis patchnotes.json
 let releaseDate = getArgValue('--date', null);
-let appVersion = '2.1.18';
+let appVersion = '2.1.20';
 
 try {
   const patchnotes = JSON.parse(fs.readFileSync('patchnotes.json', 'utf8'));
@@ -55,7 +56,7 @@ if (!releaseDate) {
 }
 
 // Flags configurés pour le déploiement progressif quotidien
-const rolloutFlags = [
+export const rolloutFlags = [
   { key: 'enable-tubearchivist-features', name: 'TubeArchivist Features', basePercent: 50 },
   { key: 'ab-tubearchivist-ui', name: 'A/B TubeArchivist UI', basePercent: 50 },
   { key: 'auto-mark-watched', name: 'Auto-marquage 90%', basePercent: 25 },
@@ -64,9 +65,9 @@ const rolloutFlags = [
   { key: 'enable-comments-archive', name: 'Commentaires YouTube', basePercent: 10 }
 ];
 
-function calculateDaysElapsed(fromDateStr) {
+export function calculateDaysElapsed(fromDateStr, referenceDate = new Date()) {
   const start = new Date(fromDateStr);
-  const now = new Date();
+  const now = referenceDate instanceof Date ? referenceDate : new Date(referenceDate);
   const diffMs = now.getTime() - start.getTime();
   return Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
 }
@@ -74,41 +75,76 @@ function calculateDaysElapsed(fromDateStr) {
 const daysElapsed = calculateDaysElapsed(releaseDate);
 const LD_API_BASE = 'https://app.launchdarkly.com/api/v2';
 
-async function updateLaunchDarklyRollout(flagKey, percentage) {
+/**
+ * Construit le payload JSON Patch standard (RFC 6902) pour la fallthrough rule LaunchDarkly.
+ * Utilise des poids sur une base 100 000 (LaunchDarkly scale: 50000 = 50%).
+ */
+export function buildFallthroughPatchPayload(percentage, envKey = 'production') {
+  const safePercentage = Math.max(0, Math.min(100, Math.round(Number(percentage) || 0)));
+  const weightOn = safePercentage * 1000;
+  const weightOff = (100 - safePercentage) * 1000;
+
+  return [
+    {
+      op: 'replace',
+      path: `/environments/${envKey}/fallthrough`,
+      value: {
+        rollout: {
+          variations: [
+            { variation: 0, weight: weightOn },
+            { variation: 1, weight: weightOff }
+          ],
+          bucketBy: 'key'
+        }
+      }
+    }
+  ];
+}
+
+/**
+ * Exécute un appel fetch avec gestion du rate limit HTTP 429 et backoff exponentiel.
+ */
+export async function fetchWithRetry(url, options, maxRetries = 3, customFetch = fetch) {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const res = await customFetch(url, options);
+    if (res.status === 429) {
+      if (attempt === maxRetries) {
+        return res;
+      }
+      const retryAfterHeader = res.headers && typeof res.headers.get === 'function' ? res.headers.get('retry-after') : null;
+      let retrySeconds;
+      if (retryAfterHeader !== null && retryAfterHeader !== undefined) {
+        const parsed = parseInt(retryAfterHeader, 10);
+        retrySeconds = Number.isFinite(parsed) ? Math.max(0, parsed) : 2;
+      } else {
+        retrySeconds = (attempt + 1) * 2;
+      }
+      if (retrySeconds > 0) {
+        console.warn(`[LaunchDarkly API] Limite de débit atteinte (HTTP 429), réessai dans ${retrySeconds}s (tentative ${attempt + 1}/${maxRetries})...`);
+        await new Promise(r => setTimeout(r, retrySeconds * 1000));
+      }
+      continue;
+    }
+    return res;
+  }
+}
+
+export async function updateLaunchDarklyRollout(flagKey, percentage, customFetch = fetch) {
   if (!apiToken) {
     return { success: false, reason: 'Pas de token API (mode simulation)' };
   }
 
   try {
-    const weightOn = percentage * 1000;
-    const weightOff = (100 - percentage) * 1000;
+    const patchBody = buildFallthroughPatchPayload(percentage, environmentKey);
 
-    const patchBody = {
-      comment: `Progression journalière (+${dailyIncrement}%/j, jour ${daysElapsed} depuis ${releaseDate}) -> ${percentage}%`,
-      instructions: [
-        {
-          kind: 'updateFallthrough',
-          environmentKey,
-          rollout: {
-            variations: [
-              { variation: 0, weight: weightOn },
-              { variation: 1, weight: weightOff }
-            ],
-            bucketBy: 'key'
-          }
-        }
-      ]
-    };
-
-    const res = await fetch(`${LD_API_BASE}/flags/${projectKey}/${flagKey}`, {
+    const res = await fetchWithRetry(`${LD_API_BASE}/flags/${projectKey}/${flagKey}`, {
       method: 'PATCH',
       headers: {
         'Authorization': apiToken,
-        'Content-Type': 'application/json; domain-model=launchdarkly.semanticpatch',
-        'LD-API-Version': 'beta'
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify(patchBody)
-    });
+    }, 3, customFetch);
 
     if (res.status === 200) {
       return { success: true };
@@ -121,7 +157,7 @@ async function updateLaunchDarklyRollout(flagKey, percentage) {
   }
 }
 
-async function main() {
+export async function main() {
   console.log(`============================================================`);
   console.log(`  LaunchDarkly - Progression Journalière des Déploiements   `);
   console.log(`============================================================`);
@@ -135,13 +171,18 @@ async function main() {
 
   const results = [];
 
-  for (const flag of rolloutFlags) {
+  for (let i = 0; i < rolloutFlags.length; i++) {
+    const flag = rolloutFlags[i];
     const effectivePercent = Math.min(100, flag.basePercent + (daysElapsed * dailyIncrement));
     const isGA = effectivePercent >= 100;
     const stage = isGA ? '100% (GA)' : `${effectivePercent}% (Progressif)`;
 
     let apiResult = null;
     if (apiToken && !isDryRun) {
+      if (i > 0) {
+        // Pause de 1.2s entre chaque requête pour éviter les rafales et respecter le débit d'API LaunchDarkly
+        await new Promise(r => setTimeout(r, 1200));
+      }
       apiResult = await updateLaunchDarklyRollout(flag.key, effectivePercent);
     }
 
@@ -187,4 +228,7 @@ ${rows}
   console.log(`============================================================\n`);
 }
 
-main();
+const isMainModule = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (isMainModule) {
+  main();
+}

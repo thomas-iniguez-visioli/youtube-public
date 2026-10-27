@@ -165,15 +165,34 @@ const flagsToCreate = [
   }
 ];
 
+/**
+ * Exécute un appel fetch avec gestion du rate limit HTTP 429 et backoff exponentiel.
+ */
+async function fetchWithRetry(url, options, maxRetries = 3) {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const res = await fetch(url, options);
+    if (res.status === 429) {
+      if (attempt === maxRetries) {
+        return res;
+      }
+      const retryAfterHeader = res.headers && typeof res.headers.get === 'function' ? res.headers.get('retry-after') : null;
+      const retrySeconds = retryAfterHeader ? Math.max(1, parseInt(retryAfterHeader, 10) || 2) : (attempt + 1) * 2;
+      console.warn(`[LaunchDarkly API] Limite de débit atteinte (HTTP 429), réessai dans ${retrySeconds}s (tentative ${attempt + 1}/${maxRetries})...`);
+      await new Promise(r => setTimeout(r, retrySeconds * 1000));
+      continue;
+    }
+    return res;
+  }
+}
+
 async function createFlag(flag) {
   console.log(`Vérification / Création du flag : ${flag.key}...`);
   try {
-    const res = await fetch(`${LD_API_BASE}/flags/${projectKey}`, {
+    const res = await fetchWithRetry(`${LD_API_BASE}/flags/${projectKey}`, {
       method: 'POST',
       headers: {
         'Authorization': apiToken,
-        'Content-Type': 'application/json',
-        'LD-API-Version': 'beta'
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         key: flag.key,
@@ -202,15 +221,15 @@ async function createFlag(flag) {
 async function configureRollout(flagKey, percent, envKey = 'production') {
   console.log(`Configuration du déploiement progressif pour ${flagKey} à ${percent}% (${envKey})...`);
   try {
-    const weightOn = percent * 1000;
-    const weightOff = (100 - percent) * 1000;
+    const safePercentage = Math.max(0, Math.min(100, Math.round(Number(percent) || 0)));
+    const weightOn = safePercentage * 1000;
+    const weightOff = (100 - safePercentage) * 1000;
 
-    const patchBody = {
-      comment: `Déploiement progressif à ${percent}% configuré via setup script`,
-      instructions: [
-        {
-          kind: 'updateFallthrough',
-          environmentKey: envKey,
+    const patchBody = [
+      {
+        op: 'replace',
+        path: `/environments/${envKey}/fallthrough`,
+        value: {
           rollout: {
             variations: [
               { variation: 0, weight: weightOn },
@@ -219,21 +238,20 @@ async function configureRollout(flagKey, percent, envKey = 'production') {
             bucketBy: 'key'
           }
         }
-      ]
-    };
+      }
+    ];
 
-    const res = await fetch(`${LD_API_BASE}/flags/${projectKey}/${flagKey}`, {
+    const res = await fetchWithRetry(`${LD_API_BASE}/flags/${projectKey}/${flagKey}`, {
       method: 'PATCH',
       headers: {
         'Authorization': apiToken,
-        'Content-Type': 'application/json; domain-model=launchdarkly.semanticpatch',
-        'LD-API-Version': 'beta'
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify(patchBody)
     });
 
     if (res.status === 200) {
-      console.log(`✓ Déploiement progressif de ${flagKey} mis à jour à ${percent}%`);
+      console.log(`✓ Déploiement progressif de ${flagKey} mis à jour à ${safePercentage}%`);
     } else {
       const err = await res.json().catch(() => ({}));
       console.warn(`! Note PATCH rollout ${flagKey} (${res.status}):`, err.message || err);
@@ -258,8 +276,13 @@ async function main() {
     return;
   }
 
-  for (const flag of flagsToCreate) {
+  for (let i = 0; i < flagsToCreate.length; i++) {
+    const flag = flagsToCreate[i];
+    if (i > 0) {
+      await new Promise(r => setTimeout(r, 1200));
+    }
     await createFlag(flag);
+    await new Promise(r => setTimeout(r, 1200));
 
     let percent = flag.defaultRolloutPercent || 0;
     if (options.stage && typeof STAGE_PERCENTAGES[options.stage] === 'number') {
