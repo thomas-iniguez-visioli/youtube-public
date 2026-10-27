@@ -1,5 +1,10 @@
 # Gemini CLI - Journal des modifications
 
+## [2.1.17] - 2026-10-27
+### Ajouté
+- **Déploiement progressif des fonctionnalités via LaunchDarkly (Percentage / Canary Rollout)** : Intégration du partitionnement déterministe par buckets (`getRolloutBucket`), évaluation dynamique de l'éligibilité (`isFeatureInRollout`) et point de terminaison de statut `/api/rollout/status`. Enrichissement du contexte utilisateur LaunchDarkly (`appVersion`, `channel`, `rolloutBucket`) pour le ciblage fin et support du fallback hors-ligne.
+- **Script de provisionnement des déploiements progressifs** : Mise à jour de `scripts/setup-launchdarkly-flags.mjs` pour configurer les pourcentages de déploiement (canary 10%, beta 25%, progressive 50%, GA 100%) via l'API LaunchDarkly Semantic Patch, et création du modèle `launchdarkly.config.cjs.example`.
+
 ## [2.1.15] - 2026-10-26
 ### Ajouté
 - **Inclusion des notes de version dans les annonces dev-null.sh** : Extraction automatique des catégories et modifications depuis `patchnotes.json` lors de l'exécution du workflow `.github/workflows/dev-null.yml` via `actions/github-script`, avec mise en forme Markdown complète et fallback dynamique.

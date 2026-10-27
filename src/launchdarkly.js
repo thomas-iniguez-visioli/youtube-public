@@ -27,18 +27,46 @@ export function getOrCreateUserId() {
   });
 }
 
+let appVersion = '2.1.17';
+try {
+  const pkg = require('../package.json');
+  if (pkg && pkg.version) appVersion = pkg.version;
+} catch {}
+
 export function getCurrentUserId() {
   return currentUserId || 'anonymous-user';
 }
 
+/**
+ * Calcule un bucket déterministe entre 0 et 99 pour un utilisateur et un salage (flag) donné.
+ * Permet un partitionnement pseudo-aléatoire mais reproductible pour les déploiements progressifs.
+ *
+ * @param {string} userId - Identifiant persistant de l'utilisateur
+ * @param {string} [salt=''] - Salage optionnel (généralement la clé du feature flag)
+ * @returns {number} Entier compris entre 0 et 99
+ */
+export function getRolloutBucket(userId, salt = '') {
+  if (!userId || typeof userId !== 'string') return 0;
+  const hash = crypto.createHash('sha256').update(`${userId}:${salt}`).digest('hex');
+  const intVal = parseInt(hash.substring(0, 8), 16);
+  return intVal % 100;
+}
+
 export async function getUserContext() {
   const userId = await getOrCreateUserId();
+  const bucket = getRolloutBucket(userId);
+  const channel = process.env.RELEASE_CHANNEL || (launchDarklyConfig && launchDarklyConfig.channel) || 'stable';
   return {
     key: userId,
     anonymous: true,
+    name: `User ${userId.slice(0, 8)}`,
     custom: {
       platform: process.platform,
-      arch: process.arch
+      arch: process.arch,
+      appVersion: appVersion,
+      version: appVersion,
+      channel: channel,
+      rolloutBucket: bucket
     }
   };
 }
@@ -441,4 +469,115 @@ export function trackEvent(eventName, data = {}, metricValue = undefined) {
  */
 export function getExperimentVariation(flagKey, defaultVariation = 'control') {
   return getFeatureFlag(flagKey, defaultVariation);
+}
+
+/**
+ * Évalue si une fonctionnalité doit être activée pour l'utilisateur actuel dans le cadre
+ * d'un déploiement progressif (percentage / canary rollout).
+ *
+ * Ordre d'évaluation :
+ * 1. Client LaunchDarkly connecté (Live SDK) :
+ *    - Si le flag retourne un booléen (règle de ciblage ou variation de pourcentage évaluée côté LD) : on l'utilise.
+ *    - Si le flag retourne un nombre (pourcentage 0-100) : on compare avec le bucket de l'utilisateur.
+ * 2. Cache local des flags LaunchDarkly (mode hors-ligne) :
+ *    - Même logique si présent dans le cache (booléen ou pourcentage).
+ * 3. Fallback progressif déterministe (sans connexion LaunchDarkly) :
+ *    - Utilise le pourcentage configuré dans launchDarklyConfig.defaultRollouts[flagKey] ou defaultRolloutPercent.
+ *    - Compare avec le bucket déterministe de l'utilisateur calculé sur (userId:flagKey).
+ *
+ * @param {string} flagKey - Clé du feature flag
+ * @param {number} [defaultRolloutPercent=0] - Pourcentage de déploiement par défaut (0 à 100)
+ * @param {boolean} [defaultValue=false] - Valeur de secours si le pourcentage est à 0
+ * @returns {boolean} true si la fonctionnalité est activée pour cet utilisateur
+ */
+export function isFeatureInRollout(flagKey, defaultRolloutPercent = 0, defaultValue = false) {
+  if (typeof flagKey !== 'string' || !flagKey.trim()) {
+    log.warn(`Clé de feature flag invalide pour le déploiement progressif: ${flagKey}`);
+    return defaultValue;
+  }
+
+  const cleanKey = flagKey.trim();
+  const userId = getCurrentUserId();
+
+  // 1. Live LaunchDarkly SDK
+  if (ldClient && typeof ldClient.variation === 'function') {
+    try {
+      const liveVal = ldClient.variation(cleanKey, null);
+      if (typeof liveVal === 'boolean') {
+        return liveVal;
+      }
+      if (typeof liveVal === 'number' && Number.isFinite(liveVal)) {
+        const bucket = getRolloutBucket(userId, cleanKey);
+        return bucket < Math.max(0, Math.min(100, liveVal));
+      }
+    } catch (err) {
+      log.warn(`Erreur lors de l'évaluation LaunchDarkly de ${cleanKey} : ${err.message}`);
+    }
+  }
+
+  // 2. Cache local des flags LaunchDarkly
+  if (cachedFlags && typeof cachedFlags[cleanKey] !== 'undefined') {
+    const cachedVal = cachedFlags[cleanKey];
+    if (typeof cachedVal === 'boolean') {
+      return cachedVal;
+    }
+    if (typeof cachedVal === 'number' && Number.isFinite(cachedVal)) {
+      const bucket = getRolloutBucket(userId, cleanKey);
+      return bucket < Math.max(0, Math.min(100, cachedVal));
+    }
+  }
+
+  // 3. Fallback progressif déterministe (hors-ligne ou configuration locale)
+  const configRollouts = (launchDarklyConfig && launchDarklyConfig.defaultRollouts) || {};
+  let targetPercent = defaultRolloutPercent;
+  if (typeof configRollouts[cleanKey] === 'number') {
+    targetPercent = configRollouts[cleanKey];
+  }
+
+  const percent = Math.max(0, Math.min(100, Number(targetPercent) || 0));
+  if (percent <= 0) return defaultValue;
+  if (percent >= 100) return true;
+
+  const bucket = getRolloutBucket(userId, cleanKey);
+  return bucket < percent;
+}
+
+/**
+ * Retourne l'état complet du déploiement progressif pour l'utilisateur actuel.
+ */
+export function getRolloutStatus() {
+  const userId = getCurrentUserId();
+  const userBucket = getRolloutBucket(userId);
+  const configRollouts = (launchDarklyConfig && launchDarklyConfig.defaultRollouts) || {};
+
+  const knownRollouts = {
+    'enable-tubearchivist-features': 50,
+    'ab-tubearchivist-ui': 50,
+    'auto-mark-watched': 25,
+    'enable-auto-subtitles': 25,
+    'enable-comments-archive': 10,
+    'enable-channel-autosync': 20,
+    ...configRollouts
+  };
+
+  const flagsStatus = {};
+  for (const [key, defaultPct] of Object.entries(knownRollouts)) {
+    const flagBucket = getRolloutBucket(userId, key);
+    const enabled = isFeatureInRollout(key, defaultPct, false);
+    flagsStatus[key] = {
+      enabled,
+      flagBucket,
+      targetPercentage: typeof configRollouts[key] === 'number' ? configRollouts[key] : defaultPct,
+      source: (ldClient && typeof ldClient.variation === 'function') ? 'launchdarkly-live' : 'deterministic-rollout'
+    };
+  }
+
+  return {
+    userId,
+    userBucket,
+    launchDarklyEnabled: isLaunchDarklyEnabled(),
+    launchDarklyReady: isLaunchDarklyReady(),
+    channel: process.env.RELEASE_CHANNEL || (launchDarklyConfig && launchDarklyConfig.channel) || 'stable',
+    flags: flagsStatus
+  };
 }
