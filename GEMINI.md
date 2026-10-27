@@ -1,5 +1,10 @@
 # Gemini CLI - Journal des modifications
 
+## [2.1.23] - 2026-10-27
+### Corrigé
+- **Auto-création des flags inexistants sur l'API LaunchDarkly (HTTP 404)** : Résolution de l'erreur `HTTP 404: Erreur` sur les flags non encore créés dans le projet (`enable-channel-autosync`). Si un feature flag n'existe pas encore dans LaunchDarkly, `daily-rollout-progression.mjs` l'auto-provisionne désormais à la volée via une requête `POST /api/v2/flags/{projectKey}` (`createFlagIfMissing`) avant d'appliquer sa règle de déploiement progressif.
+- **Espacement accru et lecture dynamique des tokens** : Augmentation du délai entre les requêtes à 1,5 seconde et résolution dynamique des tokens d'API et paramètres d'environnement (`getApiToken()`, `getProjectKey()`, `getEnvironmentKey()`).
+
 ## [2.1.21] - 2026-10-27
 ### Corrigé
 - **Correction du format de patch LaunchDarkly (RFC 6902)** : Remplacement de l'instruction sémantique non supportée `updateFallthrough` par le standard RFC 6902 JSON Patch (`op: 'replace'`, chemin `/environments/{envKey}/fallthrough`), avec calcul précis des poids de variation sur une base 100 000.

@@ -1,7 +1,7 @@
 import assert from 'node:assert';
 import { test } from 'node:test';
 import { initLaunchDarkly, getLDClient, getFeatureFlag, getAllFeatureFlags, isLaunchDarklyReady, reloadFlags, disableLaunchDarkly, isLaunchDarklyEnabled, getLaunchDarklyStatus, trackEvent, getExperimentVariation, getOrCreateUserId, getUserContext, getRolloutBucket, isFeatureInRollout, getRolloutStatus, calculateDailyRolloutPercentage, getReleaseDate } from '../src/launchdarkly.js';
-import { buildFallthroughPatchPayload, fetchWithRetry, calculateDaysElapsed } from '../scripts/daily-rollout-progression.mjs';
+import { buildFallthroughPatchPayload, fetchWithRetry, calculateDaysElapsed, updateLaunchDarklyRollout, createFlagIfMissing } from '../scripts/daily-rollout-progression.mjs';
 
 test('LaunchDarkly module should handle missing config or invalid clientSideId gracefully', async (t) => {
   // With no config or empty clientSideId, client is null and functions return safe defaults
@@ -129,7 +129,7 @@ test('LaunchDarkly Progressive Rollout - deterministic bucketing and threshold c
   assert.ok(status.flags && typeof status.flags === 'object');
   assert.ok(status.flags['enable-tubearchivist-features']);
   assert.ok(typeof status.flags['enable-tubearchivist-features'].enabled === 'boolean');
-  assert.ok(status.flags['enable-tubearchivist-features'].targetPercentage === 50);
+  assert.strictEqual(status.flags['enable-tubearchivist-features'].targetPercentage, 50);
 
   // 6. User context enrichment for progressive targeting
   const context = await getUserContext();
@@ -249,4 +249,60 @@ test('LaunchDarkly REST API fetchWithRetry retries on HTTP 429 with backoff', as
   const res = await fetchWithRetry('https://fake-url.com', {}, 2, mockFetch);
   assert.strictEqual(res.status, 200);
   assert.strictEqual(callCount, 2);
+});
+
+test('LaunchDarkly REST API auto-creates flag if HTTP 404 is encountered on patch', async () => {
+  const flag = {
+    key: 'enable-channel-autosync',
+    name: 'Sync chaînes automatique',
+    description: 'Analyse périodique des chaînes suivies',
+    kind: 'boolean',
+    basePercent: 20
+  };
+
+  const calls = [];
+  const mockFetch = async (url, options) => {
+    calls.push({ url, method: options.method });
+    if (options.method === 'PATCH' && calls.length === 1) {
+      // Premier PATCH: 404 (flag non existant)
+      return {
+        status: 404,
+        json: async () => ({ code: 'not_found', message: 'Flag not found' })
+      };
+    }
+    if (options.method === 'POST') {
+      // Création automatique du flag
+      return {
+        status: 201,
+        json: async () => ({ key: flag.key })
+      };
+    }
+    if (options.method === 'PATCH' && calls.length === 3) {
+      // Second PATCH après création réussie
+      return {
+        status: 200,
+        json: async () => ({ ok: true })
+      };
+    }
+    return { status: 500 };
+  };
+
+  const prevToken = process.env.LAUNCHDARKLY_API_TOKEN;
+  process.env.LAUNCHDARKLY_API_TOKEN = 'mock-token-for-test';
+
+  try {
+    const result = await updateLaunchDarklyRollout(flag, 20, mockFetch, true);
+    assert.strictEqual(result.success, true);
+    assert.strictEqual(result.created, true);
+    assert.strictEqual(calls.length, 3);
+    assert.strictEqual(calls[0].method, 'PATCH');
+    assert.strictEqual(calls[1].method, 'POST');
+    assert.strictEqual(calls[2].method, 'PATCH');
+  } finally {
+    if (prevToken) {
+      process.env.LAUNCHDARKLY_API_TOKEN = prevToken;
+    } else {
+      delete process.env.LAUNCHDARKLY_API_TOKEN;
+    }
+  }
 });

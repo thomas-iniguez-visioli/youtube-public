@@ -28,14 +28,20 @@ function getArgValue(flagName, defaultValue) {
 }
 
 const isDryRun = args.includes('--dry-run');
-const projectKey = getArgValue('--project', process.env.LAUNCHDARKLY_PROJECT_KEY || 'default');
-const environmentKey = getArgValue('--env', process.env.LAUNCHDARKLY_ENVIRONMENT || 'production');
-const apiToken = getArgValue('--token', process.env.LAUNCHDARKLY_API_TOKEN || process.env.LD_ACCESS_TOKEN || '');
+export function getProjectKey() {
+  return getArgValue('--project', process.env.LAUNCHDARKLY_PROJECT_KEY || 'default');
+}
+export function getEnvironmentKey() {
+  return getArgValue('--env', process.env.LAUNCHDARKLY_ENVIRONMENT || 'production');
+}
+export function getApiToken() {
+  return getArgValue('--token', process.env.LAUNCHDARKLY_API_TOKEN || process.env.LD_ACCESS_TOKEN || '');
+}
 const dailyIncrement = parseInt(getArgValue('--increment', process.env.ROLLOUT_DAILY_INCREMENT || '20'), 10);
 
 // Charger la date de release depuis patchnotes.json
 let releaseDate = getArgValue('--date', null);
-let appVersion = '2.1.20';
+let appVersion = '2.1.22';
 
 try {
   const patchnotes = JSON.parse(fs.readFileSync('patchnotes.json', 'utf8'));
@@ -57,12 +63,84 @@ if (!releaseDate) {
 
 // Flags configurés pour le déploiement progressif quotidien
 export const rolloutFlags = [
-  { key: 'enable-tubearchivist-features', name: 'TubeArchivist Features', basePercent: 50 },
-  { key: 'ab-tubearchivist-ui', name: 'A/B TubeArchivist UI', basePercent: 50 },
-  { key: 'auto-mark-watched', name: 'Auto-marquage 90%', basePercent: 25 },
-  { key: 'enable-auto-subtitles', name: 'Sous-titres automatiques', basePercent: 25 },
-  { key: 'enable-channel-autosync', name: 'Sync chaînes automatique', basePercent: 20 },
-  { key: 'enable-comments-archive', name: 'Commentaires YouTube', basePercent: 10 }
+  {
+    key: 'enable-tubearchivist-features',
+    name: 'TubeArchivist Features',
+    description: 'Kill-switch et déploiement progressif pour TubeArchivist',
+    kind: 'boolean',
+    variations: [
+      { value: true, name: 'Activé' },
+      { value: false, name: 'Désactivé' }
+    ],
+    defaults: { onVariation: 0, offVariation: 1 },
+    tags: ['tubearchivist', 'feature', 'progressive-rollout'],
+    basePercent: 50
+  },
+  {
+    key: 'ab-tubearchivist-ui',
+    name: 'A/B Test TubeArchivist UI',
+    description: 'Expérimentation A/B : Interface TubeArchivist (badges, progression, filtres) vs classique',
+    kind: 'multivariate',
+    variations: [
+      { value: 'archive', name: 'Archive (TubeArchivist)', description: 'Interface enrichie avec métadonnées et suivi' },
+      { value: 'control', name: 'Control (Classique)', description: 'Interface historique' }
+    ],
+    defaults: { onVariation: 0, offVariation: 1 },
+    tags: ['ab-test', 'tubearchivist', 'ui'],
+    basePercent: 50
+  },
+  {
+    key: 'auto-mark-watched',
+    name: 'Auto-marquage des vidéos vues (90%)',
+    description: 'Marque automatiquement une vidéo comme vue lorsque la lecture atteint 90%',
+    kind: 'boolean',
+    variations: [
+      { value: true, name: 'Activé' },
+      { value: false, name: 'Désactivé' }
+    ],
+    defaults: { onVariation: 0, offVariation: 1 },
+    tags: ['tubearchivist', 'playback', 'progressive-rollout'],
+    basePercent: 25
+  },
+  {
+    key: 'enable-auto-subtitles',
+    name: 'Téléchargement automatique des sous-titres',
+    description: 'Télécharge et extrait automatiquement les pistes de sous-titres VTT',
+    kind: 'boolean',
+    variations: [
+      { value: true, name: 'Activé' },
+      { value: false, name: 'Désactivé' }
+    ],
+    defaults: { onVariation: 0, offVariation: 1 },
+    tags: ['tubearchivist', 'subtitles', 'progressive-rollout'],
+    basePercent: 25
+  },
+  {
+    key: 'enable-channel-autosync',
+    name: 'Synchronisation et téléchargement auto des chaînes',
+    description: 'Analyse périodique des chaînes suivies et téléchargement des nouvelles vidéos',
+    kind: 'boolean',
+    variations: [
+      { value: true, name: 'Activé' },
+      { value: false, name: 'Désactivé' }
+    ],
+    defaults: { onVariation: 0, offVariation: 1 },
+    tags: ['channels', 'sync', 'automation', 'progressive-rollout'],
+    basePercent: 20
+  },
+  {
+    key: 'enable-comments-archive',
+    name: 'Archivage des commentaires YouTube',
+    description: 'Télécharge et indexe les commentaires YouTube hors-ligne',
+    kind: 'boolean',
+    variations: [
+      { value: true, name: 'Activé' },
+      { value: false, name: 'Désactivé' }
+    ],
+    defaults: { onVariation: 0, offVariation: 1 },
+    tags: ['tubearchivist', 'comments', 'progressive-rollout'],
+    basePercent: 10
+  }
 ];
 
 export function calculateDaysElapsed(fromDateStr, referenceDate = new Date()) {
@@ -129,10 +207,73 @@ export async function fetchWithRetry(url, options, maxRetries = 3, customFetch =
   }
 }
 
-export async function updateLaunchDarklyRollout(flagKey, percentage, customFetch = fetch) {
+/**
+ * Crée automatiquement un flag dans LaunchDarkly s'il n'existe pas encore.
+ */
+export async function createFlagIfMissing(flag, customFetch = fetch) {
+  const apiToken = getApiToken();
+  const projectKey = getProjectKey();
+
   if (!apiToken) {
     return { success: false, reason: 'Pas de token API (mode simulation)' };
   }
+
+  const flagKey = typeof flag === 'string' ? flag : flag.key;
+  const flagName = (typeof flag === 'object' && flag.name) || flagKey;
+  const flagDesc = (typeof flag === 'object' && flag.description) || flagName;
+  const kind = (typeof flag === 'object' && flag.kind) || 'boolean';
+  const variations = (typeof flag === 'object' && flag.variations) || [
+    { value: true, name: 'Activé' },
+    { value: false, name: 'Désactivé' }
+  ];
+  const defaults = (typeof flag === 'object' && flag.defaults) || {
+    onVariation: 0,
+    offVariation: 1
+  };
+  const tags = (typeof flag === 'object' && flag.tags) || ['progressive-rollout'];
+
+  try {
+    const res = await fetchWithRetry(`${LD_API_BASE}/flags/${projectKey}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': apiToken,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        key: flagKey,
+        name: flagName,
+        description: flagDesc,
+        kind,
+        variations,
+        defaults,
+        tags
+      })
+    }, 3, customFetch);
+
+    if (res.status === 201 || res.status === 409) {
+      return { success: true };
+    }
+    const err = await res.json().catch(() => ({}));
+    const errMsg = err.message || err.code || err.error || `Erreur HTTP ${res.status}`;
+    return { success: false, reason: errMsg };
+  } catch (err) {
+    return { success: false, reason: err.message };
+  }
+}
+
+export async function updateLaunchDarklyRollout(flagOrKey, percentage, customFetch = fetch, allowAutoCreate = true) {
+  const apiToken = getApiToken();
+  const projectKey = getProjectKey();
+  const environmentKey = getEnvironmentKey();
+
+  if (!apiToken) {
+    return { success: false, reason: 'Pas de token API (mode simulation)' };
+  }
+
+  const flagKey = typeof flagOrKey === 'string' ? flagOrKey : flagOrKey.key;
+  const flagObj = typeof flagOrKey === 'object'
+    ? flagOrKey
+    : (rolloutFlags.find(f => f.key === flagKey) || { key: flagKey, name: flagKey });
 
   try {
     const patchBody = buildFallthroughPatchPayload(percentage, environmentKey);
@@ -148,9 +289,24 @@ export async function updateLaunchDarklyRollout(flagKey, percentage, customFetch
 
     if (res.status === 200) {
       return { success: true };
+    } else if (res.status === 404 && allowAutoCreate) {
+      console.log(`[LaunchDarkly API] Flag introuvable '${flagKey}' (HTTP 404). Tentative de création automatique...`);
+      const createRes = await createFlagIfMissing(flagObj, customFetch);
+      if (createRes.success) {
+        console.log(`[LaunchDarkly API] Flag '${flagKey}' créé avec succès. Application du rollout...`);
+        await new Promise(r => setTimeout(r, 1200));
+        const retryResult = await updateLaunchDarklyRollout(flagObj, percentage, customFetch, false);
+        if (retryResult.success) {
+          return { success: true, created: true };
+        }
+        return retryResult;
+      } else {
+        return { success: false, reason: `HTTP 404: Flag introuvable et création échouée (${createRes.reason})` };
+      }
     } else {
       const err = await res.json().catch(() => ({}));
-      return { success: false, reason: `HTTP ${res.status}: ${err.message || 'Erreur'}` };
+      const errMsg = err.message || err.code || err.error || 'Erreur';
+      return { success: false, reason: `HTTP ${res.status}: ${errMsg}` };
     }
   } catch (err) {
     return { success: false, reason: err.message };
@@ -158,6 +314,10 @@ export async function updateLaunchDarklyRollout(flagKey, percentage, customFetch
 }
 
 export async function main() {
+  const apiToken = getApiToken();
+  const projectKey = getProjectKey();
+  const environmentKey = getEnvironmentKey();
+
   console.log(`============================================================`);
   console.log(`  LaunchDarkly - Progression Journalière des Déploiements   `);
   console.log(`============================================================`);
@@ -180,10 +340,10 @@ export async function main() {
     let apiResult = null;
     if (apiToken && !isDryRun) {
       if (i > 0) {
-        // Pause de 1.2s entre chaque requête pour éviter les rafales et respecter le débit d'API LaunchDarkly
-        await new Promise(r => setTimeout(r, 1200));
+        // Pause de 1.5s entre chaque requête pour éviter les rafales et respecter le débit d'API LaunchDarkly
+        await new Promise(r => setTimeout(r, 1500));
       }
-      apiResult = await updateLaunchDarklyRollout(flag.key, effectivePercent);
+      apiResult = await updateLaunchDarklyRollout(flag, effectivePercent);
     }
 
     results.push({
@@ -193,7 +353,7 @@ export async function main() {
       effective: effectivePercent,
       isGA,
       stage,
-      apiStatus: apiResult ? (apiResult.success ? '✓ Mis à jour' : `✗ ${apiResult.reason}`) : 'Calculé'
+      apiStatus: apiResult ? (apiResult.success ? (apiResult.created ? '✓ Créé & Mis à jour' : '✓ Mis à jour') : `✗ ${apiResult.reason}`) : 'Calculé'
     });
 
     console.log(`[${flag.key}] Base: ${flag.basePercent}% -> Aujourd'hui: ${effectivePercent}% (${stage})`);
