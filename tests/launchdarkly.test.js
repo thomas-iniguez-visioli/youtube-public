@@ -1,6 +1,6 @@
 import assert from 'node:assert';
 import { test } from 'node:test';
-import { initLaunchDarkly, getLDClient, getFeatureFlag, getAllFeatureFlags, isLaunchDarklyReady, reloadFlags, disableLaunchDarkly, isLaunchDarklyEnabled, getLaunchDarklyStatus, trackEvent, getExperimentVariation, getOrCreateUserId, getUserContext } from '../src/launchdarkly.js';
+import { initLaunchDarkly, getLDClient, getFeatureFlag, getAllFeatureFlags, isLaunchDarklyReady, reloadFlags, disableLaunchDarkly, isLaunchDarklyEnabled, getLaunchDarklyStatus, trackEvent, getExperimentVariation, getOrCreateUserId, getUserContext, getRolloutBucket, isFeatureInRollout, getRolloutStatus } from '../src/launchdarkly.js';
 
 test('LaunchDarkly module should handle missing config or invalid clientSideId gracefully', async (t) => {
   // With no config or empty clientSideId, client is null and functions return safe defaults
@@ -84,4 +84,58 @@ test('LaunchDarkly A/B testing helpers provide persistent user context and metri
   // Experiment variation fallback
   const variation = getExperimentVariation('ab-tubearchivist-ui', 'treatment');
   assert.strictEqual(variation, 'treatment');
+});
+
+test('LaunchDarkly Progressive Rollout - deterministic bucketing and threshold checks', async () => {
+  const userId = await getOrCreateUserId();
+  
+  // 1. Bucket bounds and determinism
+  const bucket1 = getRolloutBucket(userId, 'feat-test-1');
+  assert.ok(Number.isInteger(bucket1));
+  assert.ok(bucket1 >= 0 && bucket1 < 100, `Bucket ${bucket1} must be in [0, 99]`);
+
+  const bucket2 = getRolloutBucket(userId, 'feat-test-1');
+  assert.strictEqual(bucket1, bucket2, 'Bucketing must be 100% deterministic');
+
+  // Bucketing with invalid inputs returns safe 0
+  assert.strictEqual(getRolloutBucket(''), 0);
+  assert.strictEqual(getRolloutBucket(null), 0);
+  assert.strictEqual(getRolloutBucket(undefined), 0);
+
+  // 2. Boundary percentages (0% and 100%)
+  assert.strictEqual(isFeatureInRollout('test-zero-percent', 0, false), false);
+  assert.strictEqual(isFeatureInRollout('test-hundred-percent', 100, false), true);
+
+  // 3. Invalid flag key validation
+  assert.strictEqual(isFeatureInRollout('', 50, false), false);
+  assert.strictEqual(isFeatureInRollout(null, 50, true), true);
+
+  // 4. Threshold consistency: if user is in bucket B, rollout > B must be true, rollout <= B must be false
+  const testFlag = 'feature-canary-sample';
+  const flagBucket = getRolloutBucket(userId, testFlag);
+  
+  if (flagBucket > 0) {
+    assert.strictEqual(isFeatureInRollout(testFlag, flagBucket), false);
+  }
+  if (flagBucket < 99) {
+    assert.strictEqual(isFeatureInRollout(testFlag, flagBucket + 1), true);
+  }
+
+  // 5. Global rollout status overview
+  const status = getRolloutStatus();
+  assert.strictEqual(status.userId, userId);
+  assert.ok(status.userBucket >= 0 && status.userBucket < 100);
+  assert.ok(status.flags && typeof status.flags === 'object');
+  assert.ok(status.flags['enable-tubearchivist-features']);
+  assert.ok(typeof status.flags['enable-tubearchivist-features'].enabled === 'boolean');
+  assert.ok(status.flags['enable-tubearchivist-features'].targetPercentage === 50);
+
+  // 6. User context enrichment for progressive targeting
+  const context = await getUserContext();
+  assert.ok(context.custom);
+  assert.ok(context.custom.appVersion);
+  assert.ok(context.custom.version);
+  assert.ok(context.custom.channel);
+  assert.ok(typeof context.custom.rolloutBucket === 'number');
+  assert.ok(context.name && context.name.startsWith('User '));
 });

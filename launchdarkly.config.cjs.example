@@ -1,0 +1,35 @@
+/**
+ * Exemple de configuration LaunchDarkly & Déploiement Progressif
+ *
+ * Pour activer LaunchDarkly en local :
+ * 1. Copiez ce fichier sous le nom "launchdarkly.config.cjs"
+ * 2. Renseignez votre Client-Side ID (ou laissez la variable d'environnement LAUNCHDARKLY_CLIENT_ID)
+ */
+
+module.exports = {
+  // Clé Client-Side ID de votre environnement LaunchDarkly (ex: production / test)
+  // Obtenue dans LaunchDarkly -> Account settings -> Projects -> Environment -> Client-side ID
+  clientSideId: process.env.LAUNCHDARKLY_CLIENT_ID || '',
+
+  // Environnement cible ('production' | 'development' | 'staging')
+  environment: process.env.NODE_ENV === 'production' ? 'production' : 'development',
+
+  // Canal de distribution pour le ciblage (ex: 'canary', 'beta', 'stable')
+  channel: process.env.RELEASE_CHANNEL || 'stable',
+
+  // Pourcentages de déploiement progressif par défaut (utilisés en local / hors-ligne)
+  defaultRollouts: {
+    // 50% des utilisateurs reçoivent les fonctionnalités complètes TubeArchivist
+    'enable-tubearchivist-features': 50,
+    // 50% reçoivent l'interface enrichie (variante archive vs control)
+    'ab-tubearchivist-ui': 50,
+    // 25% ont l'auto-marquage à 90% actif
+    'auto-mark-watched': 25,
+    // 25% ont le téléchargement automatique des sous-titres
+    'enable-auto-subtitles': 25,
+    // 10% (canary) ont l'archivage des commentaires YouTube
+    'enable-comments-archive': 10,
+    // 20% ont la synchronisation automatique des nouvelles vidéos de chaînes
+    'enable-channel-autosync': 20
+  }
+};

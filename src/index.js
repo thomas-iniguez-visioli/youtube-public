@@ -29,7 +29,7 @@ let io = null;
 
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 
-import { initLaunchDarkly, getLDClient, getFeatureFlag, getAllFeatureFlags, disableLaunchDarkly, isLaunchDarklyEnabled, trackEvent, getExperimentVariation, getUserContext, getCurrentUserId } from './launchdarkly.js';
+import { initLaunchDarkly, getLDClient, getFeatureFlag, getAllFeatureFlags, disableLaunchDarkly, isLaunchDarklyEnabled, trackEvent, getExperimentVariation, getUserContext, getCurrentUserId, isFeatureInRollout, getRolloutStatus, getRolloutBucket } from './launchdarkly.js';
 
 const require = createRequire(import.meta.url);
 const pkg = require('../package.json');
@@ -1637,6 +1637,9 @@ web.get("/maintenance/cleanup", function (req, res) {
 });
 
 web.get("/maintenance/check-channels", function (req, res) {
+  if (!isFeatureInRollout('enable-channel-autosync', 20, true)) {
+    return res.json({ success: false, message: "Synchronisation des chaînes non activée pour cette cohorte (déploiement progressif)." });
+  }
   checkChannelsForNewVideos()
     .then(() => {
       res.json({ success: true, message: "Vérification des chaînes terminée." });
@@ -1771,6 +1774,21 @@ web.get("/api/flags", function (req, res) {
   res.json(getAllFeatureFlags());
 });
 
+web.get("/api/rollout/status", function (req, res) {
+  res.json(getRolloutStatus());
+});
+
+web.get("/api/flags/rollout/:key", function (req, res) {
+  const key = path.basename(req.params.key);
+  const defaultPct = req.query.percent ? parseInt(req.query.percent, 10) : 0;
+  const inRollout = isFeatureInRollout(key, defaultPct);
+  res.json({
+    key,
+    inRollout,
+    userBucket: getRolloutBucket(getCurrentUserId(), key)
+  });
+});
+
 
 // ==========================================
 // LaunchDarkly A/B Testing & TubeArchivist Routes
@@ -1820,6 +1838,9 @@ web.get("/api/video/status/:id", function (req, res) {
 // TubeArchivist: Gestion des sous-titres
 web.get("/api/subtitles/:id", function (req, res) {
   const yid = path.basename(req.params.id);
+  if (!isFeatureInRollout('enable-auto-subtitles', 25, true)) {
+    return res.json({ yid, subtitles: [], disabledByRollout: true });
+  }
   const subtitles = [];
   try {
     if (fs.existsSync(config.storagePath)) {
@@ -1870,6 +1891,9 @@ web.get(["/subtitles/:id", "/subtitles/:id/:lang"], function (req, res) {
 // TubeArchivist: Commentaires archivés
 web.get("/api/video/comments/:id", function (req, res) {
   const yid = path.basename(req.params.id);
+  if (!isFeatureInRollout('enable-comments-archive', 10, true)) {
+    return res.json({ yid, comments: [], disabledByRollout: true });
+  }
   const fileData = db.getFile(yid);
   if (!fileData) return res.json({ yid, comments: [] });
   const infoPath = path.join(config.storagePath, fileData.fileName.replace('.mp4', '.info.json'));
@@ -2680,6 +2704,21 @@ function createWindow() {
   });
   ipcMain.handle('get-all-flags', async () => {
     return getAllFeatureFlags();
+  });
+  ipcMain.handle('is-feature-in-rollout', async (event, key, defaultPercent, defaultValue) => {
+    return isFeatureInRollout(key, defaultPercent, defaultValue);
+  });
+  ipcMain.handle('get-rollout-status', async () => {
+    return getRolloutStatus();
+  });
+  ipcMain.handle('ld-track-event', async (event, eventName, data, metricValue) => {
+    return trackEvent(eventName, data, metricValue);
+  });
+  ipcMain.handle('get-experiment-variation', async (event, flagKey, defaultValue) => {
+    return getExperimentVariation(flagKey, defaultValue);
+  });
+  ipcMain.handle('get-user-context', async () => {
+    return getUserContext();
   });
 
   if (booted) {
