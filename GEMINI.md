@@ -1,5 +1,10 @@
 # Gemini CLI - Journal des modifications
 
+## [2.1.21] - 2026-10-27
+### Corrigé
+- **Correction du format de patch LaunchDarkly (RFC 6902)** : Remplacement de l'instruction sémantique non supportée `updateFallthrough` par le standard RFC 6902 JSON Patch (`op: 'replace'`, chemin `/environments/{envKey}/fallthrough`), avec calcul précis des poids de variation sur une base 100 000.
+- **Gestion de la limite de débit (Rate Limit HTTP 429)** : Implémentation d'un mécanisme de réessai avec backoff exponentiel respectant l'en-tête `Retry-After` (`fetchWithRetry`) et espacement de 1,2 seconde entre les requêtes consécutives dans `daily-rollout-progression.mjs` et `setup-launchdarkly-flags.mjs`.
+
 ## [2.1.19] - 2026-10-27
 ### Ajouté
 - **Progression journalière automatique des déploiements progressifs LaunchDarkly** : Calcul dynamique du pourcentage effectif (+20% par jour par défaut via `calculateDailyRolloutPercentage`) depuis la date de sortie de la version, assurant une transition fluide vers la GA (100%) sans modification manuelle.

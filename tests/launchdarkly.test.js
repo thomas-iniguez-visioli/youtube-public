@@ -1,6 +1,7 @@
 import assert from 'node:assert';
 import { test } from 'node:test';
 import { initLaunchDarkly, getLDClient, getFeatureFlag, getAllFeatureFlags, isLaunchDarklyReady, reloadFlags, disableLaunchDarkly, isLaunchDarklyEnabled, getLaunchDarklyStatus, trackEvent, getExperimentVariation, getOrCreateUserId, getUserContext, getRolloutBucket, isFeatureInRollout, getRolloutStatus, calculateDailyRolloutPercentage, getReleaseDate } from '../src/launchdarkly.js';
+import { buildFallthroughPatchPayload, fetchWithRetry, calculateDaysElapsed } from '../scripts/daily-rollout-progression.mjs';
 
 test('LaunchDarkly module should handle missing config or invalid clientSideId gracefully', async (t) => {
   // With no config or empty clientSideId, client is null and functions return safe defaults
@@ -180,4 +181,72 @@ test('LaunchDarkly Daily Rollout Progression - percentage increases over time', 
   assert.strictEqual(status.dailyProgression.enabled, true);
   assert.ok(typeof status.dailyProgression.dailyIncrement === 'number');
   assert.ok(typeof status.dailyProgression.daysSinceRelease === 'number');
+});
+
+test('LaunchDarkly JSON Patch payload builder generates RFC 6902 fallthrough replacements', () => {
+  // Test 20%
+  const payload20 = buildFallthroughPatchPayload(20, 'production');
+  assert.strictEqual(payload20.length, 1);
+  assert.strictEqual(payload20[0].op, 'replace');
+  assert.strictEqual(payload20[0].path, '/environments/production/fallthrough');
+  assert.deepStrictEqual(payload20[0].value, {
+    rollout: {
+      variations: [
+        { variation: 0, weight: 20000 },
+        { variation: 1, weight: 80000 }
+      ],
+      bucketBy: 'key'
+    }
+  });
+
+  // Test 0%
+  const payload0 = buildFallthroughPatchPayload(0, 'production');
+  assert.deepStrictEqual(payload0[0].value.rollout.variations, [
+    { variation: 0, weight: 0 },
+    { variation: 1, weight: 100000 }
+  ]);
+
+  // Test 100%
+  const payload100 = buildFallthroughPatchPayload(100, 'production');
+  assert.deepStrictEqual(payload100[0].value.rollout.variations, [
+    { variation: 0, weight: 100000 },
+    { variation: 1, weight: 0 }
+  ]);
+
+  // Clamping test
+  const clampedLow = buildFallthroughPatchPayload(-10, 'production');
+  assert.strictEqual(clampedLow[0].value.rollout.variations[0].weight, 0);
+  assert.strictEqual(clampedLow[0].value.rollout.variations[1].weight, 100000);
+
+  const clampedHigh = buildFallthroughPatchPayload(120, 'staging');
+  assert.strictEqual(clampedHigh[0].path, '/environments/staging/fallthrough');
+  assert.strictEqual(clampedHigh[0].value.rollout.variations[0].weight, 100000);
+  assert.strictEqual(clampedHigh[0].value.rollout.variations[1].weight, 0);
+
+  // calculateDaysElapsed
+  const diff = calculateDaysElapsed('2026-10-25', new Date('2026-10-27T10:00:00Z'));
+  assert.strictEqual(diff, 2);
+});
+
+test('LaunchDarkly REST API fetchWithRetry retries on HTTP 429 with backoff', async () => {
+  let callCount = 0;
+  const mockFetch = async (url, options) => {
+    callCount++;
+    if (callCount < 2) {
+      return {
+        status: 429,
+        headers: {
+          get: (name) => (name.toLowerCase() === 'retry-after' ? '0' : null)
+        }
+      };
+    }
+    return {
+      status: 200,
+      json: async () => ({ ok: true })
+    };
+  };
+
+  const res = await fetchWithRetry('https://fake-url.com', {}, 2, mockFetch);
+  assert.strictEqual(res.status, 200);
+  assert.strictEqual(callCount, 2);
 });
