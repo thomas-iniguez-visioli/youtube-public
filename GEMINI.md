@@ -1,5 +1,10 @@
 # Gemini CLI - Journal des modifications
 
+## [2.1.19] - 2026-10-27
+### Ajouté
+- **Progression journalière automatique des déploiements progressifs LaunchDarkly** : Calcul dynamique du pourcentage effectif (+20% par jour par défaut via `calculateDailyRolloutPercentage`) depuis la date de sortie de la version, assurant une transition fluide vers la GA (100%) sans modification manuelle.
+- **Workflow GitHub Actions quotidien et script d'avancement** : Création du workflow `.github/workflows/launchdarkly-daily-rollout.yml` (cron quotidien à 04:00 UTC) et du script `scripts/daily-rollout-progression.mjs` pour calculer et mettre à jour automatiquement les fallthrough rules sur l'API LaunchDarkly et dans le résumé de run GitHub Actions.
+
 ## [2.1.17] - 2026-10-27
 ### Ajouté
 - **Déploiement progressif des fonctionnalités via LaunchDarkly (Percentage / Canary Rollout)** : Intégration du partitionnement déterministe par buckets (`getRolloutBucket`), évaluation dynamique de l'éligibilité (`isFeatureInRollout`) et point de terminaison de statut `/api/rollout/status`. Enrichissement du contexte utilisateur LaunchDarkly (`appVersion`, `channel`, `rolloutBucket`) pour le ciblage fin et support du fallback hors-ligne.

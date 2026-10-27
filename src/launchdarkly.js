@@ -472,6 +472,55 @@ export function getExperimentVariation(flagKey, defaultVariation = 'control') {
 }
 
 /**
+ * Récupère la date de déploiement de la version courante (depuis patchnotes.json ou date du jour).
+ */
+export function getReleaseDate() {
+  try {
+    const notes = require('../patchnotes.json');
+    if (Array.isArray(notes) && notes.length > 0 && notes[0].date) {
+      return notes[0].date;
+    }
+  } catch {}
+  return new Date().toISOString().slice(0, 10);
+}
+
+/**
+ * Calcule le pourcentage effectif d'un flag en fonction de la progression journalière.
+ *
+ * @param {number} basePercentage - Pourcentage initial au jour 0 (ex: 20)
+ * @param {string|Date} releaseDate - Date de démarrage ou de release (ex: '2026-10-27')
+ * @param {number} [dailyIncrement=20] - Pourcentage ajouté par jour (ex: +20% / jour)
+ * @param {Date} [currentDate=new Date()] - Date de calcul de référence
+ * @returns {number} Pourcentage calculé (borné entre basePercentage et 100)
+ */
+export function calculateDailyRolloutPercentage(basePercentage, releaseDate, dailyIncrement = 20, currentDate = new Date()) {
+  const base = Math.max(0, Math.min(100, Number(basePercentage) || 0));
+  if (base <= 0 || base >= 100) return base;
+
+  let start;
+  try {
+    start = new Date(releaseDate);
+    if (isNaN(start.getTime())) {
+      return base;
+    }
+  } catch {
+    return base;
+  }
+
+  const now = currentDate instanceof Date ? currentDate : new Date(currentDate);
+  const diffMs = now.getTime() - start.getTime();
+  if (diffMs < 0) return base;
+
+  const daysElapsed = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const increment = typeof dailyIncrement === 'number' && Number.isFinite(dailyIncrement)
+    ? Math.max(0, dailyIncrement)
+    : 20;
+  const effective = Math.min(100, base + (daysElapsed * increment));
+
+  return effective;
+}
+
+/**
  * Évalue si une fonctionnalité doit être activée pour l'utilisateur actuel dans le cadre
  * d'un déploiement progressif (percentage / canary rollout).
  *
@@ -527,19 +576,27 @@ export function isFeatureInRollout(flagKey, defaultRolloutPercent = 0, defaultVa
     }
   }
 
-  // 3. Fallback progressif déterministe (hors-ligne ou configuration locale)
+  // 3. Fallback progressif déterministe avec progression journalière (+20%/jour par défaut)
   const configRollouts = (launchDarklyConfig && launchDarklyConfig.defaultRollouts) || {};
   let targetPercent = defaultRolloutPercent;
   if (typeof configRollouts[cleanKey] === 'number') {
     targetPercent = configRollouts[cleanKey];
   }
 
-  const percent = Math.max(0, Math.min(100, Number(targetPercent) || 0));
-  if (percent <= 0) return defaultValue;
-  if (percent >= 100) return true;
+  const progressionConfig = (launchDarklyConfig && launchDarklyConfig.rolloutProgression) || {};
+  const progressionEnabled = progressionConfig.enabled !== false;
+  const dailyIncrement = typeof progressionConfig.dailyIncrement === 'number' ? progressionConfig.dailyIncrement : 20;
+  const startDate = progressionConfig.startDate || getReleaseDate();
+
+  const effectivePercent = progressionEnabled
+    ? calculateDailyRolloutPercentage(targetPercent, startDate, dailyIncrement)
+    : Math.max(0, Math.min(100, Number(targetPercent) || 0));
+
+  if (effectivePercent <= 0) return defaultValue;
+  if (effectivePercent >= 100) return true;
 
   const bucket = getRolloutBucket(userId, cleanKey);
-  return bucket < percent;
+  return bucket < effectivePercent;
 }
 
 /**
@@ -560,14 +617,27 @@ export function getRolloutStatus() {
     ...configRollouts
   };
 
+  const progressionConfig = (launchDarklyConfig && launchDarklyConfig.rolloutProgression) || {};
+  const progressionEnabled = progressionConfig.enabled !== false;
+  const dailyIncrement = typeof progressionConfig.dailyIncrement === 'number' ? progressionConfig.dailyIncrement : 20;
+  const startDate = progressionConfig.startDate || getReleaseDate();
+  const daysSinceRelease = Math.max(0, Math.floor((Date.now() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)));
+
   const flagsStatus = {};
   for (const [key, defaultPct] of Object.entries(knownRollouts)) {
     const flagBucket = getRolloutBucket(userId, key);
+    const basePct = typeof configRollouts[key] === 'number' ? configRollouts[key] : defaultPct;
+    const effectivePct = progressionEnabled
+      ? calculateDailyRolloutPercentage(basePct, startDate, dailyIncrement)
+      : basePct;
     const enabled = isFeatureInRollout(key, defaultPct, false);
     flagsStatus[key] = {
       enabled,
       flagBucket,
-      targetPercentage: typeof configRollouts[key] === 'number' ? configRollouts[key] : defaultPct,
+      targetPercentage: basePct,
+      basePercentage: basePct,
+      effectivePercentage: effectivePct,
+      isFullyRolledOut: effectivePct >= 100,
       source: (ldClient && typeof ldClient.variation === 'function') ? 'launchdarkly-live' : 'deterministic-rollout'
     };
   }
@@ -578,6 +648,12 @@ export function getRolloutStatus() {
     launchDarklyEnabled: isLaunchDarklyEnabled(),
     launchDarklyReady: isLaunchDarklyReady(),
     channel: process.env.RELEASE_CHANNEL || (launchDarklyConfig && launchDarklyConfig.channel) || 'stable',
+    dailyProgression: {
+      enabled: progressionEnabled,
+      startDate,
+      daysSinceRelease,
+      dailyIncrement
+    },
     flags: flagsStatus
   };
 }

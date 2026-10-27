@@ -1,6 +1,6 @@
 import assert from 'node:assert';
 import { test } from 'node:test';
-import { initLaunchDarkly, getLDClient, getFeatureFlag, getAllFeatureFlags, isLaunchDarklyReady, reloadFlags, disableLaunchDarkly, isLaunchDarklyEnabled, getLaunchDarklyStatus, trackEvent, getExperimentVariation, getOrCreateUserId, getUserContext, getRolloutBucket, isFeatureInRollout, getRolloutStatus } from '../src/launchdarkly.js';
+import { initLaunchDarkly, getLDClient, getFeatureFlag, getAllFeatureFlags, isLaunchDarklyReady, reloadFlags, disableLaunchDarkly, isLaunchDarklyEnabled, getLaunchDarklyStatus, trackEvent, getExperimentVariation, getOrCreateUserId, getUserContext, getRolloutBucket, isFeatureInRollout, getRolloutStatus, calculateDailyRolloutPercentage, getReleaseDate } from '../src/launchdarkly.js';
 
 test('LaunchDarkly module should handle missing config or invalid clientSideId gracefully', async (t) => {
   // With no config or empty clientSideId, client is null and functions return safe defaults
@@ -138,4 +138,46 @@ test('LaunchDarkly Progressive Rollout - deterministic bucketing and threshold c
   assert.ok(context.custom.channel);
   assert.ok(typeof context.custom.rolloutBucket === 'number');
   assert.ok(context.name && context.name.startsWith('User '));
+});
+
+test('LaunchDarkly Daily Rollout Progression - percentage increases over time', () => {
+  const startDate = '2026-10-25';
+
+  // J0 (same day): base percentage intact
+  const d0 = new Date('2026-10-25T12:00:00Z');
+  assert.strictEqual(calculateDailyRolloutPercentage(20, startDate, 20, d0), 20);
+
+  // J1 (+1 day): base + 20% = 40%
+  const d1 = new Date('2026-10-26T12:00:00Z');
+  assert.strictEqual(calculateDailyRolloutPercentage(20, startDate, 20, d1), 40);
+
+  // J2 (+2 days): base + 40% = 60%
+  const d2 = new Date('2026-10-27T12:00:00Z');
+  assert.strictEqual(calculateDailyRolloutPercentage(20, startDate, 20, d2), 60);
+
+  // J4 (+4 days): base + 80% = 100% (GA)
+  const d4 = new Date('2026-10-29T12:00:00Z');
+  assert.strictEqual(calculateDailyRolloutPercentage(20, startDate, 20, d4), 100);
+
+  // Cap at 100% after multiple days
+  const d10 = new Date('2026-11-15T12:00:00Z');
+  assert.strictEqual(calculateDailyRolloutPercentage(20, startDate, 20, d10), 100);
+
+  // Non-active base (0%) stays 0%
+  assert.strictEqual(calculateDailyRolloutPercentage(0, startDate, 20, d10), 0);
+
+  // Invalid inputs handle gracefully
+  assert.strictEqual(calculateDailyRolloutPercentage(30, 'invalid-date', 20), 30);
+  assert.strictEqual(calculateDailyRolloutPercentage(30, startDate, 0), 30);
+
+  // Release date extraction
+  const releaseDate = getReleaseDate();
+  assert.ok(typeof releaseDate === 'string' && releaseDate.match(/^\d{4}-\d{2}-\d{2}/));
+
+  // Reporting contains dailyProgression object
+  const status = getRolloutStatus();
+  assert.ok(status.dailyProgression);
+  assert.strictEqual(status.dailyProgression.enabled, true);
+  assert.ok(typeof status.dailyProgression.dailyIncrement === 'number');
+  assert.ok(typeof status.dailyProgression.daysSinceRelease === 'number');
 });

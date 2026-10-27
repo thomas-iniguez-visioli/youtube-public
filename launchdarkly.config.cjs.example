@@ -17,7 +17,7 @@ module.exports = {
   // Canal de distribution pour le ciblage (ex: 'canary', 'beta', 'stable')
   channel: process.env.RELEASE_CHANNEL || 'stable',
 
-  // Pourcentages de déploiement progressif par défaut (utilisés en local / hors-ligne)
+  // Pourcentages de déploiement progressif de base (J+0 de la release)
   defaultRollouts: {
     // 50% des utilisateurs reçoivent les fonctionnalités complètes TubeArchivist
     'enable-tubearchivist-features': 50,
@@ -31,5 +31,16 @@ module.exports = {
     'enable-comments-archive': 10,
     // 20% ont la synchronisation automatique des nouvelles vidéos de chaînes
     'enable-channel-autosync': 20
+  },
+
+  // Configuration de la progression journalière automatique du pourcentage
+  rolloutProgression: {
+    // Active ou désactive l'augmentation quotidienne (défaut: true)
+    enabled: true,
+    // Pourcentage ajouté chaque jour écoulé depuis la sortie de la version (+20% par jour par défaut)
+    // Exemple avec base 20% : J0: 20%, J1: 40%, J2: 60%, J3: 80%, J4+: 100% (GA)
+    dailyIncrement: 20,
+    // Date de release personnalisée (optionnel, par défaut utilise la date de patchnotes.json)
+    // startDate: '2026-10-27'
   }
 };

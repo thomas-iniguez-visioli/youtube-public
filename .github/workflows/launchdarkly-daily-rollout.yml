@@ -1,0 +1,49 @@
+name: LaunchDarkly Daily Rollout
+
+on:
+  schedule:
+    - cron: '0 4 * * *' # Exécution quotidienne à 04:00 UTC
+  workflow_dispatch:
+    inputs:
+      daily_increment:
+        description: "Pourcentage d'augmentation journalière (+X%)"
+        required: false
+        default: '20'
+      environment:
+        description: 'Environnement cible'
+        required: false
+        default: 'production'
+      dry_run:
+        description: 'Mode simulation sans écriture API'
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  advance-rollout:
+    name: Advance Progressive Rollout
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Calculate and Advance Daily Rollout
+        env:
+          LAUNCHDARKLY_API_TOKEN: ${{ secrets.LAUNCHDARKLY_API_TOKEN || secrets.LAUNCHDARKLY_ACCESS_TOKEN || '' }}
+          LAUNCHDARKLY_PROJECT_KEY: 'default'
+          LAUNCHDARKLY_ENVIRONMENT: ${{ github.event.inputs.environment || 'production' }}
+          ROLLOUT_DAILY_INCREMENT: ${{ github.event.inputs.daily_increment || '20' }}
+        run: |
+          DRY_RUN_ARG=""
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            DRY_RUN_ARG="--dry-run"
+          fi
+          node scripts/daily-rollout-progression.mjs $DRY_RUN_ARG
