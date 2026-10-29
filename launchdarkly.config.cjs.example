@@ -30,7 +30,9 @@ module.exports = {
     // 10% (canary) ont l'archivage des commentaires YouTube
     'enable-comments-archive': 10,
     // 20% ont la synchronisation automatique des nouvelles vidéos de chaînes
-    'enable-channel-autosync': 20
+    'enable-channel-autosync': 20,
+    // 25% ont les notifications toasts style Dynamic Island (Notch Toast - https://notch.devsethi.me/)
+    'enable-notch-toast': 25
   },
 
   // Configuration de la progression journalière automatique du pourcentage

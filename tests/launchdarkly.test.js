@@ -1,7 +1,7 @@
 import assert from 'node:assert';
 import { test } from 'node:test';
 import { initLaunchDarkly, getLDClient, getFeatureFlag, getAllFeatureFlags, isLaunchDarklyReady, reloadFlags, disableLaunchDarkly, isLaunchDarklyEnabled, getLaunchDarklyStatus, trackEvent, getExperimentVariation, getOrCreateUserId, getUserContext, getRolloutBucket, isFeatureInRollout, getRolloutStatus, calculateDailyRolloutPercentage, getReleaseDate } from '../src/launchdarkly.js';
-import { buildFallthroughPatchPayload, fetchWithRetry, calculateDaysElapsed, updateLaunchDarklyRollout, createFlagIfMissing } from '../scripts/daily-rollout-progression.mjs';
+import { rolloutFlags, buildFallthroughPatchPayload, fetchWithRetry, calculateDaysElapsed, updateLaunchDarklyRollout, createFlagIfMissing } from '../scripts/daily-rollout-progression.mjs';
 
 test('LaunchDarkly module should handle missing config or invalid clientSideId gracefully', async (t) => {
   // With no config or empty clientSideId, client is null and functions return safe defaults
@@ -130,6 +130,9 @@ test('LaunchDarkly Progressive Rollout - deterministic bucketing and threshold c
   assert.ok(status.flags['enable-tubearchivist-features']);
   assert.ok(typeof status.flags['enable-tubearchivist-features'].enabled === 'boolean');
   assert.strictEqual(status.flags['enable-tubearchivist-features'].targetPercentage, 50);
+  assert.ok(status.flags['enable-notch-toast']);
+  assert.ok(typeof status.flags['enable-notch-toast'].enabled === 'boolean');
+  assert.strictEqual(status.flags['enable-notch-toast'].targetPercentage, 25);
 
   // 6. User context enrichment for progressive targeting
   const context = await getUserContext();
@@ -305,4 +308,19 @@ test('LaunchDarkly REST API auto-creates flag if HTTP 404 is encountered on patc
       delete process.env.LAUNCHDARKLY_API_TOKEN;
     }
   }
+});
+
+test('LaunchDarkly feature flag enable-notch-toast is configured for progressive rollout', () => {
+  const flag = rolloutFlags.find(f => f.key === 'enable-notch-toast');
+  assert.ok(flag, 'enable-notch-toast doit être présent dans rolloutFlags');
+  assert.strictEqual(flag.basePercent, 25);
+  assert.strictEqual(flag.kind, 'boolean');
+  assert.ok(flag.tags.includes('notch-toast'));
+
+  // Test deterministic bucketing and rollout
+  const res0 = isFeatureInRollout('enable-notch-toast', 0, false);
+  assert.strictEqual(res0, false);
+
+  const res100 = isFeatureInRollout('enable-notch-toast', 100, false);
+  assert.strictEqual(res100, true);
 });
