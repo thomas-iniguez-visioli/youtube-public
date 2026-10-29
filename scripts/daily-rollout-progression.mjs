@@ -141,6 +141,20 @@ export const rolloutFlags = [
     tags: ['tubearchivist', 'comments', 'progressive-rollout'],
     basePercent: 10
   }
+,
+  {
+    key: 'enable-notch-toast',
+    name: 'Notifications Notch Toast (Dynamic Island)',
+    description: 'Notifications toasts style encoche / Dynamic Island inspirées de https://notch.devsethi.me/',
+    kind: 'boolean',
+    variations: [
+      { value: true, name: 'Activé (Notch Toast)' },
+      { value: false, name: 'Désactivé (Classique)' }
+    ],
+    defaults: { onVariation: 0, offVariation: 1 },
+    tags: ['ui', 'notifications', 'notch-toast', 'progressive-rollout'],
+    basePercent: 25
+  }
 ];
 
 export function calculateDaysElapsed(fromDateStr, referenceDate = new Date()) {

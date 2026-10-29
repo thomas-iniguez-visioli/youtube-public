@@ -1,5 +1,10 @@
 # Gemini CLI - Journal des modifications
 
+## [2.1.26] - 2026-10-29
+### Ajouté
+- **Nouveau feature flag pour Notch Toast (`https://notch.devsethi.me/`)** : Intégration du feature flag `enable-notch-toast` (25% en déploiement progressif par défaut) pour activer les notifications toasts au style encoche / Dynamic Island inspirées de notch-toast par Dev Sethi.
+- **Composant Notch Toast dans le frontend** : Implémentation du système de notification ancré au centre supérieur de l'écran avec capsule dynamique, fond sombre flouté, icônes réactives animées (succès, erreur, avertissement, info) et animations fluides de morphing et repli.
+
 ## [2.1.23] - 2026-10-27
 ### Corrigé
 - **Auto-création des flags inexistants sur l'API LaunchDarkly (HTTP 404)** : Résolution de l'erreur `HTTP 404: Erreur` sur les flags non encore créés dans le projet (`enable-channel-autosync`). Si un feature flag n'existe pas encore dans LaunchDarkly, `daily-rollout-progression.mjs` l'auto-provisionne désormais à la volée via une requête `POST /api/v2/flags/{projectKey}` (`createFlagIfMissing`) avant d'appliquer sa règle de déploiement progressif.

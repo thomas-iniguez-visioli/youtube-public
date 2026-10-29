@@ -31,8 +31,121 @@ function debounce(fn, delay) {
     };
 }
 
+// --- Notch Toast & Feature Flag (inspired by https://notch.devsethi.me/) ---
+let notchToastEnabled = false;
+
+async function checkNotchToastFlag() {
+    if (typeof window === 'undefined') return false;
+    if (typeof window.__NOTCH_TOAST_ENABLED__ === 'boolean') {
+        return window.__NOTCH_TOAST_ENABLED__;
+    }
+    try {
+        if (window.electronAPI && typeof window.electronAPI.isFeatureInRollout === 'function') {
+            notchToastEnabled = await window.electronAPI.isFeatureInRollout('enable-notch-toast', 25, false);
+        } else {
+            const res = await fetch('/api/flags/rollout/enable-notch-toast?percent=25').then(r => r.json());
+            notchToastEnabled = Boolean(res && res.inRollout);
+        }
+    } catch {
+        notchToastEnabled = false;
+    }
+    window.__NOTCH_TOAST_ENABLED__ = notchToastEnabled;
+    return notchToastEnabled;
+}
+
+if (typeof window !== 'undefined') {
+    checkNotchToastFlag();
+    window.setNotchToastEnabled = function(val) {
+        notchToastEnabled = Boolean(val);
+        window.__NOTCH_TOAST_ENABLED__ = notchToastEnabled;
+    };
+    window.isNotchToastEnabled = function() {
+        return Boolean(window.__NOTCH_TOAST_ENABLED__);
+    };
+}
+
 // --- Toast Notifications ---
 function showToast(title, message, type = 'primary', link = null) {
+    if (typeof window !== 'undefined' && window.__NOTCH_TOAST_ENABLED__) {
+        renderNotchToast(title, message, type, link);
+        return;
+    }
+    renderClassicToast(title, message, type, link);
+}
+
+function renderNotchToast(title, message, type = 'primary', link = null) {
+    let notchContainer = document.getElementById('notch-toast-container');
+    if (!notchContainer) {
+        notchContainer = document.createElement('div');
+        notchContainer.id = 'notch-toast-container';
+        notchContainer.className = 'fixed top-0 left-1/2 -translate-x-1/2 z-[10000] flex flex-col items-center gap-2 pt-2 px-4 pointer-events-none w-full max-w-lg';
+        document.body.appendChild(notchContainer);
+    }
+
+    const toastId = 'notch-' + Date.now() + Math.floor(Math.random() * 1000);
+
+    let iconSvg = '';
+    let iconBadge = '';
+    let glowColor = '';
+
+    if (type === 'success') {
+        iconBadge = 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+        glowColor = 'shadow-emerald-950/40';
+        iconSvg = '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>';
+    } else if (type === 'error' || type === 'danger') {
+        iconBadge = 'bg-rose-500/20 text-rose-400 border border-rose-500/30';
+        glowColor = 'shadow-rose-950/40';
+        iconSvg = '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+    } else if (type === 'warning') {
+        iconBadge = 'bg-amber-500/20 text-amber-400 border border-amber-500/30';
+        glowColor = 'shadow-amber-950/40';
+        iconSvg = '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+    } else {
+        iconBadge = 'bg-sky-500/20 text-sky-400 border border-sky-500/30';
+        glowColor = 'shadow-sky-950/40';
+        iconSvg = '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
+    }
+
+    notchContainer.insertAdjacentHTML('beforeend', `
+        <div id="${toastId}" class="notch-toast-pill pointer-events-auto flex items-center gap-3 bg-neutral-950/95 backdrop-blur-md text-white border border-neutral-800/80 shadow-2xl ${glowColor} rounded-full px-4 py-2.5 max-w-md w-auto transition-all duration-300 ease-out transform -translate-y-full opacity-0 scale-95 hover:border-neutral-700">
+            <div class="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center ${iconBadge}">
+                ${iconSvg}
+            </div>
+            <div class="flex flex-col min-w-0 pr-1 text-left">
+                <span class="text-xs font-semibold text-neutral-200 tracking-tight leading-tight">${escapeHtml(title)}</span>
+                <span class="text-xs text-neutral-400 truncate leading-snug">${message}</span>
+                ${link ? `<div class="mt-1"><a href="${link.url}" class="inline-block bg-sky-500/20 hover:bg-sky-500/30 text-sky-400 font-medium rounded-full px-2.5 py-0.5 text-[10px] border border-sky-500/30 transition">${link.text}</a></div>` : ''}
+            </div>
+            <button type="button" class="flex-shrink-0 text-neutral-400 hover:text-white transition p-1 ml-auto rounded-full hover:bg-neutral-800 focus:outline-none" onclick="dismissNotchToast('${toastId}')">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+    `);
+
+    const toastEl = document.getElementById(toastId);
+    setTimeout(() => {
+        if (toastEl) {
+            toastEl.classList.remove('-translate-y-full', 'opacity-0', 'scale-95');
+            toastEl.classList.add('translate-y-0', 'opacity-100', 'scale-100');
+        }
+    }, 10);
+
+    setTimeout(() => {
+        dismissNotchToast(toastId);
+    }, 6000);
+}
+
+function dismissNotchToast(toastId) {
+    const toastEl = document.getElementById(toastId);
+    if (!toastEl) return;
+    toastEl.classList.remove('translate-y-0', 'opacity-100', 'scale-100');
+    toastEl.classList.add('-translate-y-full', 'opacity-0', 'scale-95');
+    setTimeout(() => {
+        if (toastEl) toastEl.remove();
+    }, 300);
+}
+
+function renderClassicToast(title, message, type = 'primary', link = null) {
     let toastContainer = document.querySelector('.toast-container') || document.getElementById('toast-container');
     if (!toastContainer) {
         toastContainer = document.createElement('div');

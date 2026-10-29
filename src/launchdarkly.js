@@ -588,7 +588,14 @@ export function isFeatureInRollout(flagKey, defaultRolloutPercent = 0, defaultVa
   const dailyIncrement = typeof progressionConfig.dailyIncrement === 'number' ? progressionConfig.dailyIncrement : 20;
   const startDate = progressionConfig.startDate || getReleaseDate();
 
-  const effectivePercent = progressionEnabled
+  const isKnownRolloutFlag = Boolean(
+    typeof configRollouts[cleanKey] === 'number' ||
+    cleanKey.startsWith('enable-') ||
+    cleanKey.startsWith('ab-') ||
+    cleanKey.startsWith('auto-')
+  );
+
+  const effectivePercent = (progressionEnabled && isKnownRolloutFlag)
     ? calculateDailyRolloutPercentage(targetPercent, startDate, dailyIncrement)
     : Math.max(0, Math.min(100, Number(targetPercent) || 0));
 
@@ -614,6 +621,7 @@ export function getRolloutStatus() {
     'enable-auto-subtitles': 25,
     'enable-comments-archive': 10,
     'enable-channel-autosync': 20,
+    'enable-notch-toast': 25,
     ...configRollouts
   };
 
