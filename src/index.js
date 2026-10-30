@@ -800,6 +800,13 @@ const downloadbacklog = (parameter) => {
     currentDownloadParameter = parameter;
     fs.appendFileSync(path.join(app.getPath('userData'), 'historic.txt'), `${parameter}\n`);
     const logFilePath = path.join(app.getPath('userData'), 'download.log');
+    // Optimisation mémoire : le log est tronqué à chaque démarrage de
+    // téléchargement. Sans cela il grossit sans limite et le readFileSync
+    // de la récupération de vitesse (par vidéo terminée) charge un fichier
+    // de plus en plus gros en mémoire.
+    try { fs.writeFileSync(logFilePath, ''); } catch (e) {
+      log.warn(`Impossible de réinitialiser download.log : ${e.message}`);
+    }
     
     const ytdlpPath = binaryResolver.ytdlp;
     const ffmpegDir = binaryResolver.ffmpegDir;
@@ -841,7 +848,20 @@ const downloadbacklog = (parameter) => {
             let finalSpeed = lastSpeed || 'inconnue';
             try {
               if (fs.existsSync(logFilePath)) {
-                const logContent = fs.readFileSync(logFilePath, 'utf8');
+                // Lecture bornée : seuls les derniers 64 Ko suffisent à
+                // trouver la dernière ligne de vitesse, quelle que soit la
+                // taille du log.
+                const fd = fs.openSync(logFilePath, 'r');
+                let logContent;
+                try {
+                  const size = fs.fstatSync(fd).size;
+                  const readSize = Math.min(size, 65536);
+                  const buf = Buffer.alloc(readSize);
+                  fs.readSync(fd, buf, 0, readSize, Math.max(0, size - readSize));
+                  logContent = buf.toString('utf8');
+                } finally {
+                  fs.closeSync(fd);
+                }
                 const logLines = logContent.split('\n');
                 for (let i = logLines.length - 1; i >= 0; i--) {
                   const speedMatch = logLines[i].match(/100% of .* at ([\d.]+\w+\/s)/) || logLines[i].match(/in .* at ([\d.]+\w+\/s)/);

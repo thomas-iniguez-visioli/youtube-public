@@ -101,3 +101,23 @@ test('FileDatabase should manage TubeArchivist watch progress and stats', (t) =>
     // Clean up
     fs.rmSync(filesPath, { recursive: true, force: true });
 });
+
+test('FileDatabase snapshot signatures are compact, stable and change-sensitive', () => {
+    const filesPath = path.resolve('./test-files-signatures');
+    if (!fs.existsSync(filesPath)) fs.mkdirSync(filesPath, { recursive: true });
+    const db = new FileDatabase(filesPath);
+
+    // Signature compacte : quelques octets, pas une copie de la chaîne
+    const snapshot = JSON.stringify({ yid: 'v1', data: 'x'.repeat(10000) });
+    const sig = db._snapshotSignature(snapshot);
+    assert.ok(sig.length < 24, `Signature should stay compact, got: ${sig}`);
+
+    // Stable pour un contenu identique
+    assert.strictEqual(db._snapshotSignature(snapshot), sig);
+
+    // Détecte un contenu différent (même longueur ou non)
+    assert.notStrictEqual(db._snapshotSignature(JSON.stringify({ yid: 'v1', data: 'y'.repeat(10000) })), sig);
+    assert.notStrictEqual(db._snapshotSignature('abc'), db._snapshotSignature('abd'));
+
+    fs.rmSync(filesPath, { recursive: true, force: true });
+});
