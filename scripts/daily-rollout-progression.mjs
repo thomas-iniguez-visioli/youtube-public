@@ -168,6 +168,83 @@ const daysElapsed = calculateDaysElapsed(releaseDate);
 const LD_API_BASE = 'https://app.launchdarkly.com/api/v2';
 
 /**
+ * Vérifie si un feature flag est déjà déployé à 100% (GA) sur LaunchDarkly.
+ * Un flag est considéré à 100% si :
+ *  - Sa règle fallthrough est configurée sur la variation 0 (variation active).
+ *  - OU sa règle de rollout attribue un poids >= 100 000 (ou 100% de la distribution) à la variation 0.
+ */
+export function isFlagAlreadyFullyRolledOut(flagData, envKey = 'production') {
+  if (!flagData || typeof flagData !== 'object') return false;
+
+  const envData = (flagData.environments && flagData.environments[envKey])
+    ? flagData.environments[envKey]
+    : flagData;
+
+  if (!envData || typeof envData !== 'object') return false;
+
+  const fallthrough = envData.fallthrough;
+  if (!fallthrough || typeof fallthrough !== 'object') return false;
+
+  // Variation directe 0 (variation 'on')
+  if (fallthrough.variation === 0) {
+    return true;
+  }
+
+  // Rollout progressif avec variations
+  if (fallthrough.rollout && Array.isArray(fallthrough.rollout.variations)) {
+    const var0 = fallthrough.rollout.variations.find(v => v && v.variation === 0);
+    if (var0 && typeof var0.weight === 'number') {
+      if (var0.weight >= 100000) return true;
+      // Cas tolérant si l'échelle utilisée est 0-100
+      const totalWeight = fallthrough.rollout.variations.reduce((sum, v) => sum + (Number(v.weight) || 0), 0);
+      if (var0.weight === 100 && totalWeight === 100) return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Récupère l'ensemble des feature flags existants pour le projet et l'environnement cibles.
+ * Permet d'inspecter l'état actuel des flags et d'éviter les requêtes PATCH redondantes.
+ */
+export async function fetchCurrentFlags(customFetch = fetch) {
+  const apiToken = getApiToken();
+  const projectKey = getProjectKey();
+  const environmentKey = getEnvironmentKey();
+
+  if (!apiToken) {
+    return new Map();
+  }
+
+  try {
+    const res = await fetchWithRetry(`${LD_API_BASE}/flags/${projectKey}?env=${environmentKey}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': apiToken,
+        'Content-Type': 'application/json'
+      }
+    }, 3, customFetch);
+
+    if (res && res.status === 200) {
+      const data = await res.json().catch(() => ({}));
+      const items = Array.isArray(data?.items) ? data.items : [];
+      const flagsMap = new Map();
+      for (const item of items) {
+        if (item && item.key) {
+          flagsMap.set(item.key, item);
+        }
+      }
+      return flagsMap;
+    }
+  } catch (err) {
+    console.warn(`[LaunchDarkly API] Impossible de récupérer l'état des flags: ${err.message}`);
+  }
+
+  return new Map();
+}
+
+/**
  * Construit le payload JSON Patch standard (RFC 6902) pour la fallthrough rule LaunchDarkly.
  * Utilise des poids sur une base 100 000 (LaunchDarkly scale: 50000 = 50%).
  */
@@ -275,7 +352,7 @@ export async function createFlagIfMissing(flag, customFetch = fetch) {
   }
 }
 
-export async function updateLaunchDarklyRollout(flagOrKey, percentage, customFetch = fetch, allowAutoCreate = true) {
+export async function updateLaunchDarklyRollout(flagOrKey, percentage, customFetch = fetch, allowAutoCreate = true, existingFlagData = null) {
   const apiToken = getApiToken();
   const projectKey = getProjectKey();
   const environmentKey = getEnvironmentKey();
@@ -288,6 +365,30 @@ export async function updateLaunchDarklyRollout(flagOrKey, percentage, customFet
   const flagObj = typeof flagOrKey === 'object'
     ? flagOrKey
     : (rolloutFlags.find(f => f.key === flagKey) || { key: flagKey, name: flagKey });
+
+  // Si le flag est déjà à 100%, aucune mise à jour n'est requise
+  let flagData = (typeof existingFlagData === 'object' && existingFlagData !== null) ? existingFlagData : null;
+  if (!flagData && existingFlagData === true) {
+    try {
+      const getRes = await fetchWithRetry(`${LD_API_BASE}/flags/${projectKey}/${flagKey}?env=${environmentKey}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': apiToken,
+          'Content-Type': 'application/json'
+        }
+      }, 3, customFetch);
+      if (getRes && getRes.status === 200) {
+        flagData = await getRes.json().catch(() => null);
+      }
+    } catch {
+      // Continuer en cas d'erreur de récupération individuelle
+    }
+  }
+
+  if (flagData && isFlagAlreadyFullyRolledOut(flagData, environmentKey)) {
+    console.log(`[LaunchDarkly API] Flag '${flagKey}' est déjà à 100% (GA). Aucune mise à jour nécessaire.`);
+    return { success: true, skipped: true, reason: 'Déjà à 100% (GA)' };
+  }
 
   try {
     const patchBody = buildFallthroughPatchPayload(percentage, environmentKey);
@@ -344,21 +445,44 @@ export async function main() {
   console.log(`------------------------------------------------------------\n`);
 
   const results = [];
+  let existingFlagsMap = new Map();
+  if (apiToken && !isDryRun) {
+    existingFlagsMap = await fetchCurrentFlags();
+  }
 
   for (let i = 0; i < rolloutFlags.length; i++) {
     const flag = rolloutFlags[i];
     const effectivePercent = Math.min(100, flag.basePercent + (daysElapsed * dailyIncrement));
+    const previousPercent = flag.basePercent + (Math.max(0, daysElapsed - 1) * dailyIncrement);
     const isGA = effectivePercent >= 100;
     const stage = isGA ? '100% (GA)' : `${effectivePercent}% (Progressif)`;
 
+    // Vérifier si le flag est déjà à 100% :
+    // 1. Sur LaunchDarkly distant (si le flag existe et a sa fallthrough à 100%)
+    // 2. Ou localement si la feature était déjà à >= 100% au jour précédent ou par défaut
+    const remoteFlag = existingFlagsMap.get(flag.key);
+    const isRemote100 = remoteFlag ? isFlagAlreadyFullyRolledOut(remoteFlag, environmentKey) : false;
+    const isLocalAlready100 = flag.basePercent >= 100 || (daysElapsed > 0 && previousPercent >= 100);
+    const isAlreadyAt100 = isRemote100 || (isGA && isLocalAlready100);
+
     let apiResult = null;
-    if (apiToken && !isDryRun) {
-      if (i > 0) {
-        // Pause de 1.5s entre chaque requête pour éviter les rafales et respecter le débit d'API LaunchDarkly
+    if (isAlreadyAt100) {
+      apiResult = { success: true, skipped: true, reason: 'Déjà à 100% (GA)' };
+    } else if (apiToken && !isDryRun) {
+      if (results.some(r => r.apiResult && !r.apiResult.skipped)) {
+        // Pause de 1.5s entre chaque requête effective de modification
         await new Promise(r => setTimeout(r, 1500));
       }
-      apiResult = await updateLaunchDarklyRollout(flag, effectivePercent);
+      apiResult = await updateLaunchDarklyRollout(flag, effectivePercent, fetch, true, remoteFlag);
     }
+
+    const apiStatus = apiResult
+      ? (apiResult.skipped
+          ? '✓ Déjà à 100% (Ignoré)'
+          : (apiResult.success
+              ? (apiResult.created ? '✓ Créé & Mis à jour' : '✓ Mis à jour')
+              : `✗ ${apiResult.reason}`))
+      : (isAlreadyAt100 ? '✓ Déjà à 100% (Ignoré)' : 'Calculé');
 
     results.push({
       key: flag.key,
@@ -367,12 +491,17 @@ export async function main() {
       effective: effectivePercent,
       isGA,
       stage,
-      apiStatus: apiResult ? (apiResult.success ? (apiResult.created ? '✓ Créé & Mis à jour' : '✓ Mis à jour') : `✗ ${apiResult.reason}`) : 'Calculé'
+      apiResult,
+      apiStatus
     });
 
-    console.log(`[${flag.key}] Base: ${flag.basePercent}% -> Aujourd'hui: ${effectivePercent}% (${stage})`);
-    if (apiResult && !apiResult.success) {
-      console.warn(`  ! Note API: ${apiResult.reason}`);
+    if (apiResult && apiResult.skipped) {
+      console.log(`[${flag.key}] Base: ${flag.basePercent}% -> Aujourd'hui: ${effectivePercent}% (${stage}) -> Déjà à 100% (Mise à jour ignorée)`);
+    } else {
+      console.log(`[${flag.key}] Base: ${flag.basePercent}% -> Aujourd'hui: ${effectivePercent}% (${stage})`);
+      if (apiResult && !apiResult.success) {
+        console.warn(`  ! Note API: ${apiResult.reason}`);
+      }
     }
   }
 
@@ -400,9 +529,28 @@ ${rows}
   console.log(`\n============================================================`);
   console.log(`Progression journalière calculée avec succès.`);
   console.log(`============================================================\n`);
+
+  return { results, apiFailures: countApiFailures(results) };
+}
+
+/**
+ * Compte les mises à jour API réellement échouées (hors simulations et hors flags ignorés).
+ * Utilisé pour le code de sortie du script : 0 si tout va bien, 1 si au moins un PATCH a échoué.
+ */
+export function countApiFailures(results) {
+  if (!Array.isArray(results)) return 0;
+  return results.filter(r => r.apiResult && r.apiResult.success === false).length;
 }
 
 const isMainModule = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isMainModule) {
-  main();
+  main().then((summary) => {
+    if (summary && summary.apiFailures > 0) {
+      console.error(`\n${summary.apiFailures} mise(s) à jour LaunchDarkly ont échoué. Voir les notes API ci-dessus.`);
+      process.exitCode = 1;
+    }
+  }).catch((err) => {
+    console.error(`Erreur fatale lors de la progression du déploiement: ${err.message}`);
+    process.exitCode = 1;
+  });
 }
