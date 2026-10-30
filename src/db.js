@@ -31,6 +31,20 @@ export default class FileDatabase {
         this.loadDatabase();
     }
 
+    /**
+     * Signature compacte (longueur + hash djb2 32 bits) d'un snapshot JSON.
+     * Optimisation mémoire : conserver la chaîne JSON complète de chaque vidéo
+     * pour détecter les changements doublait l'empreinte mémoire de la
+     * bibliothèque ; une signature de quelques octets suffit.
+     */
+    _snapshotSignature(str) {
+        let h = 5381;
+        for (let i = 0; i < str.length; i++) {
+            h = ((h << 5) + h + str.charCodeAt(i)) | 0;
+        }
+        return `${str.length}|${h >>> 0}`;
+    }
+
     _buildIndex() {
         this.yidMap.clear();
         this._tagsCache = null;
@@ -464,9 +478,10 @@ export default class FileDatabase {
                 if (!video || !video.yid) continue;
                 currentYids.add(video.yid);
                 const str = JSON.stringify(video);
-                if (this._cleanSnapshots.get(video.yid) !== str) {
+                const sig = this._snapshotSignature(str);
+                if (this._cleanSnapshots.get(video.yid) !== sig) {
                     insertVideo.run(video.yid, str);
-                    this._cleanSnapshots.set(video.yid, str);
+                    this._cleanSnapshots.set(video.yid, sig);
                 }
             }
 
@@ -535,7 +550,7 @@ export default class FileDatabase {
                 const rows = this.db.prepare('SELECT * FROM videos').all();
                 for (const row of rows) {
                     this.database.push(JSON.parse(row.data));
-                    this._cleanSnapshots.set(row.yid, row.data);
+                    this._cleanSnapshots.set(row.yid, this._snapshotSignature(row.data));
                 }
 
                 const getState = (key, def) => {

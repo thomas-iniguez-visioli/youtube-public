@@ -1,7 +1,7 @@
 import assert from 'node:assert';
 import { test } from 'node:test';
 import { initLaunchDarkly, getLDClient, getFeatureFlag, getAllFeatureFlags, isLaunchDarklyReady, reloadFlags, disableLaunchDarkly, isLaunchDarklyEnabled, getLaunchDarklyStatus, trackEvent, getExperimentVariation, getOrCreateUserId, getUserContext, getRolloutBucket, isFeatureInRollout, getRolloutStatus, calculateDailyRolloutPercentage, getReleaseDate } from '../src/launchdarkly.js';
-import { rolloutFlags, buildFallthroughPatchPayload, fetchWithRetry, calculateDaysElapsed, updateLaunchDarklyRollout, createFlagIfMissing } from '../scripts/daily-rollout-progression.mjs';
+import { rolloutFlags, buildFallthroughPatchPayload, fetchWithRetry, calculateDaysElapsed, updateLaunchDarklyRollout, createFlagIfMissing, isFlagAlreadyFullyRolledOut, fetchCurrentFlags, countApiFailures } from '../scripts/daily-rollout-progression.mjs';
 
 test('LaunchDarkly module should handle missing config or invalid clientSideId gracefully', async (t) => {
   // With no config or empty clientSideId, client is null and functions return safe defaults
@@ -323,4 +323,212 @@ test('LaunchDarkly feature flag enable-notch-toast is configured for progressive
 
   const res100 = isFeatureInRollout('enable-notch-toast', 100, false);
   assert.strictEqual(res100, true);
+});
+
+test('isFlagAlreadyFullyRolledOut correctly identifies 100% (GA) feature flags', () => {
+  // 1. Direct variation assignment (variation: 0 is on)
+  assert.strictEqual(isFlagAlreadyFullyRolledOut({
+    environments: {
+      production: { fallthrough: { variation: 0 } }
+    }
+  }, 'production'), true);
+
+  // Variation 1 (off) is not 100%
+  assert.strictEqual(isFlagAlreadyFullyRolledOut({
+    environments: {
+      production: { fallthrough: { variation: 1 } }
+    }
+  }, 'production'), false);
+
+  // 2. Rollout variations on 100,000 scale
+  assert.strictEqual(isFlagAlreadyFullyRolledOut({
+    environments: {
+      production: {
+        fallthrough: {
+          rollout: {
+            variations: [
+              { variation: 0, weight: 100000 },
+              { variation: 1, weight: 0 }
+            ]
+          }
+        }
+      }
+    }
+  }, 'production'), true);
+
+  // Rollout variation 0 < 100000 (e.g. 50%)
+  assert.strictEqual(isFlagAlreadyFullyRolledOut({
+    environments: {
+      production: {
+        fallthrough: {
+          rollout: {
+            variations: [
+              { variation: 0, weight: 50000 },
+              { variation: 1, weight: 50000 }
+            ]
+          }
+        }
+      }
+    }
+  }, 'production'), false);
+
+  // 3. Rollout variations on 100 scale
+  assert.strictEqual(isFlagAlreadyFullyRolledOut({
+    environments: {
+      production: {
+        fallthrough: {
+          rollout: {
+            variations: [
+              { variation: 0, weight: 100 },
+              { variation: 1, weight: 0 }
+            ]
+          }
+        }
+      }
+    }
+  }, 'production'), true);
+
+  // 4. Non-standard or direct envData (fallback when environments key is omitted)
+  assert.strictEqual(isFlagAlreadyFullyRolledOut({
+    fallthrough: { variation: 0 }
+  }), true);
+
+  // 5. Environment scoping
+  assert.strictEqual(isFlagAlreadyFullyRolledOut({
+    environments: {
+      staging: { fallthrough: { variation: 0 } },
+      production: { fallthrough: { variation: 1 } }
+    }
+  }, 'production'), false);
+
+  assert.strictEqual(isFlagAlreadyFullyRolledOut({
+    environments: {
+      staging: { fallthrough: { variation: 0 } },
+      production: { fallthrough: { variation: 1 } }
+    }
+  }, 'staging'), true);
+
+  // 6. Safe handling of invalid / null inputs
+  assert.strictEqual(isFlagAlreadyFullyRolledOut(null), false);
+  assert.strictEqual(isFlagAlreadyFullyRolledOut(undefined), false);
+  assert.strictEqual(isFlagAlreadyFullyRolledOut({}), false);
+  assert.strictEqual(isFlagAlreadyFullyRolledOut({ environments: {} }), false);
+});
+
+test('fetchCurrentFlags retrieves flags mapping from LaunchDarkly API', async () => {
+  const prevToken = process.env.LAUNCHDARKLY_API_TOKEN;
+  process.env.LAUNCHDARKLY_API_TOKEN = 'mock-token';
+
+  try {
+    const mockFetch = async (url, options) => {
+      assert.ok(url.includes('/api/v2/flags/default?env=production'));
+      assert.strictEqual(options.method, 'GET');
+      return {
+        status: 200,
+        json: async () => ({
+          items: [
+            { key: 'enable-tubearchivist-features', environments: { production: { fallthrough: { variation: 0 } } } },
+            { key: 'enable-notch-toast', environments: { production: { fallthrough: { rollout: { variations: [{ variation: 0, weight: 25000 }] } } } } }
+          ]
+        })
+      };
+    };
+
+    const flagsMap = await fetchCurrentFlags(mockFetch);
+    assert.strictEqual(flagsMap.size, 2);
+    assert.ok(flagsMap.has('enable-tubearchivist-features'));
+    assert.ok(flagsMap.has('enable-notch-toast'));
+    assert.strictEqual(isFlagAlreadyFullyRolledOut(flagsMap.get('enable-tubearchivist-features')), true);
+    assert.strictEqual(isFlagAlreadyFullyRolledOut(flagsMap.get('enable-notch-toast')), false);
+  } finally {
+    if (prevToken) {
+      process.env.LAUNCHDARKLY_API_TOKEN = prevToken;
+    } else {
+      delete process.env.LAUNCHDARKLY_API_TOKEN;
+    }
+  }
+});
+
+test('updateLaunchDarklyRollout skips flags already at 100% (GA) without sending PATCH requests', async () => {
+  const prevToken = process.env.LAUNCHDARKLY_API_TOKEN;
+  process.env.LAUNCHDARKLY_API_TOKEN = 'mock-token';
+
+  const flag = {
+    key: 'enable-tubearchivist-features',
+    name: 'TubeArchivist Features',
+    basePercent: 50
+  };
+
+  const existingAt100 = {
+    key: flag.key,
+    environments: {
+      production: {
+        fallthrough: {
+          variation: 0
+        }
+      }
+    }
+  };
+
+  let patchCalled = false;
+  const mockFetch = async (url, options) => {
+    if (options.method === 'PATCH') {
+      patchCalled = true;
+    }
+    return { status: 200, json: async () => ({}) };
+  };
+
+  try {
+    // 1. With existingFlagData at 100% -> should skip PATCH
+    const resultSkipped = await updateLaunchDarklyRollout(flag, 100, mockFetch, true, existingAt100);
+    assert.strictEqual(resultSkipped.success, true);
+    assert.strictEqual(resultSkipped.skipped, true);
+    assert.strictEqual(resultSkipped.reason, 'Déjà à 100% (GA)');
+    assert.strictEqual(patchCalled, false, 'No PATCH should be executed when flag is already 100%');
+
+    // 2. With existingFlagData at 50% -> should execute PATCH
+    const existingAt50 = {
+      key: flag.key,
+      environments: {
+        production: {
+          fallthrough: {
+            rollout: {
+              variations: [{ variation: 0, weight: 50000 }, { variation: 1, weight: 50000 }]
+            }
+          }
+        }
+      }
+    };
+    const resultPatched = await updateLaunchDarklyRollout(flag, 100, mockFetch, true, existingAt50);
+    assert.strictEqual(resultPatched.success, true);
+    assert.strictEqual(resultPatched.skipped, undefined);
+    assert.strictEqual(patchCalled, true, 'PATCH must be executed when flag is not yet at 100%');
+  } finally {
+    if (prevToken) {
+      process.env.LAUNCHDARKLY_API_TOKEN = prevToken;
+    } else {
+      delete process.env.LAUNCHDARKLY_API_TOKEN;
+    }
+  }
+});
+
+test('countApiFailures counts only real API failures (skipped and dry-run results excluded)', () => {
+  // Résultats typiques du run quotidien : succès, ignoré (GA), échec, dry-run (null)
+  const results = [
+    { key: 'a', apiResult: { success: true } },
+    { key: 'b', apiResult: { success: true, skipped: true, reason: 'Déjà à 100% (GA)' } },
+    { key: 'c', apiResult: { success: false, reason: 'HTTP 401: Unauthorized' } },
+    { key: 'd', apiResult: null }
+  ];
+  assert.strictEqual(countApiFailures(results), 1);
+
+  // Aucun échec -> 0 (script exit code 0)
+  assert.strictEqual(countApiFailures([
+    { key: 'a', apiResult: { success: true } },
+    { key: 'b', apiResult: null }
+  ]), 0);
+
+  // Entrées invalides traitées sans crash
+  assert.strictEqual(countApiFailures([]), 0);
+  assert.strictEqual(countApiFailures(null), 0);
 });

@@ -33,24 +33,30 @@ function debounce(fn, delay) {
 
 // --- Notch Toast & Feature Flag (inspired by https://notch.devsethi.me/) ---
 let notchToastEnabled = false;
+let notchToastFlagPromise = null;
 
 async function checkNotchToastFlag() {
     if (typeof window === 'undefined') return false;
     if (typeof window.__NOTCH_TOAST_ENABLED__ === 'boolean') {
         return window.__NOTCH_TOAST_ENABLED__;
     }
-    try {
-        if (window.electronAPI && typeof window.electronAPI.isFeatureInRollout === 'function') {
-            notchToastEnabled = await window.electronAPI.isFeatureInRollout('enable-notch-toast', 25, false);
-        } else {
-            const res = await fetch('/api/flags/rollout/enable-notch-toast?percent=25').then(r => r.json());
-            notchToastEnabled = Boolean(res && res.inRollout);
+    // Évite les appels API dupliqués si la fonction est appelée avant résolution
+    if (notchToastFlagPromise) return notchToastFlagPromise;
+    notchToastFlagPromise = (async () => {
+        try {
+            if (window.electronAPI && typeof window.electronAPI.isFeatureInRollout === 'function') {
+                notchToastEnabled = await window.electronAPI.isFeatureInRollout('enable-notch-toast', 25, false);
+            } else {
+                const res = await fetch('/api/flags/rollout/enable-notch-toast?percent=25').then(r => r.json());
+                notchToastEnabled = Boolean(res && res.inRollout);
+            }
+        } catch {
+            notchToastEnabled = false;
         }
-    } catch {
-        notchToastEnabled = false;
-    }
-    window.__NOTCH_TOAST_ENABLED__ = notchToastEnabled;
-    return notchToastEnabled;
+        window.__NOTCH_TOAST_ENABLED__ = notchToastEnabled;
+        return notchToastEnabled;
+    })();
+    return notchToastFlagPromise;
 }
 
 if (typeof window !== 'undefined') {
@@ -80,6 +86,14 @@ function renderNotchToast(title, message, type = 'primary', link = null) {
         notchContainer.id = 'notch-toast-container';
         notchContainer.className = 'fixed top-0 left-1/2 -translate-x-1/2 z-[10000] flex flex-col items-center gap-2 pt-2 px-4 pointer-events-none w-full max-w-lg';
         document.body.appendChild(notchContainer);
+    }
+
+    // Limite la pile de toasts visibles pour éviter un débordement d'écran
+    const MAX_NOTCH_TOASTS = 4;
+    while (notchContainer.children.length >= MAX_NOTCH_TOASTS) {
+        const oldest = notchContainer.firstElementChild;
+        if (!oldest) break;
+        oldest.remove();
     }
 
     const toastId = 'notch-' + Date.now() + Math.floor(Math.random() * 1000);

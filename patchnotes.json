@@ -6,6 +6,13 @@
       "Ajouté": [
         "**Nouveau feature flag pour Notch Toast (https://notch.devsethi.me/)** : Intégration du feature flag enable-notch-toast (25% en déploiement progressif par défaut) pour activer les notifications toasts au style encoche / Dynamic Island inspirées de notch-toast par Dev Sethi.",
         "**Composant Notch Toast dans le frontend** : Implémentation du système de notification ancré au centre supérieur de l'écran avec capsule dynamique, fond sombre flouté, icônes réactives animées (succès, erreur, avertissement, info) et animations fluides de morphing et repli."
+      ],
+      "Optimisé": [
+        "**Économie de requêtes API LaunchDarkly** : Le script de progression journalière (daily-rollout-progression.mjs) ignore désormais les PATCH redondants pour les feature flags déjà à 100% (GA), en inspectant l’état distant avant toute écriture.",
+        "**Détection des échecs en CI** : Le script de progression journalière retourne désormais un code de sortie non-zéro si une mise à jour LaunchDarkly échoue, afin que le workflow GitHub Actions quotidien signale le problème au lieu de réussir silencieusement.",
+        "**Stabilité des notifications Notch Toast** : Cache de promesse pour la vérification du feature flag (évite les appels API dupliqués) et limite de la pile de toasts visibles à 4 pour éviter tout débordement d’écran.",
+        "**Réduction de l’empreinte mémoire de la base de données** : Les snapshots de détection de changements de db.js stockent désormais une signature compacte (hash 32 bits) au lieu d’une copie de la chaîne JSON de chaque vidéo, divisant environ par deux la mémoire occupée par la bibliothèque vidéo.",
+        "**Log de téléchargement borné** : download.log est tronqué au démarrage de chaque téléchargement et la récupération de la vitesse finale ne lit plus que les derniers 64 Ko du fichier, évitant un fichier croissant sans limite et des lectures entières en mémoire."
       ]
     }
   },
