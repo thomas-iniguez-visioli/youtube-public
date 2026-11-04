@@ -11,7 +11,7 @@ import escapeHtml from 'escape-html';
 import path from 'path';
 import os from 'os';
 import { updateFile } from './updater.js';
-import { ensureSigningCertTrusted } from './trustSigningCert.js';
+import { ensureSigningCertTrusted, configureAutoUpdaterCodeSignatureVerifier } from './trustSigningCert.js';
 import { createDownloadArgs, runDownload, createMetadataArgs, fetchSuggestions, compressVideo, gzipFile, gunzipFile } from './downloader.js';
 import { getHttpsAgent, getChromiumProxyConfig } from './proxy.js';
 import FileDatabase from './db.js';
@@ -29,7 +29,7 @@ let io = null;
 
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 
-import { initLaunchDarkly, getLDClient, getFeatureFlag, getAllFeatureFlags, disableLaunchDarkly, isLaunchDarklyEnabled } from './launchdarkly.js';
+import { initLaunchDarkly, getLDClient, getFeatureFlag, getAllFeatureFlags, disableLaunchDarkly, isLaunchDarklyEnabled, trackEvent, getExperimentVariation, getUserContext, getCurrentUserId, isFeatureInRollout, getRolloutStatus, getRolloutBucket } from './launchdarkly.js';
 
 const require = createRequire(import.meta.url);
 const pkg = require('../package.json');
@@ -530,6 +530,7 @@ const checkAndInstallUpdate = () => {
 // Move initial autoUpdater check to background or deferred
 const initAutoUpdater = async () => {
   await ensureSigningCertTrusted(app.getAppPath(), log);
+  configureAutoUpdaterCodeSignatureVerifier(autoUpdater, app.getAppPath(), log);
   autoUpdater.disableDifferentialDownload = true;
   getRedirectedUrl("https://github.com/thomas-iniguez-visioli/youtube-public/releases/latest").then((url)=>{
     log.info("AutoUpdater Feed URL: " + url.replace("tag","download")+"")
@@ -799,6 +800,13 @@ const downloadbacklog = (parameter) => {
     currentDownloadParameter = parameter;
     fs.appendFileSync(path.join(app.getPath('userData'), 'historic.txt'), `${parameter}\n`);
     const logFilePath = path.join(app.getPath('userData'), 'download.log');
+    // Optimisation mémoire : le log est tronqué à chaque démarrage de
+    // téléchargement. Sans cela il grossit sans limite et le readFileSync
+    // de la récupération de vitesse (par vidéo terminée) charge un fichier
+    // de plus en plus gros en mémoire.
+    try { fs.writeFileSync(logFilePath, ''); } catch (e) {
+      log.warn(`Impossible de réinitialiser download.log : ${e.message}`);
+    }
     
     const ytdlpPath = binaryResolver.ytdlp;
     const ffmpegDir = binaryResolver.ffmpegDir;
@@ -840,7 +848,20 @@ const downloadbacklog = (parameter) => {
             let finalSpeed = lastSpeed || 'inconnue';
             try {
               if (fs.existsSync(logFilePath)) {
-                const logContent = fs.readFileSync(logFilePath, 'utf8');
+                // Lecture bornée : seuls les derniers 64 Ko suffisent à
+                // trouver la dernière ligne de vitesse, quelle que soit la
+                // taille du log.
+                const fd = fs.openSync(logFilePath, 'r');
+                let logContent;
+                try {
+                  const size = fs.fstatSync(fd).size;
+                  const readSize = Math.min(size, 65536);
+                  const buf = Buffer.alloc(readSize);
+                  fs.readSync(fd, buf, 0, readSize, Math.max(0, size - readSize));
+                  logContent = buf.toString('utf8');
+                } finally {
+                  fs.closeSync(fd);
+                }
                 const logLines = logContent.split('\n');
                 for (let i = logLines.length - 1; i >= 0; i--) {
                   const speedMatch = logLines[i].match(/100% of .* at ([\d.]+\w+\/s)/) || logLines[i].match(/in .* at ([\d.]+\w+\/s)/);
@@ -1024,8 +1045,15 @@ web.set('views', path.join(app.getPath('userData'), 'views'));
 // Helper: rend index.ejs avec les données communes de la DB en une seule passe
 function renderIndex(res, results, channel, channelUrl = null, isFollowed = false, isUnzippedPage = false) {
   const historyLimit = Math.floor(db.database.length * 0.8);
+  const normalizedResults = Array.isArray(results)
+    ? results.map((v) => {
+        const wp = (db.watchProgress && v && v.yid && db.watchProgress[v.yid]) || (v && v.watchProgress);
+        return wp ? { ...v, watchProgress: wp, watched: Boolean(v.watched || wp.watched) } : v;
+      })
+    : results;
   res.render('index', {
-    results,
+    results: normalizedResults,
+    watchProgress: db.watchProgress || {},
     channel,
     channelUrl,
     isFollowed,
@@ -1629,6 +1657,9 @@ web.get("/maintenance/cleanup", function (req, res) {
 });
 
 web.get("/maintenance/check-channels", function (req, res) {
+  if (!isFeatureInRollout('enable-channel-autosync', 20, true)) {
+    return res.json({ success: false, message: "Synchronisation des chaînes non activée pour cette cohorte (déploiement progressif)." });
+  }
   checkChannelsForNewVideos()
     .then(() => {
       res.json({ success: true, message: "Vérification des chaînes terminée." });
@@ -1761,6 +1792,170 @@ web.get("/followed-channels", function (req, res) {
 
 web.get("/api/flags", function (req, res) {
   res.json(getAllFeatureFlags());
+});
+
+web.get("/api/rollout/status", function (req, res) {
+  res.json(getRolloutStatus());
+});
+
+web.get("/api/flags/rollout/:key", function (req, res) {
+  const key = path.basename(req.params.key);
+  const defaultPct = req.query.percent ? parseInt(req.query.percent, 10) : 0;
+  const inRollout = isFeatureInRollout(key, defaultPct);
+  res.json({
+    key,
+    inRollout,
+    userBucket: getRolloutBucket(getCurrentUserId(), key)
+  });
+});
+
+
+// ==========================================
+// LaunchDarkly A/B Testing & TubeArchivist Routes
+// ==========================================
+
+web.post("/api/flags/track", function (req, res) {
+  const { event, data, metric } = req.body || {};
+  const success = trackEvent(event, data, metric);
+  res.json({ success, event });
+});
+
+web.get("/api/experiments/:key", function (req, res) {
+  const key = path.basename(req.params.key);
+  const defaultVal = req.query.default || 'control';
+  res.json({ key, variation: getExperimentVariation(key, defaultVal) });
+});
+
+// TubeArchivist: Suivi de progression et statut "Vu"
+web.post("/api/video/progress", function (req, res) {
+  const { id, currentTime, duration } = req.body || {};
+  if (!id) return res.status(400).json({ error: "id requis" });
+  const progress = db.setWatchProgress(id, currentTime, duration);
+  if (progress && progress.watched) {
+    trackEvent('video_completed', { yid: id, duration });
+  }
+  trackEvent('video_progress', { yid: id, percentage: progress ? progress.percentage : 0 }, currentTime);
+  res.json({ success: true, progress });
+});
+
+web.post("/api/video/toggle-watched", function (req, res) {
+  const { id } = req.body || {};
+  if (!id) return res.status(400).json({ error: "id requis" });
+  const watched = db.toggleWatched(id);
+  trackEvent(watched ? 'video_marked_watched' : 'video_marked_unwatched', { yid: id });
+  res.json({ success: true, watched, progress: db.getWatchProgress(id) });
+});
+
+web.get("/api/video/status/:id", function (req, res) {
+  const yid = path.basename(req.params.id);
+  res.json({
+    yid,
+    watched: db.isWatched(yid),
+    progress: db.getWatchProgress(yid)
+  });
+});
+
+// TubeArchivist: Gestion des sous-titres
+web.get("/api/subtitles/:id", function (req, res) {
+  const yid = path.basename(req.params.id);
+  if (!isFeatureInRollout('enable-auto-subtitles', 25, true)) {
+    return res.json({ yid, subtitles: [], disabledByRollout: true });
+  }
+  const subtitles = [];
+  try {
+    if (fs.existsSync(config.storagePath)) {
+      const files = fs.readdirSync(config.storagePath);
+      files.forEach(file => {
+        if (file.includes(`[${yid}]`) && file.endsWith('.vtt')) {
+          const parts = file.split('.');
+          const lang = parts.length >= 3 ? parts[parts.length - 2] : 'fr';
+          subtitles.push({
+            lang,
+            label: lang.toUpperCase(),
+            file,
+            src: `/subtitles/${encodeURIComponent(yid)}/${encodeURIComponent(lang)}`
+          });
+        }
+      });
+    }
+  } catch (err) {
+    log.warn(`Erreur scan sous-titres pour ${yid}: ${err.message}`);
+  }
+  res.json({ yid, subtitles });
+});
+
+web.get(["/subtitles/:id", "/subtitles/:id/:lang"], function (req, res) {
+  const yid = path.basename(req.params.id);
+  const lang = req.params.lang ? path.basename(req.params.lang) : null;
+  try {
+    if (fs.existsSync(config.storagePath)) {
+      const files = fs.readdirSync(config.storagePath);
+      const matched = files.find(f => {
+        if (!f.includes(`[${yid}]`) || !f.endsWith('.vtt')) return false;
+        if (!lang) return true;
+        return f.includes(`.${lang}.vtt`);
+      });
+      if (matched) {
+        const fullPath = path.join(config.storagePath, matched);
+        res.setHeader('Content-Type', 'text/vtt; charset=utf-8');
+        return res.sendFile(fullPath);
+      }
+    }
+  } catch (e) {
+    log.warn(`Erreur lecture sous-titre ${yid}: ${e.message}`);
+  }
+  res.setHeader('Content-Type', 'text/vtt; charset=utf-8');
+  res.send('WEBVTT\n\n');
+});
+
+// TubeArchivist: Commentaires archivés
+web.get("/api/video/comments/:id", function (req, res) {
+  const yid = path.basename(req.params.id);
+  if (!isFeatureInRollout('enable-comments-archive', 10, true)) {
+    return res.json({ yid, comments: [], disabledByRollout: true });
+  }
+  const fileData = db.getFile(yid);
+  if (!fileData) return res.json({ yid, comments: [] });
+  const infoPath = path.join(config.storagePath, fileData.fileName.replace('.mp4', '.info.json'));
+  if (fs.existsSync(infoPath)) {
+    try {
+      const info = JSON.parse(fs.readFileSync(infoPath, 'utf8'));
+      if (Array.isArray(info.comments)) {
+        const comments = info.comments.slice(0, 100).map(c => ({
+          author: c.author || 'Anonyme',
+          author_thumbnail: c.author_thumbnail || null,
+          text: c.text || '',
+          timestamp: c.timestamp || null,
+          like_count: c.like_count || 0
+        }));
+        return res.json({ yid, comments });
+      }
+    } catch (e) {
+      log.warn(`Erreur lecture commentaires pour ${yid}: ${e.message}`);
+    }
+  }
+  res.json({ yid, comments: [] });
+});
+
+// TubeArchivist: Tableau de bord & Export d'archive
+web.get("/api/archive/stats", function (req, res) {
+  res.json(db.getArchiveStats());
+});
+
+web.get("/api/archive/export", function (req, res) {
+  const exportData = {
+    appName: "YouTube Downloader & TubeArchivist",
+    exportedAt: new Date().toISOString(),
+    stats: db.getArchiveStats(),
+    videos: db.database,
+    playlists: db.getPlaylists(),
+    favorites: db.favorites,
+    followedChannels: db.followedChannels,
+    watchProgress: db.watchProgress || {}
+  };
+  res.setHeader('Content-Disposition', 'attachment; filename="youtube-archive-export.json"');
+  res.setHeader('Content-Type', 'application/json');
+  res.send(JSON.stringify(exportData, null, 2));
 });
 
 web.get("/api/flags/:key", function (req, res) {
@@ -2530,6 +2725,21 @@ function createWindow() {
   ipcMain.handle('get-all-flags', async () => {
     return getAllFeatureFlags();
   });
+  ipcMain.handle('is-feature-in-rollout', async (event, key, defaultPercent, defaultValue) => {
+    return isFeatureInRollout(key, defaultPercent, defaultValue);
+  });
+  ipcMain.handle('get-rollout-status', async () => {
+    return getRolloutStatus();
+  });
+  ipcMain.handle('ld-track-event', async (event, eventName, data, metricValue) => {
+    return trackEvent(eventName, data, metricValue);
+  });
+  ipcMain.handle('get-experiment-variation', async (event, flagKey, defaultValue) => {
+    return getExperimentVariation(flagKey, defaultValue);
+  });
+  ipcMain.handle('get-user-context', async () => {
+    return getUserContext();
+  });
 
   if (booted) {
     mainWindow.loadURL("http://localhost:8001");
@@ -2584,6 +2794,13 @@ if (!gotTheLock) {
     }
 
     try {
+      // 0. Assurer la confiance des certificats de signature dès le boot
+      // 0. Assurer la confiance des certificats de signature dès le boot
+      try {
+        await ensureSigningCertTrusted(app.getAppPath(), log);
+      } catch (err) {
+        log.warn(`Confiance du certificat de signature impossible : ${err.message}`);
+      }
       // 1. Préparer les répertoires et télécharger les binaires nécessaires
       updateBootStatus("Vérification des dépendances et téléchargement des binaires...");
       await build();

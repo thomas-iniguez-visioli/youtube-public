@@ -1,9 +1,76 @@
 import { createRequire } from 'module';
+import crypto from 'crypto';
 import log from './logger.js';
 
 const require = createRequire(import.meta.url);
 
 const STORAGE_KEY = 'launchdarkly-flags-cache';
+const USER_ID_KEY = 'launchdarkly-user-id';
+let currentUserId = null;
+
+/**
+ * Récupère ou génère un identifiant anonyme persistant pour les tests A/B
+ */
+export function getOrCreateUserId() {
+  if (currentUserId) return Promise.resolve(currentUserId);
+  return new Promise((resolve) => {
+    storage.get(USER_ID_KEY, (err, data) => {
+      if (!err && data && typeof data.id === 'string' && data.id.trim()) {
+        currentUserId = data.id.trim();
+        resolve(currentUserId);
+      } else {
+        const newId = crypto.randomUUID ? crypto.randomUUID() : `user-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+        currentUserId = newId;
+        storage.set(USER_ID_KEY, { id: newId }, () => resolve(newId));
+      }
+    });
+  });
+}
+
+let appVersion = '2.1.17';
+try {
+  const pkg = require('../package.json');
+  if (pkg && pkg.version) appVersion = pkg.version;
+} catch {}
+
+export function getCurrentUserId() {
+  return currentUserId || 'anonymous-user';
+}
+
+/**
+ * Calcule un bucket déterministe entre 0 et 99 pour un utilisateur et un salage (flag) donné.
+ * Permet un partitionnement pseudo-aléatoire mais reproductible pour les déploiements progressifs.
+ *
+ * @param {string} userId - Identifiant persistant de l'utilisateur
+ * @param {string} [salt=''] - Salage optionnel (généralement la clé du feature flag)
+ * @returns {number} Entier compris entre 0 et 99
+ */
+export function getRolloutBucket(userId, salt = '') {
+  if (!userId || typeof userId !== 'string') return 0;
+  const hash = crypto.createHash('sha256').update(`${userId}:${salt}`).digest('hex');
+  const intVal = parseInt(hash.substring(0, 8), 16);
+  return intVal % 100;
+}
+
+export async function getUserContext() {
+  const userId = await getOrCreateUserId();
+  const bucket = getRolloutBucket(userId);
+  const channel = process.env.RELEASE_CHANNEL || (launchDarklyConfig && launchDarklyConfig.channel) || 'stable';
+  return {
+    key: userId,
+    anonymous: true,
+    name: `User ${userId.slice(0, 8)}`,
+    custom: {
+      platform: process.platform,
+      arch: process.arch,
+      appVersion: appVersion,
+      version: appVersion,
+      channel: channel,
+      rolloutBucket: bucket
+    }
+  };
+}
+
 const MAX_RETRIES = 5;
 const BASE_DELAY = 1000; // 1 second
 const MAX_DELAY = 30000; // 30 seconds
@@ -259,7 +326,7 @@ export async function initLaunchDarkly() {
         return null;
       }
 
-      const user = { key: 'anonymous-user', anonymous: true };
+      const user = await getUserContext();
       await initializeWithRetry(
         launchDarklyConfig.clientSideId.trim(),
         user,
@@ -361,4 +428,240 @@ export async function reloadFlags() {
   } catch (err) {
     log.warn(`Erreur rechargement flags: ${err.message}`);
   }
+}
+
+
+/**
+ * Track an event for LaunchDarkly A/B testing / Experimentation
+ * @param {string} eventName - Nom de l'événement de conversion ou métrique
+ * @param {object} [data] - Métadonnées associées à l'événement
+ * @param {number} [metricValue] - Valeur numérique de la métrique (ex: durée, score)
+ */
+export function trackEvent(eventName, data = {}, metricValue = undefined) {
+  if (typeof eventName !== 'string' || !eventName.trim()) {
+    log.warn(`Nom d'événement A/B invalide: ${eventName}`);
+    return false;
+  }
+
+  const cleanEvent = eventName.trim();
+  try {
+    if (ldClient && typeof ldClient.track === 'function') {
+      if (typeof metricValue === 'number' && Number.isFinite(metricValue)) {
+        ldClient.track(cleanEvent, data, metricValue);
+      } else {
+        ldClient.track(cleanEvent, data);
+      }
+      log.debug(`[LaunchDarkly A/B] Événement tracké: ${cleanEvent}`, data);
+      return true;
+    } else {
+      log.debug(`[LaunchDarkly A/B] Événement non envoyé (client non prêt): ${cleanEvent}`);
+    }
+  } catch (err) {
+    log.warn(`Erreur lors du tracking LaunchDarkly (${cleanEvent}) : ${err.message}`);
+  }
+  return false;
+}
+
+/**
+ * Récupère la variation A/B attribuée pour un feature flag donné
+ * @param {string} flagKey - Clé du feature flag d'expérimentation
+ * @param {any} [defaultVariation='control'] - Variation par défaut
+ */
+export function getExperimentVariation(flagKey, defaultVariation = 'control') {
+  return getFeatureFlag(flagKey, defaultVariation);
+}
+
+/**
+ * Récupère la date de déploiement de la version courante (depuis patchnotes.json ou date du jour).
+ */
+export function getReleaseDate() {
+  try {
+    const notes = require('../patchnotes.json');
+    if (Array.isArray(notes) && notes.length > 0 && notes[0].date) {
+      return notes[0].date;
+    }
+  } catch {}
+  return new Date().toISOString().slice(0, 10);
+}
+
+/**
+ * Calcule le pourcentage effectif d'un flag en fonction de la progression journalière.
+ *
+ * @param {number} basePercentage - Pourcentage initial au jour 0 (ex: 20)
+ * @param {string|Date} releaseDate - Date de démarrage ou de release (ex: '2026-10-27')
+ * @param {number} [dailyIncrement=20] - Pourcentage ajouté par jour (ex: +20% / jour)
+ * @param {Date} [currentDate=new Date()] - Date de calcul de référence
+ * @returns {number} Pourcentage calculé (borné entre basePercentage et 100)
+ */
+export function calculateDailyRolloutPercentage(basePercentage, releaseDate, dailyIncrement = 20, currentDate = new Date()) {
+  const base = Math.max(0, Math.min(100, Number(basePercentage) || 0));
+  if (base <= 0 || base >= 100) return base;
+
+  let start;
+  try {
+    start = new Date(releaseDate);
+    if (isNaN(start.getTime())) {
+      return base;
+    }
+  } catch {
+    return base;
+  }
+
+  const now = currentDate instanceof Date ? currentDate : new Date(currentDate);
+  const diffMs = now.getTime() - start.getTime();
+  if (diffMs < 0) return base;
+
+  const daysElapsed = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const increment = typeof dailyIncrement === 'number' && Number.isFinite(dailyIncrement)
+    ? Math.max(0, dailyIncrement)
+    : 20;
+  const effective = Math.min(100, base + (daysElapsed * increment));
+
+  return effective;
+}
+
+/**
+ * Évalue si une fonctionnalité doit être activée pour l'utilisateur actuel dans le cadre
+ * d'un déploiement progressif (percentage / canary rollout).
+ *
+ * Ordre d'évaluation :
+ * 1. Client LaunchDarkly connecté (Live SDK) :
+ *    - Si le flag retourne un booléen (règle de ciblage ou variation de pourcentage évaluée côté LD) : on l'utilise.
+ *    - Si le flag retourne un nombre (pourcentage 0-100) : on compare avec le bucket de l'utilisateur.
+ * 2. Cache local des flags LaunchDarkly (mode hors-ligne) :
+ *    - Même logique si présent dans le cache (booléen ou pourcentage).
+ * 3. Fallback progressif déterministe (sans connexion LaunchDarkly) :
+ *    - Utilise le pourcentage configuré dans launchDarklyConfig.defaultRollouts[flagKey] ou defaultRolloutPercent.
+ *    - Compare avec le bucket déterministe de l'utilisateur calculé sur (userId:flagKey).
+ *
+ * @param {string} flagKey - Clé du feature flag
+ * @param {number} [defaultRolloutPercent=0] - Pourcentage de déploiement par défaut (0 à 100)
+ * @param {boolean} [defaultValue=false] - Valeur de secours si le pourcentage est à 0
+ * @returns {boolean} true si la fonctionnalité est activée pour cet utilisateur
+ */
+export function isFeatureInRollout(flagKey, defaultRolloutPercent = 0, defaultValue = false) {
+  if (typeof flagKey !== 'string' || !flagKey.trim()) {
+    log.warn(`Clé de feature flag invalide pour le déploiement progressif: ${flagKey}`);
+    return defaultValue;
+  }
+
+  const cleanKey = flagKey.trim();
+  const userId = getCurrentUserId();
+
+  // 1. Live LaunchDarkly SDK
+  if (ldClient && typeof ldClient.variation === 'function') {
+    try {
+      const liveVal = ldClient.variation(cleanKey, null);
+      if (typeof liveVal === 'boolean') {
+        return liveVal;
+      }
+      if (typeof liveVal === 'number' && Number.isFinite(liveVal)) {
+        const bucket = getRolloutBucket(userId, cleanKey);
+        return bucket < Math.max(0, Math.min(100, liveVal));
+      }
+    } catch (err) {
+      log.warn(`Erreur lors de l'évaluation LaunchDarkly de ${cleanKey} : ${err.message}`);
+    }
+  }
+
+  // 2. Cache local des flags LaunchDarkly
+  if (cachedFlags && typeof cachedFlags[cleanKey] !== 'undefined') {
+    const cachedVal = cachedFlags[cleanKey];
+    if (typeof cachedVal === 'boolean') {
+      return cachedVal;
+    }
+    if (typeof cachedVal === 'number' && Number.isFinite(cachedVal)) {
+      const bucket = getRolloutBucket(userId, cleanKey);
+      return bucket < Math.max(0, Math.min(100, cachedVal));
+    }
+  }
+
+  // 3. Fallback progressif déterministe avec progression journalière (+20%/jour par défaut)
+  const configRollouts = (launchDarklyConfig && launchDarklyConfig.defaultRollouts) || {};
+  let targetPercent = defaultRolloutPercent;
+  if (typeof configRollouts[cleanKey] === 'number') {
+    targetPercent = configRollouts[cleanKey];
+  }
+
+  const progressionConfig = (launchDarklyConfig && launchDarklyConfig.rolloutProgression) || {};
+  const progressionEnabled = progressionConfig.enabled !== false;
+  const dailyIncrement = typeof progressionConfig.dailyIncrement === 'number' ? progressionConfig.dailyIncrement : 20;
+  const startDate = progressionConfig.startDate || getReleaseDate();
+
+  const isKnownRolloutFlag = Boolean(
+    typeof configRollouts[cleanKey] === 'number' ||
+    cleanKey.startsWith('enable-') ||
+    cleanKey.startsWith('ab-') ||
+    cleanKey.startsWith('auto-')
+  );
+
+  const effectivePercent = (progressionEnabled && isKnownRolloutFlag)
+    ? calculateDailyRolloutPercentage(targetPercent, startDate, dailyIncrement)
+    : Math.max(0, Math.min(100, Number(targetPercent) || 0));
+
+  if (effectivePercent <= 0) return defaultValue;
+  if (effectivePercent >= 100) return true;
+
+  const bucket = getRolloutBucket(userId, cleanKey);
+  return bucket < effectivePercent;
+}
+
+/**
+ * Retourne l'état complet du déploiement progressif pour l'utilisateur actuel.
+ */
+export function getRolloutStatus() {
+  const userId = getCurrentUserId();
+  const userBucket = getRolloutBucket(userId);
+  const configRollouts = (launchDarklyConfig && launchDarklyConfig.defaultRollouts) || {};
+
+  const knownRollouts = {
+    'enable-tubearchivist-features': 50,
+    'ab-tubearchivist-ui': 50,
+    'auto-mark-watched': 25,
+    'enable-auto-subtitles': 25,
+    'enable-comments-archive': 10,
+    'enable-channel-autosync': 20,
+    'enable-notch-toast': 25,
+    ...configRollouts
+  };
+
+  const progressionConfig = (launchDarklyConfig && launchDarklyConfig.rolloutProgression) || {};
+  const progressionEnabled = progressionConfig.enabled !== false;
+  const dailyIncrement = typeof progressionConfig.dailyIncrement === 'number' ? progressionConfig.dailyIncrement : 20;
+  const startDate = progressionConfig.startDate || getReleaseDate();
+  const daysSinceRelease = Math.max(0, Math.floor((Date.now() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)));
+
+  const flagsStatus = {};
+  for (const [key, defaultPct] of Object.entries(knownRollouts)) {
+    const flagBucket = getRolloutBucket(userId, key);
+    const basePct = typeof configRollouts[key] === 'number' ? configRollouts[key] : defaultPct;
+    const effectivePct = progressionEnabled
+      ? calculateDailyRolloutPercentage(basePct, startDate, dailyIncrement)
+      : basePct;
+    const enabled = isFeatureInRollout(key, defaultPct, false);
+    flagsStatus[key] = {
+      enabled,
+      flagBucket,
+      targetPercentage: basePct,
+      basePercentage: basePct,
+      effectivePercentage: effectivePct,
+      isFullyRolledOut: effectivePct >= 100,
+      source: (ldClient && typeof ldClient.variation === 'function') ? 'launchdarkly-live' : 'deterministic-rollout'
+    };
+  }
+
+  return {
+    userId,
+    userBucket,
+    launchDarklyEnabled: isLaunchDarklyEnabled(),
+    launchDarklyReady: isLaunchDarklyReady(),
+    channel: process.env.RELEASE_CHANNEL || (launchDarklyConfig && launchDarklyConfig.channel) || 'stable',
+    dailyProgression: {
+      enabled: progressionEnabled,
+      startDate,
+      daysSinceRelease,
+      dailyIncrement
+    },
+    flags: flagsStatus
+  };
 }

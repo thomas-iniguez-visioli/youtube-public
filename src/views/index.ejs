@@ -25,27 +25,31 @@
     <!-- Toast Container -->
     <div id="toast-container" class="fixed bottom-4 right-4 z-[1060] flex flex-col gap-2 max-w-sm w-full px-4 pointer-events-none"></div>
 
-    <nav class="sticky top-0 z-50 bg-[#050505]/80 backdrop-blur-xl border-b border-white/5 px-6 py-3.5 flex items-center justify-between gap-4">
-        <a class="flex items-center gap-3 text-white font-bold" href="/">
-            <img src="/favicon.ico" width="30" height="30" alt="">
-            <div class="flex flex-col">
-                <strong class="leading-none text-base">YouTube Downloader</strong>
-                <span class="text-[10px] text-neutral-400 mt-1">v<%= typeof appVersion !== 'undefined' ? appVersion : '' %></span>
-            </div>
-        </a>
-        
-        <div class="flex-1 max-w-xl mx-4">
-            <form id="commandForm" class="flex flex-col m-0 w-full">
-                <div class="flex items-center gap-2">
-                    <input class="bg-white/3 border border-white/5 text-white rounded-full px-5 py-2 text-sm w-full focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition" type="text" id="commandInput" placeholder="Coller une URL YouTube..." required>
-                    <button class="bg-blue-600 hover:bg-blue-700 text-white rounded-full px-6 py-2 text-sm font-semibold transition shadow-lg shadow-blue-500/20" type="submit">Télécharger</button>
-                    <button type="button" class="border border-white/10 hover:bg-white/5 rounded-full p-2 text-sm transition" title="Changer le dossier de téléchargement" onclick="changeFolder()">📂</button>
+    <nav class="sticky top-0 z-50 bg-[#050505]/80 backdrop-blur-xl border-b border-white/5 px-6 py-3 flex flex-col gap-3">
+        <div class="flex items-center justify-between gap-4 w-full">
+            <a class="flex items-center gap-3 text-white font-bold shrink-0" href="/">
+                <img src="/favicon.ico" width="30" height="30" alt="">
+                <div class="flex flex-col">
+                    <strong class="leading-none text-base">YouTube Downloader</strong>
+                    <span class="text-[10px] text-neutral-400 mt-1">v<%= typeof appVersion !== 'undefined' ? appVersion : '' %></span>
                 </div>
-                <small class="text-[10px] text-neutral-500 text-center mt-1">Fichier backlog : <%= typeof backlogFile !== 'undefined' ? backlogFile : '' %></small>
-            </form>
+            </a>
+            
+            <div class="flex-1 max-w-2xl mx-4">
+                <form id="commandForm" class="flex flex-col m-0 w-full">
+                    <div class="flex items-center gap-2">
+                        <input class="bg-white/3 border border-white/5 text-white rounded-full px-5 py-2 text-sm w-full focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition" type="text" id="commandInput" placeholder="Coller une URL YouTube..." required>
+                        <button class="bg-blue-600 hover:bg-blue-700 text-white rounded-full px-6 py-2 text-sm font-semibold transition shadow-lg shadow-blue-500/20 shrink-0" type="submit">Télécharger</button>
+                        <button type="button" class="border border-white/10 hover:bg-white/5 rounded-full p-2 text-sm transition shrink-0" title="Changer le dossier de téléchargement" onclick="changeFolder()">📂</button>
+                    </div>
+                    <small class="text-[10px] text-neutral-500 text-center mt-1">Fichier backlog : <%= typeof backlogFile !== 'undefined' ? backlogFile : '' %></small>
+                </form>
+            </div>
+
+            <div class="w-48 hidden md:block shrink-0"></div>
         </div>
 
-        <div class="flex items-center gap-2 flex-wrap text-sm">
+        <div class="flex items-center justify-center gap-2 flex-wrap text-sm w-full">
             <a href="https://github.com/sponsors/alphaleadership" target="_blank" class="border border-red-500/50 hover:bg-red-500/10 text-red-400 rounded-full px-4 py-1.5 font-medium transition">💖 Sponsor</a>
             <a href="/patchnotes" class="border border-white/10 hover:bg-white/5 text-neutral-300 rounded-full px-4 py-1.5 font-medium transition">📜 Notes</a>
             <a href="/suggestions" class="border border-white/10 hover:bg-white/5 text-neutral-300 rounded-full px-4 py-1.5 font-medium transition">✨ Suggestions</a>
@@ -225,6 +229,127 @@
 
     <script>
         const allVideos = <%- JSON.stringify(results) %>;
+        const watchProgressMap = <%- JSON.stringify(typeof watchProgress !== 'undefined' ? watchProgress : {}) %>;
+        // TubeArchivist Helpers & LaunchDarkly A/B Integration
+        let currentWatchStatusFilter = 'all';
+        let currentDurationFilter = 'all';
+        let currentSortCriteria = 'date_desc';
+
+        function formatDuration(seconds) {
+            if (!seconds || seconds <= 0) return '';
+            const s = Math.floor(seconds);
+            const hrs = Math.floor(s / 3600);
+            const mins = Math.floor((s % 3600) / 60);
+            const secs = s % 60;
+            const pad = (n) => (n < 10 ? '0' + n : n);
+            if (hrs > 0) return `${hrs}:${pad(mins)}:${pad(secs)}`;
+            return `${mins}:${pad(secs)}`;
+        }
+
+        function toggleArchiveStatsModal() {
+            const modal = document.getElementById('archiveStatsModal');
+            if (modal) modal.classList.toggle('hidden');
+        }
+
+        function filterByWatchStatus(status, el) {
+            currentWatchStatusFilter = status;
+            document.querySelectorAll('.tubearchivist-filter-btn').forEach(btn => {
+                btn.classList.remove('active', 'bg-blue-600', 'text-white');
+                btn.classList.add('bg-neutral-800', 'text-neutral-300');
+            });
+            if (el) {
+                el.classList.add('active', 'bg-blue-600', 'text-white');
+                el.classList.remove('bg-neutral-800', 'text-neutral-300');
+            }
+            if (window.electronAPI && window.electronAPI.trackEvent) {
+                window.electronAPI.trackEvent('tubearchivist_filter_status', { status });
+            }
+            applyAllFilters();
+        }
+
+        function filterByDuration(duration) {
+            currentDurationFilter = duration;
+            applyAllFilters();
+        }
+
+        function sortVideos(criteria) {
+            currentSortCriteria = criteria;
+            applyAllFilters();
+        }
+
+        function applyAllFilters() {
+            const query = (searchInput ? searchInput.value : '').toLowerCase().trim();
+            filteredVideos = allVideos.filter(video => {
+                // 1. Recherche texte
+                const matchesQuery = !query || 
+                    (video.fileName && video.fileName.toLowerCase().includes(query)) ||
+                    (video.uploader && video.uploader.toLowerCase().includes(query)) ||
+                    (video.description && video.description.toLowerCase().includes(query)) ||
+                    (Array.isArray(video.tags) && video.tags.some(t => t.toLowerCase().includes(query)));
+                if (!matchesQuery) return false;
+
+                // 2. Statut TubeArchivist
+                const wp = video.watchProgress || (watchProgressMap && watchProgressMap[video.yid]);
+                const isWatched = Boolean(video.watched || (wp && wp.watched));
+                const progressPct = wp && typeof wp.percentage === 'number' ? wp.percentage : (isWatched ? 100 : 0);
+                if (currentWatchStatusFilter === 'watched' && !isWatched) return false;
+                if (currentWatchStatusFilter === 'unwatched' && isWatched) return false;
+                if (currentWatchStatusFilter === 'in_progress' && (isWatched || progressPct === 0)) return false;
+
+                // 3. Durée
+                const dur = Number(video.duration) || 0;
+                if (currentDurationFilter === 'short' && (dur === 0 || dur >= 240)) return false;
+                if (currentDurationFilter === 'medium' && (dur < 240 || dur > 1200)) return false;
+                if (currentDurationFilter === 'long' && dur <= 1200) return false;
+
+                return true;
+            });
+
+            // Tri
+            if (currentSortCriteria === 'date_desc') {
+                filteredVideos.sort((a, b) => (b.mtime || 0) - (a.mtime || 0));
+            } else if (currentSortCriteria === 'date_asc') {
+                filteredVideos.sort((a, b) => (a.mtime || 0) - (b.mtime || 0));
+            } else if (currentSortCriteria === 'views_desc') {
+                filteredVideos.sort((a, b) => (b.view_count || 0) - (a.view_count || 0));
+            } else if (currentSortCriteria === 'duration_desc') {
+                filteredVideos.sort((a, b) => (b.duration || 0) - (a.duration || 0));
+            } else if (currentSortCriteria === 'title_asc') {
+                filteredVideos.sort((a, b) => (a.fileName || '').localeCompare(b.fileName || ''));
+            }
+
+            renderVideos();
+        }
+
+        async function toggleWatchedCard(yid, btn) {
+            try {
+                const res = await fetch('/api/video/toggle-watched', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: yid })
+                });
+                const data = await res.json();
+                if (data && data.success) {
+                    const video = allVideos.find(v => v.yid === yid);
+                    if (video) {
+                        video.watched = data.watched;
+                        video.watchProgress = data.progress;
+                    }
+                    if (btn) {
+                        btn.textContent = data.watched ? '✓ Vu' : '○ Non vu';
+                        if (data.watched) {
+                            btn.className = 'bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 rounded-lg px-2 py-1 text-[10px] font-bold transition';
+                        } else {
+                            btn.className = 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700 rounded-lg px-2 py-1 text-[10px] font-bold transition';
+                        }
+                    }
+                    applyAllFilters();
+                }
+            } catch(e) {
+                console.error("Erreur toggle watched:", e);
+            }
+        }
+
         let filteredVideos = [...allVideos];
         
         // Pagination
@@ -260,6 +385,9 @@
             const pageVideos = filteredVideos.slice(start, end);
 
             pageVideos.forEach(result => {
+                const wp = result.watchProgress || (watchProgressMap && watchProgressMap[result.yid]);
+                const isWatched = Boolean(result.watched || (wp && wp.watched));
+                const progressPct = wp && typeof wp.percentage === 'number' ? wp.percentage : (isWatched ? 100 : 0);
                 let playlistParam = '';
                 if (channel) {
                     if (channel.startsWith('Playlist : ')) {
@@ -296,6 +424,7 @@
                 } else {
                     actionBtns += `<button class="bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg px-2.5 py-1 text-[10px] font-bold transition" onclick="event.preventDefault(); event.stopPropagation(); addToQueue('${result.yid}')">File</button>`;
                 }
+                actionBtns += `<button class="${isWatched ? 'bg-emerald-600/20 text-emerald-400 border border-emerald-500/30' : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'} rounded-lg px-2 py-1 text-[10px] font-bold transition" title="Basculer vu / non vu" onclick="event.preventDefault(); event.stopPropagation(); toggleWatchedCard('${result.yid}', this)">${isWatched ? '✓ Vu' : '○ Non vu'}</button>`;
                 actionBtns += `<button class="bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg px-2.5 py-1 text-[10px] font-bold border border-red-500/20 transition" onclick="event.preventDefault(); event.stopPropagation(); toggleFavorite('${result.yid}', this)">❤</button>`;
                 
                 if (isUnzippedPage) {
@@ -309,6 +438,8 @@
                     <div class="video-thumb-container relative aspect-video bg-neutral-950 overflow-hidden">
                         <img data-src="/thumbnail/${result.yid}" src="" class="video-thumbnail w-full h-full object-cover lazy" alt="Thumbnail" loading="lazy">
                         ${result.isGz ? '<span class="absolute bottom-2 right-2 bg-neutral-900/90 text-neutral-300 text-[9px] px-1.5 py-0.5 rounded border border-neutral-750 font-semibold">📦 zip</span>' : ''}
+                        ${result.duration ? `<span class="absolute bottom-2 left-2 bg-black/80 text-neutral-200 text-[10px] px-1.5 py-0.5 rounded font-mono font-medium">${formatDuration(result.duration)}</span>` : ''}
+                        ${progressPct > 0 ? `<div class="absolute bottom-0 left-0 right-0 h-1 bg-neutral-800/80 overflow-hidden"><div class="h-full bg-red-600 transition-all" style="width: ${progressPct}%"></div></div>` : ''}
                     </div>
                     <div class="video-info flex-1 flex flex-col justify-between gap-3">
                         <div class="min-w-0 relative z-10">

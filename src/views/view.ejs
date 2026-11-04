@@ -88,6 +88,9 @@
                         <strong><a href="/channel?name=<%= (typeof videodata !== 'undefined' && videodata.uploader) ? encodeURIComponent(videodata.uploader) : '' %>" style="color: #ffffff; text-decoration: none; vertical-align: middle;"><%= (typeof videodata !== 'undefined' && videodata.uploader) ? videodata.uploader : 'Uploader inconnu' %></a></strong> • <%= (typeof videodata !== 'undefined' && videodata.view_count) ? videodata.view_count.toLocaleString() + ' vues' : '' %>
                     </div>
                     <div class="d-flex align-items-center">
+                        <button id="watchedToggleBtn" class="btn <%= (typeof isWatched !== 'undefined' && isWatched) ? 'btn-success' : 'btn-outline-secondary' %> btn-sm me-2" onclick="toggleWatchedAction(<%- JSON.stringify(code).replace(/\"/g, '&quot;') %>)">
+                            <%= (typeof isWatched !== 'undefined' && isWatched) ? '✓ Vu' : '○ Non vu' %>
+                        </button>
                         <button id="favoriteBtn" class="btn <%= isFavorite ? 'btn-danger' : 'btn-outline-danger' %> btn-sm me-2" onclick="toggleFavorite(<%- JSON.stringify(code).replace(/\"/g, '&quot;') %>)">
                             <%= isFavorite ? '❤' : '♡' %> Favori
                         </button>
@@ -157,6 +160,19 @@
                             <button type="submit" class="btn btn-secondary btn-sm">Taguer</button>
                         </div>
                     </form>
+                </div>
+
+                <!-- TubeArchivist: Section Commentaires Archivés & Métadonnées -->
+                <div class="mt-5 pt-4 border-top border-secondary">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="m-0">💬 Commentaires archivés <span id="commentsCount" class="text-muted" style="font-size:0.9rem;">(chargement...)</span></h5>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleCommentsSection()">Afficher / Masquer</button>
+                    </div>
+                    <div id="commentsWrapper" class="mt-3">
+                        <div id="commentsContainer" class="d-flex flex-column gap-2" style="max-height: 400px; overflow-y: auto;">
+                            <div class="text-muted text-center py-3">Chargement des commentaires archivés...</div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -473,9 +489,144 @@
                 }
             });
 
+            // TubeArchivist: Reprise de lecture automatique
+            const initialProgress = <%- JSON.stringify(typeof watchProgress !== 'undefined' ? watchProgress : null) %>;
+            if (initialProgress && initialProgress.currentTime > 5 && !initialProgress.watched) {
+                player.on('canplay', () => {
+                    if (!player._resumed) {
+                        player._resumed = true;
+                        player.currentTime = initialProgress.currentTime;
+                        if (typeof showToast === 'function') {
+                            showToast('TubeArchivist', 'Reprise de la lecture à ' + Math.floor(initialProgress.currentTime / 60) + 'm' + (Math.floor(initialProgress.currentTime) % 60) + 's', 'info');
+                        }
+                    }
+                });
+            }
+
+            // TubeArchivist: Sauvegarde périodique de progression (toutes les 4s)
+            let lastProgressSave = 0;
+            player.on('timeupdate', () => {
+                const now = Date.now();
+                if (now - lastProgressSave > 4000 && player.duration > 0) {
+                    lastProgressSave = now;
+                    fetch('/api/video/progress', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            id: <%- JSON.stringify(code) %>,
+                            currentTime: Math.round(player.currentTime),
+                            duration: Math.round(player.duration)
+                        })
+                    }).catch(() => {});
+                }
+            });
+
+            // TubeArchivist & LaunchDarkly: Fin de vidéo -> auto-vu et métrique A/B
+            player.on('ended', () => {
+                fetch('/api/video/progress', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id: <%- JSON.stringify(code) %>,
+                        currentTime: Math.round(player.duration),
+                        duration: Math.round(player.duration)
+                    })
+                }).catch(() => {});
+                
+                const btn = document.getElementById('watchedToggleBtn');
+                if (btn) {
+                    btn.textContent = '✓ Vu';
+                    btn.className = 'btn btn-success btn-sm me-2';
+                }
+
+                if (window.electronAPI && window.electronAPI.trackEvent) {
+                    window.electronAPI.trackEvent('video_completed', { yid: <%- JSON.stringify(code) %> });
+                }
+            });
+
+            // TubeArchivist: Chargement dynamique des sous-titres
+            fetch(`/api/subtitles/${encodeURIComponent(<%- JSON.stringify(code) %>)}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data && Array.isArray(data.subtitles) && data.subtitles.length > 0) {
+                        const videoEl = document.getElementById('videoPlayer');
+                        if (videoEl) {
+                            data.subtitles.forEach((sub, idx) => {
+                                const track = document.createElement('track');
+                                track.kind = 'subtitles';
+                                track.label = sub.label || sub.lang;
+                                track.srclang = sub.lang;
+                                track.src = sub.src;
+                                if (idx === 0) track.default = true;
+                                videoEl.appendChild(track);
+                            });
+                        }
+                    }
+                })
+                .catch(() => {});
+
+            // TubeArchivist: Chargement des commentaires archivés
+            fetch(`/api/video/comments/${encodeURIComponent(<%- JSON.stringify(code) %>)}`)
+                .then(r => r.json())
+                .then(data => {
+                    const countSpan = document.getElementById('commentsCount');
+                    const container = document.getElementById('commentsContainer');
+                    if (!container) return;
+                    if (data && Array.isArray(data.comments) && data.comments.length > 0) {
+                        if (countSpan) countSpan.textContent = `(${data.comments.length})`;
+                        container.innerHTML = data.comments.map(c => `
+                            <div class="d-flex gap-3 mb-2 p-2 rounded" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);">
+                                ${c.author_thumbnail ? `<img src="${c.author_thumbnail}" class="rounded-circle" style="width:32px;height:32px;object-fit:cover;">` : '<div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center text-white" style="width:32px;height:32px;font-size:12px;">👤</div>'}
+                                <div class="flex-grow-1" style="min-width:0;">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <strong class="text-white" style="font-size:0.8rem;">${escapeHTML(c.author)}</strong>
+                                        <small class="text-muted" style="font-size:0.7rem;">👍 ${c.like_count || 0}</small>
+                                    </div>
+                                    <div class="text-light mt-1" style="font-size:0.75rem; white-space:pre-wrap; word-break:break-word;">${escapeHTML(c.text)}</div>
+                                </div>
+                            </div>
+                        `).join('');
+                    } else {
+                        if (countSpan) countSpan.textContent = '(0)';
+                        container.innerHTML = '<div class="text-muted text-center py-2" style="font-size:0.8rem;">Aucun commentaire archivé pour cette vidéo.</div>';
+                    }
+                })
+                .catch(() => {
+                    const container = document.getElementById('commentsContainer');
+                    if (container) container.innerHTML = '<div class="text-muted text-center py-2" style="font-size:0.8rem;">Commentaires non disponibles.</div>';
+                });
+
             // Exposé pour le debug si besoin
             window.player = player;
         });
+
+        function toggleCommentsSection() {
+            const w = document.getElementById('commentsWrapper');
+            if (w) w.classList.toggle('d-none');
+        }
+
+        async function toggleWatchedAction(yid) {
+            try {
+                const res = await fetch('/api/video/toggle-watched', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: yid })
+                });
+                const data = await res.json();
+                if (data && data.success) {
+                    const btn = document.getElementById('watchedToggleBtn');
+                    if (btn) {
+                        btn.textContent = data.watched ? '✓ Vu' : '○ Non vu';
+                        btn.className = data.watched ? 'btn btn-success btn-sm me-2' : 'btn btn-outline-secondary btn-sm me-2';
+                    }
+                    if (typeof showToast === 'function') {
+                        showToast('TubeArchivist', data.watched ? 'Vidéo marquée comme vue' : 'Vidéo marquée comme non vue', 'success');
+                    }
+                }
+            } catch(e) {
+                console.error("Erreur toggle watched:", e);
+            }
+        }
 
         async function playNext() {
             const nextId = '<%= (typeof nextVideo !== "undefined" && nextVideo) ? (nextVideo.id || nextVideo.yid) : "" %>';

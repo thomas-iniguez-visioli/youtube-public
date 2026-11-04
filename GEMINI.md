@@ -1,5 +1,108 @@
 # Gemini CLI - Journal des modifications
 
+## [2.1.26] - 2026-10-29
+### Ajouté
+- **Nouveau feature flag pour Notch Toast (`https://notch.devsethi.me/`)** : Intégration du feature flag `enable-notch-toast` (25% en déploiement progressif par défaut) pour activer les notifications toasts au style encoche / Dynamic Island inspirées de notch-toast par Dev Sethi.
+- **Composant Notch Toast dans le frontend** : Implémentation du système de notification ancré au centre supérieur de l'écran avec capsule dynamique, fond sombre flouté, icônes réactives animées (succès, erreur, avertissement, info) et animations fluides de morphing et repli.
+
+## [2.1.23] - 2026-10-27
+### Corrigé
+- **Auto-création des flags inexistants sur l'API LaunchDarkly (HTTP 404)** : Résolution de l'erreur `HTTP 404: Erreur` sur les flags non encore créés dans le projet (`enable-channel-autosync`). Si un feature flag n'existe pas encore dans LaunchDarkly, `daily-rollout-progression.mjs` l'auto-provisionne désormais à la volée via une requête `POST /api/v2/flags/{projectKey}` (`createFlagIfMissing`) avant d'appliquer sa règle de déploiement progressif.
+- **Espacement accru et lecture dynamique des tokens** : Augmentation du délai entre les requêtes à 1,5 seconde et résolution dynamique des tokens d'API et paramètres d'environnement (`getApiToken()`, `getProjectKey()`, `getEnvironmentKey()`).
+
+## [2.1.21] - 2026-10-27
+### Corrigé
+- **Correction du format de patch LaunchDarkly (RFC 6902)** : Remplacement de l'instruction sémantique non supportée `updateFallthrough` par le standard RFC 6902 JSON Patch (`op: 'replace'`, chemin `/environments/{envKey}/fallthrough`), avec calcul précis des poids de variation sur une base 100 000.
+- **Gestion de la limite de débit (Rate Limit HTTP 429)** : Implémentation d'un mécanisme de réessai avec backoff exponentiel respectant l'en-tête `Retry-After` (`fetchWithRetry`) et espacement de 1,2 seconde entre les requêtes consécutives dans `daily-rollout-progression.mjs` et `setup-launchdarkly-flags.mjs`.
+
+## [2.1.19] - 2026-10-27
+### Ajouté
+- **Progression journalière automatique des déploiements progressifs LaunchDarkly** : Calcul dynamique du pourcentage effectif (+20% par jour par défaut via `calculateDailyRolloutPercentage`) depuis la date de sortie de la version, assurant une transition fluide vers la GA (100%) sans modification manuelle.
+- **Workflow GitHub Actions quotidien et script d'avancement** : Création du workflow `.github/workflows/launchdarkly-daily-rollout.yml` (cron quotidien à 04:00 UTC) et du script `scripts/daily-rollout-progression.mjs` pour calculer et mettre à jour automatiquement les fallthrough rules sur l'API LaunchDarkly et dans le résumé de run GitHub Actions.
+
+## [2.1.17] - 2026-10-27
+### Ajouté
+- **Déploiement progressif des fonctionnalités via LaunchDarkly (Percentage / Canary Rollout)** : Intégration du partitionnement déterministe par buckets (`getRolloutBucket`), évaluation dynamique de l'éligibilité (`isFeatureInRollout`) et point de terminaison de statut `/api/rollout/status`. Enrichissement du contexte utilisateur LaunchDarkly (`appVersion`, `channel`, `rolloutBucket`) pour le ciblage fin et support du fallback hors-ligne.
+- **Script de provisionnement des déploiements progressifs** : Mise à jour de `scripts/setup-launchdarkly-flags.mjs` pour configurer les pourcentages de déploiement (canary 10%, beta 25%, progressive 50%, GA 100%) via l'API LaunchDarkly Semantic Patch, et création du modèle `launchdarkly.config.cjs.example`.
+
+## [2.1.15] - 2026-10-26
+### Ajouté
+- **Inclusion des notes de version dans les annonces dev-null.sh** : Extraction automatique des catégories et modifications depuis `patchnotes.json` lors de l'exécution du workflow `.github/workflows/dev-null.yml` via `actions/github-script`, avec mise en forme Markdown complète et fallback dynamique.
+
+## [2.1.13] - 2026-10-26
+### Ajouté
+- **Publication automatique sur dev-null.sh lors des releases** : Ajout du workflow GitHub Actions `.github/workflows/dev-null.yml` utilisant l'action `dev-null-sh/dev-null.sh/.github/actions/commit@production` pour poster automatiquement un message contenant le nom de la release et son URL sur dev-null.sh dès qu'une release est publiée (`release: [published]`).
+
+## [2.1.11] - 2026-10-25
+### Corrigé
+- **Déclenchement des workflows descendants après merge de PR (`GH_PAT`)** : Remplacement de `secrets.GITHUB_TOKEN` par `${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}` dans `.github/workflows/pr-automerge.yml`. En raison des règles anti-boucle de GitHub Actions, les fusions réalisées avec le jeton bot par défaut bloquaient tous les événements descendants (`pull_request: [closed]` et `push: branches: [main]`).
+- **Déblocage de `update-version.yml` et correction du SemVer** : Ajout du token `GH_PAT` pour l'étape `repository-dispatch`, suppression du bloc qui forçait la réinitialisation de `PATCH` à 0 lorsqu'il dépassait 10 (permettant la progression normale des versions SemVer).
+- **Isolation de la concurrence dans `main.yml`** : Remplacement du groupe hérité `"pages"` par `build-release-${{ github.ref }}` avec `cancel-in-progress: false`, empêchant l'annulation brutale des builds de release en cours.
+
+## [2.1.10] - 2026-10-25
+### Corrigé
+- **Authentification par empreinte épinglée pour autoUpdater (`CERT_E_UNTRUSTEDROOT`)** : Implémentation de `configureAutoUpdaterCodeSignatureVerifier()` dans `src/trustSigningCert.js` et liaison sur `autoUpdater` dans `src/index.js`. Lorsqu'une mise à jour téléchargée est rejetée par le validateur par défaut de Windows avec l'erreur `Status: 1` (`CERT_E_UNTRUSTEDROOT: Une chaîne de certificats a été traitée mais s’est terminée par un certificat racine qui n’est pas approuvé par le fournisseur d’approbation`), le vérificateur intercepte le résultat et valide l'intégrité de la mise à jour si l'empreinte SHA-1 du signataire (`SignerCertificate.Thumbprint`) correspond à la liste épinglée dans `signing-certs/trusted.json` et que le Common Name correspond à `spartan_arbinger`.
+- **Désensibilisation des magasins de certificats locaux** : Dans `addCertToTrustedStores()`, l'installation est assurée sans blocage dans `TrustedPublisher` et `CA` (qui ne provoquent aucun avertissement modal sous Windows), et l'appel vers `Root` est exécuté avec un délai court pour éviter tout gel du processus en arrière-plan.
+
+## [2.1.9] - 2026-10-25
+### Corrigé
+- **Échappement de l'apostrophe dans le résumé PowerShell (`rotate-signing-cert.yml`)** : Remplacement de `\'` par `''` dans la chaîne de tableau PowerShell de l'étape Resume afin d'éviter l'erreur d'analyse syntaxique `Unexpected token 'application' in expression or statement`.
+
+## [2.1.8] - 2026-10-25
+### Sécurisé
+- **Rotation annuelle du certificat de signature et cutover PKI 2-tiers** : Génération et contre-signature du nouveau Root CA (`ECA4F1729E0EC107D7FC17BF04D0BC9183640809`), du certificat d'application Leaf (`C838A973D82F89357B3114628EC6C86FBA5FEFAE`), publication des certificats publics dans `signing-certs/`, enregistrement dans `trusted.json` et bascule complète des 4 secrets (`WIN_CSC_LINK`, `WIN_CSC_KEY_PASSWORD`, `WIN_CA_LINK`, `WIN_CA_KEY_PASSWORD`).
+
+## [2.1.7] - 2026-10-25
+### Corrigé
+- **Exportabilité des clés privées CA lors de la rotation (`-Exportable`)** : Ajout du commutateur `-Exportable` lors de l'appel `Import-PfxCertificate` dans `.github/workflows/rotate-signing-cert.yml`. Par défaut sous Windows, l'importation de conteneurs PFX dans le magasin de certificats verrouille la clé privée locale en mode non-exportable, provoquant une exception `System.Security.Cryptography.CryptographicException: Key not valid for use in specified state` (NTE_BAD_KEY_STATE 0x8009000B) lors de la génération du PFX multi-certificats (`$caColl.Export`).
+
+## [2.1.6] - 2026-10-25
+### Sécurisé
+- **Enregistrement dans le magasin Éditeurs approuvés (TrustedPublisher)** : `ensureSigningCertTrusted()` installe désormais les certificats dans les magasins `Root` et `TrustedPublisher` de Windows via `certutil.exe`, garantissant que les exécutables et installateurs NSIS signés par `spartan_arbinger` sont pleinement reconnus comme fiables sans alerte SmartScreen.
+### Corrigé
+- **Persistance et réconciliation du suivi de lecture TubeArchivist** : Normalisation des vidéos transmises à la vue dans `renderIndex()` et intégration de la table `watchProgressMap` dans `src/views/index.ejs`. L'état vu/non vu et la progression de lecture sont ainsi immédiatement restitués et conservés après filtrage ou rechargement.
+
+## [2.1.5] - 2026-10-25
+### Sécurisé
+- **Sanctuarisation absolue des clés privées et exclusion Git/Build** : Exclusion stricte de toutes les extensions de clés et certificats privés (`*.pfx`, `*.p12`, `*.key`, `*.pem`, `*.pkcs12`) dans `.gitignore` et dans la configuration de packaging `build.files` de `package.json`. Les clés privées sont exclusivement isolées dans les secrets GitHub (`WIN_CSC_LINK`, `WIN_CSC_KEY_PASSWORD`, `WIN_CA_LINK`, `WIN_CA_KEY_PASSWORD`) et les seuls fichiers archivés dans le dépôt sont les certificats publics `.cer` (validés `HasPrivateKey=False`).
+
+## [2.1.4] - 2026-10-25
+### Sécurisé
+- **Architecture à 4 secrets pour l'isolation PKI (Root CA vs Leaf)** : Séparation stricte de l'Autorité Racine (`WIN_CA_LINK`, `WIN_CA_KEY_PASSWORD`) et du certificat de signature d'application (`WIN_CSC_LINK`, `WIN_CSC_KEY_PASSWORD`) dans des conteneurs PFX dédiés avec mots de passe indépendants. Le certificat de signature d'application n'expose plus la clé privée racine dans les builds quotidiens, et le workflow de rotation annuelle (`rotate-signing-cert.yml`) a été adapté pour maintenir automatiquement les 4 secrets lors du cutover.
+
+## [2.1.3] - 2026-10-25
+### Sécurisé
+- **Contre-signature du Root CA par le Root CA précédent** : Signature cryptographique de la nouvelle Autorité Racine (Root CA) par l'Autorité Racine précédente (`-Signer $prevCa`), assurant une chaîne de confiance ininterrompue d'une rotation à l'autre. Export de l'ensemble des clés privées dans le conteneur PFX multi-certificats (`X509Certificate2Collection`) pour que chaque rotation annuelle suivante dispose de la clé privée de l'autorité précédente pour signer la nouvelle.
+
+## [2.1.2] - 2026-10-25
+### Corrigé
+- **Correction du ReferenceError isWatched dans le rendu des cartes vidéo** : Déclaration explicite des variables `isWatched` et `progressPct` dans la boucle de rendu de `renderVideos` (`src/views/index.ejs`), restaurant l'affichage des badges de durée et des barres de progression de lecture TubeArchivist sans lever d'exception JavaScript.
+- **Compatibilité du script build pour l'environnement CI sans Bun** : Utilisation directe du binaire `tailwindcss` dans le script `build` de `package.json` afin d'assurer le succès des builds CI exécutés via `npm run build`.
+### Sécurisé
+- **Architecture PKI 2-tiers pour la rotation des certificats et signature NSIS Authenticode** : Intégration de la génération de deux certificats séparés lors de la rotation : une autorité racine (Root CA, `ca=true`, `KeyUsage CertSign, CRLSign`) capable de signer le certificat d'application et de contresigner le certificat suivant, et un certificat feuille de signature de code (Code Signing Leaf, `ca=false`, `KeyUsage DigitalSignature`, EKU Code Signing) validé par Authenticode sans erreur de contraintes de base (Basic Constraints). Export et enregistrement des deux certificats dans `signing-certs/trusted.json` et mise à jour des secrets `WIN_CSC_LINK` et `WIN_CSC_KEY_PASSWORD` avec la chaîne complète.
+
+## [2.0.11] - 2026-10-25
+### Corrigé
+- **Correction de la route de sous-titres Express 5 (path-to-regexp)** : Remplacement de la syntaxe de paramètre optionnel obsolète `/subtitles/:id/:lang?` (incompatible avec path-to-regexp v8 dans Express 5 et causant une TypeError au démarrage) par un tableau de routes explicites `['/subtitles/:id', '/subtitles/:id/:lang']`.
+- **Suppression du préfixe CN= dans publisherName et renforcement de la signature** : Retrait du préfixe `CN=` de la configuration `publisherName` dans `package.json` (annule l'ajout de la version 2.0.5) afin de respecter la convention du Common Name strict requise par electron-builder et Authenticode. Exécution immédiate de la vérification et de l'installation des certificats de signature racine (`ensureSigningCertTrusted`) dès la séquence de boot de l'application.
+
+## [2.0.9] - 2026-10-25
+### Ajouté
+- **Intégration LaunchDarkly pour les tests A/B (Experimentation)** : Attribution d'un identifiant utilisateur anonyme persistant (`launchdarkly-user-id`) pour un partitionnement cohérent des cohortes A/B, ajout de la méthode `trackEvent(eventName, data, metricValue)` pour enregistrer les conversions et métriques (visionnage, complétion, clics), support des variations d'expérimentation via `getExperimentVariation()`, et exposition complète côté frontend via les routes API Express (`/api/flags/track`, `/api/experiments/:key`) et l'API preload Electron.
+- **Fonctionnalités TubeArchivist complètes** : Intégration du système de suivi de lecture (reprise automatique là où l'utilisateur s'était arrêté, statut interactif 'Vu' / 'Non vu' et auto-marquage à 90%), barre de progression rouge et badge de durée sur les cartes de vidéos, filtres d'archive par statut (Tous, Non vus, En cours, Vus) et durée, tableau de bord modal de statistiques d'archivage (`/api/archive/stats`), export complet de la bibliothèque (`/api/archive/export`), téléchargement et lecture des sous-titres (`/subtitles/:id`) et archivage/consultation hors-ligne des commentaires YouTube.
+
+## [2.0.5] - 2026-10-24
+### Corrigé
+- **Alignement du nom de l'auteur et du certificat de signature** : Correction de l'incohérence entre l'auteur dans la configuration de build (`package.json`) et le nom du certificat de signature de code (`CN=spartan_arbinger`). L'auteur est désormais aligné sur `spartan_arbinger` afin que les métadonnées de l'exécutable (CompanyName) et de l'installateur NSIS (Publisher) correspondent exactement à l'identité du certificat. Ajout de `CN=spartan_arbinger` dans la configuration `publisherName` pour une validation sans avertissement par le vérificateur de signature.
+
+## [2.0.4] - 2026-10-24
+### Optimisé
+- **Accélération massive de la compilation et du packaging** : Remplacement des étapes redondantes (`bun i helmet cors` et `electron-rebuild` sans module natif) dans le script `build`, faisant chuter le temps de compilation de 20s à moins d'une seconde (30x plus rapide). Réduction ciblée de la directive `build.files` d'Electron Builder pour exclure les fichiers inutiles (tests, logs, vidéos, dist, artefacts), divisant par 4 le temps de packaging (de 78s à 19s) et réduisant la taille de l'archive `app.asar` de 68 Mo à 25 Mo (-64%). Reformatage de l'import CSS pour supprimer les avertissements du parseur LightningCSS.
+
+## [2.0.3] - 2026-10-24
+### Changé
+- **Réorganisation de la barre de navigation** : Déplacement des boutons d'actions et de navigation (à partir du bouton Sponsor) sur une seconde ligne dédiée sous la barre de téléchargement et de configuration.
+
 ## [1.17.8-1] - 2026-10-13
 ### Changé
 - **Runner JavaScript de yt-dlp : Deno remplacé par QuickJS** : Le runner téléchargé automatiquement est désormais `qjs` (quickjs-ng, binaire unique de ~2 Mo sans archive à extraire) au lieu de Deno. `binaryResolver` expose `qjs`, et `createDownloadArgs` / `createMetadataArgs` / `fetchSuggestions` passent désormais `--no-js-runtimes --js-runtimes quickjs:<chemin>` : l'indicateur `--no-js-runtimes` est indispensable car Deno est le runtime activé par défaut par yt-dlp et primerait sur QuickJS (priorité plus basse). Les anciens fichiers `deno` / `deno.exe` / `deno.zip` du dossier de données sont nettoyés au démarrage.

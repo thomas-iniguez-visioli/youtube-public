@@ -1,5 +1,225 @@
 [
   {
+    "version": "2.1.26",
+    "date": "2026-10-29",
+    "categories": {
+      "Ajouté": [
+        "**Nouveau feature flag pour Notch Toast (https://notch.devsethi.me/)** : Intégration du feature flag enable-notch-toast (25% en déploiement progressif par défaut) pour activer les notifications toasts au style encoche / Dynamic Island inspirées de notch-toast par Dev Sethi.",
+        "**Composant Notch Toast dans le frontend** : Implémentation du système de notification ancré au centre supérieur de l'écran avec capsule dynamique, fond sombre flouté, icônes réactives animées (succès, erreur, avertissement, info) et animations fluides de morphing et repli."
+      ],
+      "Optimisé": [
+        "**Économie de requêtes API LaunchDarkly** : Le script de progression journalière (daily-rollout-progression.mjs) ignore désormais les PATCH redondants pour les feature flags déjà à 100% (GA), en inspectant l’état distant avant toute écriture.",
+        "**Détection des échecs en CI** : Le script de progression journalière retourne désormais un code de sortie non-zéro si une mise à jour LaunchDarkly échoue, afin que le workflow GitHub Actions quotidien signale le problème au lieu de réussir silencieusement.",
+        "**Stabilité des notifications Notch Toast** : Cache de promesse pour la vérification du feature flag (évite les appels API dupliqués) et limite de la pile de toasts visibles à 4 pour éviter tout débordement d’écran.",
+        "**Réduction de l’empreinte mémoire de la base de données** : Les snapshots de détection de changements de db.js stockent désormais une signature compacte (hash 32 bits) au lieu d’une copie de la chaîne JSON de chaque vidéo, divisant environ par deux la mémoire occupée par la bibliothèque vidéo.",
+        "**Log de téléchargement borné** : download.log est tronqué au démarrage de chaque téléchargement et la récupération de la vitesse finale ne lit plus que les derniers 64 Ko du fichier, évitant un fichier croissant sans limite et des lectures entières en mémoire."
+      ]
+    }
+  },
+  {
+    "version": "2.1.23",
+    "date": "2026-10-27",
+    "categories": {
+      "Corrigé": [
+        "**Auto-création des flags inexistants sur l'API LaunchDarkly (HTTP 404)** : Résolution de l'erreur HTTP 404 sur les flags non provisionnés tels que enable-channel-autosync. Si un feature flag n'existe pas encore dans le projet LaunchDarkly, daily-rollout-progression.mjs l'auto-provisionne désormais à la volée via une requête POST avant d'appliquer sa règle de déploiement progressif.",
+        "**Espacement accru et lecture dynamique des tokens** : Augmentation du délai entre les requêtes à 1,5 seconde et résolution dynamique des tokens d'API et paramètres d'environnement pour éviter les rafales et les erreurs 404/429."
+      ]
+    }
+  },
+  {
+    "version": "2.1.21",
+    "date": "2026-10-27",
+    "categories": {
+      "Corrigé": [
+        "**Correction du format de patch LaunchDarkly (RFC 6902)** : Remplacement de l'instruction sémantique non supportée updateFallthrough par le standard RFC 6902 JSON Patch (op: replace, chemin /environments/{envKey}/fallthrough), avec calcul précis des poids de variation sur une base 100 000.",
+        "**Gestion de la limite de débit (Rate Limit HTTP 429)** : Implémentation d'un mécanisme de réessai avec backoff exponentiel respectant l'en-tête Retry-After (fetchWithRetry) et espacement de 1,2 seconde entre les requêtes consécutives dans daily-rollout-progression.mjs et setup-launchdarkly-flags.mjs."
+      ]
+    }
+  },
+  {
+    "version": "2.1.19",
+    "date": "2026-10-27",
+    "categories": {
+      "Ajouté": [
+        "**Progression journalière automatique des déploiements progressifs LaunchDarkly** : Calcul dynamique du pourcentage effectif (+20% par jour par défaut via `calculateDailyRolloutPercentage`) depuis la date de sortie de la version, assurant une transition fluide vers la GA (100%) sans modification manuelle.",
+        "**Workflow GitHub Actions quotidien et script d'avancement** : Création du workflow `.github/workflows/launchdarkly-daily-rollout.yml` (cron quotidien à 04:00 UTC) et du script `scripts/daily-rollout-progression.mjs` pour calculer et mettre à jour automatiquement les fallthrough rules sur l'API LaunchDarkly et dans le résumé de run GitHub Actions."
+      ]
+    }
+  },
+  {
+    "version": "2.1.17",
+    "date": "2026-10-27",
+    "categories": {
+      "Ajouté": [
+        "**Déploiement progressif des fonctionnalités via LaunchDarkly (Percentage / Canary Rollout)** : Intégration du partitionnement déterministe par buckets (`getRolloutBucket`), évaluation dynamique de l'éligibilité (`isFeatureInRollout`) et point de terminaison de statut `/api/rollout/status`. Enrichissement du contexte utilisateur LaunchDarkly (`appVersion`, `channel`, `rolloutBucket`) pour le ciblage fin et support du fallback hors-ligne.",
+        "**Script de provisionnement des déploiements progressifs** : Mise à jour de `scripts/setup-launchdarkly-flags.mjs` pour configurer les pourcentages de déploiement (canary 10%, beta 25%, progressive 50%, GA 100%) via l'API LaunchDarkly Semantic Patch, et création du modèle `launchdarkly.config.cjs.example`."
+      ]
+    }
+  },
+  {
+    "version": "2.1.15",
+    "date": "2026-10-26",
+    "categories": {
+      "Ajouté": [
+        "**Inclusion des notes de version dans les annonces dev-null.sh** : Extraction automatique des catégories et modifications depuis `patchnotes.json` lors de l'exécution du workflow `.github/workflows/dev-null.yml` via `actions/github-script`, avec mise en forme Markdown complète et fallback dynamique."
+      ]
+    }
+  },
+  {
+    "version": "2.1.13",
+    "date": "2026-10-26",
+    "categories": {
+      "Ajouté": [
+        "**Publication automatique sur dev-null.sh lors des releases** : Ajout du workflow GitHub Actions `.github/workflows/dev-null.yml` utilisant l'action `dev-null-sh/dev-null.sh/.github/actions/commit@production` pour poster automatiquement un message contenant le nom de la release et son URL sur dev-null.sh dès qu'une release est publiée (événement `release: [published]`)."
+      ]
+    }
+  },
+  {
+    "version": "2.1.11",
+    "date": "2026-10-25",
+    "categories": {
+      "Corrigé": [
+        "**Déclenchement des workflows de merge de PR (GH_PAT & Concurrency)** : Utilisation de `GH_PAT` dans `pr-automerge.yml` lors du merge de PR pour permettre à GitHub de propager les événements `pull_request: [closed]` et `push: branches: [main]`, déblocage du `repository_dispatch` dans `update-version.yml` avec `GH_PAT`, suppression du plafonnement artificiel du patch à 10, et ajustement de la concurrence dans `main.yml` (`build-release-${{ github.ref }}` avec `cancel-in-progress: false`) pour éviter l'annulation prématurée des builds."
+      ]
+    }
+  },
+  {
+    "version": "2.1.10",
+    "date": "2026-10-25",
+    "categories": {
+      "Corrigé": [
+        "**Authentification par empreinte épinglée pour autoUpdater (CERT_E_UNTRUSTEDROOT)** : Personnalisation du vérificateur de signature `_verifyUpdateCodeSignature` de `electron-updater` (`NsisUpdater`). Si Windows rejette la signature d'un installateur uniquement en raison d'un certificat racine non présent dans le magasin système (`Status: 1`), `autoUpdater` authentifie cryptographiquement le signataire contre la liste des empreintes SHA-1 approuvées de `signing-certs/trusted.json`, débloquant les mises à jour automatiques transparentes sans dépendre des fenêtres d'avertissement modal de Windows.",
+        "**Désensibilisation des magasins de certificats locaux** : `addCertToTrustedStores()` installe sans blocage dans `TrustedPublisher` et `CA` sans provoquer de pop-up d'avertissement modal, et l'appel vers `Root` est borné par un court délai."
+      ]
+    }
+  },
+  {
+    "version": "2.1.9",
+    "date": "2026-10-25",
+    "categories": {
+      "Corrigé": [
+        "**Échappement de l'apostrophe dans le Step Summary PowerShell** : Remplacement de l'échappement incorrect `\\'` par le doublement de l'apostrophe `''` dans la chaîne PowerShell de l'étape Résumé de `.github/workflows/rotate-signing-cert.yml`."
+      ]
+    }
+  },
+  {
+    "version": "2.1.8",
+    "date": "2026-10-25",
+    "categories": {
+      "Sécurisé": [
+        "**Rotation annuelle du certificat de signature et cutover PKI 2-tiers** : Déploiement de la nouvelle autorité racine (Root CA `ECA4F1729E0EC107D7FC17BF04D0BC9183640809`), du certificat d'application (`C838A973D82F89357B3114628EC6C86FBA5FEFAE`) et bascule automatique des 4 secrets de signature GitHub."
+      ]
+    }
+  },
+  {
+    "version": "2.1.7",
+    "date": "2026-10-25",
+    "categories": {
+      "Corrigé": [
+        "**Exportabilité des clés privées CA lors de la rotation (`-Exportable`)** : Ajout du flag `-Exportable` lors de `Import-PfxCertificate` dans `.github/workflows/rotate-signing-cert.yml`. Sans ce paramètre, Windows interdisait l'accès en ré-export à la clé privée de l'autorité racine précédente (« Key not valid for use in specified state / NTE_BAD_KEY_STATE »), bloquant la génération du conteneur PFX multi-certificats de la chaîne CA."
+      ]
+    }
+  },
+  {
+    "version": "2.1.6",
+    "date": "2026-10-25",
+    "categories": {
+      "Sécurisé": [
+        "**Enregistrement dans le magasin Éditeurs approuvés (TrustedPublisher)** : `ensureSigningCertTrusted()` installe désormais les certificats dans les magasins `Root` et `TrustedPublisher` de Windows via `certutil.exe`, garantissant que les exécutables et installateurs NSIS signés par `spartan_arbinger` sont pleinement reconnus comme fiables sans alerte SmartScreen."
+      ],
+      "Corrigé": [
+        "**Persistance et réconciliation du suivi de lecture TubeArchivist** : Normalisation des vidéos transmises à la vue dans `renderIndex()` et intégration de la table `watchProgressMap` dans `src/views/index.ejs`. L'état vu/non vu et la progression de lecture sont ainsi immédiatement restitués et conservés après filtrage ou rechargement."
+      ]
+    }
+  },
+  {
+    "version": "2.1.5",
+    "date": "2026-10-25",
+    "categories": {
+      "Sécurisé": [
+        "**Sanctuarisation absolue des clés privées et exclusion Git/Build** : Exclusion stricte de toutes les extensions de clés et certificats privés (`*.pfx`, `*.p12`, `*.key`, `*.pem`, `*.pkcs12`) dans `.gitignore` et dans la configuration de packaging `build.files` de `package.json`. Les clés privées sont exclusivement isolées dans les secrets GitHub (`WIN_CSC_LINK`, `WIN_CSC_KEY_PASSWORD`, `WIN_CA_LINK`, `WIN_CA_KEY_PASSWORD`) et les seuls fichiers archivés dans le dépôt sont les certificats publics `.cer` (validés `HasPrivateKey=False`)."
+      ]
+    }
+  },
+  {
+    "version": "2.1.4",
+    "date": "2026-10-25",
+    "categories": {
+      "Sécurisé": [
+        "**Architecture à 4 secrets pour l'isolation PKI (Root CA vs Leaf)** : Séparation stricte de l'Autorité Racine (`WIN_CA_LINK`, `WIN_CA_KEY_PASSWORD`) et du certificat de signature d'application (`WIN_CSC_LINK`, `WIN_CSC_KEY_PASSWORD`) dans des conteneurs PFX dédiés avec mots de passe indépendants. Le certificat de signature d'application n'expose plus la clé privée racine dans les builds quotidiens, et le workflow de rotation annuelle (`rotate-signing-cert.yml`) a été adapté pour maintenir automatiquement les 4 secrets lors du cutover."
+      ]
+    }
+  },
+  {
+    "version": "2.1.3",
+    "date": "2026-10-25",
+    "categories": {
+      "Sécurisé": [
+        "**Contre-signature du Root CA par le Root CA précédent** : Signature cryptographique de la nouvelle Autorité Racine (Root CA) par l'Autorité Racine précédente (`-Signer $prevCa`), assurant une chaîne de confiance ininterrompue d'une rotation à l'autre. Export de l'ensemble des clés privées dans le conteneur PFX multi-certificats (`X509Certificate2Collection`) pour que chaque rotation annuelle suivante dispose de la clé privée de l'autorité précédente pour signer la nouvelle."
+      ]
+    }
+  },
+  {
+    "version": "2.1.2",
+    "date": "2026-10-25",
+    "categories": {
+      "Corrigé": [
+        "**Correction du ReferenceError isWatched dans le rendu des cartes vidéo** : Déclaration explicite des variables `isWatched` et `progressPct` dans la boucle de rendu de `renderVideos` (`src/views/index.ejs`), restaurant l'affichage des badges de durée et des barres de progression de lecture TubeArchivist sans lever d'exception JavaScript.",
+        "**Compatibilité du script build pour l'environnement CI sans Bun** : Utilisation directe du binaire `tailwindcss` dans le script `build` de `package.json` afin d'assurer le succès des builds CI exécutés via `npm run build`."
+      ],
+      "Sécurisé": [
+        "**Architecture PKI 2-tiers pour la rotation des certificats et signature NSIS Authenticode** : Intégration de la génération de deux certificats séparés lors de la rotation : une autorité racine (Root CA, `ca=true`, `KeyUsage CertSign, CRLSign`) capable de signer le certificat d'application et de contresigner le certificat suivant, et un certificat feuille de signature de code (Code Signing Leaf, `ca=false`, `KeyUsage DigitalSignature`, EKU Code Signing) validé par Authenticode sans erreur de contraintes de base (Basic Constraints). Export et enregistrement des deux certificats dans `signing-certs/trusted.json` et mise à jour des secrets `WIN_CSC_LINK` et `WIN_CSC_KEY_PASSWORD` avec la chaîne complète."
+      ]
+    }
+  },
+  {
+    "version": "2.0.11",
+    "date": "2026-10-25",
+    "categories": {
+      "Corrigé": [
+        "**Suppression du préfixe CN= dans publisherName et renforcement de la signature** : Retrait du préfixe `CN=` de la configuration `publisherName` dans `package.json` afin de respecter la convention du Common Name strict requise par electron-builder et Authenticode. Exécution immédiate de la vérification et de l'installation des certificats de signature racine (`ensureSigningCertTrusted`) dès la séquence de boot de l'application.",
+        "**Correction de la route de sous-titres Express 5 (path-to-regexp)** : Remplacement de la syntaxe de paramètre optionnel obsolète `/subtitles/:id/:lang?` (incompatible avec path-to-regexp v8 dans Express 5 et causant une TypeError au démarrage) par un tableau de routes explicites `['/subtitles/:id', '/subtitles/:id/:lang']`."
+      ]
+    }
+  },
+  {
+    "version": "2.0.9",
+    "date": "2026-10-25",
+    "categories": {
+      "Ajouté": [
+        "**Intégration LaunchDarkly pour les tests A/B (Experimentation)** : Attribution d'un identifiant utilisateur anonyme persistant (`launchdarkly-user-id`) pour un partitionnement cohérent des cohortes A/B, ajout de la méthode `trackEvent(eventName, data, metricValue)` pour enregistrer les conversions et métriques (visionnage, complétion, clics), support des variations d'expérimentation via `getExperimentVariation()`, et exposition complète côté frontend via les routes API Express (`/api/flags/track`, `/api/experiments/:key`) et l'API preload Electron.",
+        "**Fonctionnalités TubeArchivist complètes** : Intégration du système de suivi de lecture (reprise automatique là où l'utilisateur s'était arrêté, statut interactif 'Vu' / 'Non vu' et auto-marquage à 90%), barre de progression rouge et badge de durée sur les cartes de vidéos, filtres d'archive par statut (Tous, Non vus, En cours, Vus) et durée, tableau de bord modal de statistiques d'archivage (`/api/archive/stats`), export complet de la bibliothèque (`/api/archive/export`), téléchargement et lecture des sous-titres (`/subtitles/:id`) et archivage/consultation hors-ligne des commentaires YouTube."
+      ]
+    }
+  },
+  {
+    "version": "2.0.5",
+    "date": "2026-10-24",
+    "categories": {
+      "Corrigé": [
+        "**Alignement du nom de l'auteur et du certificat de signature** : Correction de l'incohérence entre l'auteur dans la configuration de build (`package.json`) et le nom du certificat de signature de code (`CN=spartan_arbinger`). L'auteur est désormais aligné sur `spartan_arbinger` afin que les métadonnées de l'exécutable (CompanyName) et de l'installateur NSIS (Publisher) correspondent exactement à l'identité du certificat. Ajout de `CN=spartan_arbinger` dans la configuration `publisherName` pour une validation sans avertissement par le vérificateur de signature."
+      ]
+    }
+  },
+  {
+    "version": "2.0.4",
+    "date": "2026-10-24",
+    "categories": {
+      "Optimisé": [
+        "**Accélération massive de la compilation et du packaging** : Remplacement des étapes redondantes (`bun i helmet cors` et `electron-rebuild` sans module natif) dans le script `build`, faisant chuter le temps de compilation de 20s à moins d'une seconde (30x plus rapide). Réduction ciblée de la directive `build.files` d'Electron Builder pour exclure les fichiers inutiles (tests, logs, vidéos, dist, artefacts), divisant par 4 le temps de packaging (de 78s à 19s) et réduisant la taille de l'archive `app.asar` de 68 Mo à 25 Mo (-64%). Reformatage de l'import CSS pour supprimer les avertissements du parseur LightningCSS."
+      ]
+    }
+  },
+  {
+    "version": "2.0.3",
+    "date": "2026-10-24",
+    "categories": {
+      "Changé": [
+        "**Réorganisation de la barre de navigation** : Déplacement des boutons d'actions et de navigation (à partir du bouton Sponsor) sur une seconde ligne dédiée sous la barre de téléchargement et de configuration."
+      ]
+    }
+  },
+  {
     "version": "1.17.8-1",
     "date": "2026-10-13",
     "categories": {

@@ -13,6 +13,7 @@ jobs:
       - name: Checkout main branch
         uses: actions/checkout@v7
         with:
+          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
           ref: ${{ github.base_ref }}
 
       - name: Setup Node.js
@@ -33,16 +34,8 @@ jobs:
           MINOR=${VERSION_PARTS[1]}
           PATCH=${VERSION_PARTS[2]}
 
-          # Incrémente la version (exemple : patch)
+          # Incrémente le numéro de patch (SemVer standard)
           PATCH=$((PATCH + 1))
-          if [ "$PATCH" -gt 10 ]; then
-            PATCH=0
-            MINOR=$((MINOR + 1))
-            if [ "$MINOR" -gt 10 ]; then
-              MINOR=0
-              MAJOR=$((MAJOR + 1))
-            fi
-          fi
 
           # Met à jour la version dans package.json
           NEW_VERSION="$MAJOR.$MINOR.$PATCH"
@@ -59,6 +52,6 @@ jobs:
       - name: Trigger build workflow
         uses: peter-evans/repository-dispatch@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
           event-type: build-triggered
           client-payload: '{"version": "${{ steps.update-version.outputs.new_version }}"}'
