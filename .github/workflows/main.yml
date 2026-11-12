@@ -14,6 +14,13 @@ concurrency:
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
+# SignPath (optionnel) — pour activer la signature publique gratuite :
+#   secrets.SIGNPATH_API_TOKEN
+#   vars.SIGNPATH_ORGANIZATION_ID   (si défini → bascule SignPath)
+#   vars.SIGNPATH_PROJECT_SLUG
+#   vars.SIGNPATH_SIGNING_POLICY_SLUG
+# Sans ces variables, le build self-signed actuel est utilisé.
+
 jobs:
   prepare-release:
     name: Prepare Release
@@ -45,6 +52,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     permissions:
       contents: write
+      actions: read
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
@@ -83,7 +91,8 @@ jobs:
           captureUnhandledRejections: true,
            };" > rollbar.config.cjs
 
-      - name: Build Electron app
+      - name: Build Electron app (self-signed)
+        if: matrix.os != 'windows-latest' || vars.SIGNPATH_ORGANIZATION_ID == ''
         run: bunx electron-builder --publish always
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
@@ -92,8 +101,97 @@ jobs:
           WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
           WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
 
+      - name: Build Electron app (unsigned, pour SignPath)
+        if: matrix.os == 'windows-latest' && vars.SIGNPATH_ORGANIZATION_ID != ''
+        run: bunx electron-builder --publish never
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+          GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+
+      - name: Upload unsigned Windows binaries
+        if: matrix.os == 'windows-latest' && vars.SIGNPATH_ORGANIZATION_ID != ''
+        id: upload-unsigned
+        uses: actions/upload-artifact@v7
+        with:
+          name: unsigned-win-binaries
+          path: dist/*.exe
+          if-no-files-found: error
+
+      - name: Sign with SignPath
+        if: matrix.os == 'windows-latest' && vars.SIGNPATH_ORGANIZATION_ID != ''
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+          github-artifact-id: ${{ steps.upload-unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: signed-win
+
+      - name: Publish signed assets (SignPath)
+        if: matrix.os == 'windows-latest' && vars.SIGNPATH_ORGANIZATION_ID != ''
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.prepare-release.outputs.version }}
+        run: |
+          set -euo pipefail
+          node <<'EOF'
+          const fs = require('fs');
+          const path = require('path');
+          const crypto = require('crypto');
+
+          const latestPath = 'dist/latest.yml';
+          let yml = fs.readFileSync(latestPath, 'utf8');
+          const m = yml.match(/^path:\s*(.+)$/m) || yml.match(/url:\s*(.+)/);
+          if (!m) {
+            console.error('latest.yml: aucun path/url trouvé');
+            process.exit(1);
+          }
+          const fname = m[1].trim().replace(/^["']|["']$/g, '');
+
+          function findFile(dir, name) {
+            for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+              const p = path.join(dir, e.name);
+              if (e.isDirectory()) {
+                const r = findFile(p, name);
+                if (r) return r;
+              } else if (e.name === name) return p;
+            }
+            return null;
+          }
+
+          const signed = findFile('signed-win', fname);
+          if (!signed) {
+            console.error('Fichier signé introuvable:', fname);
+            console.error(fs.readdirSync('signed-win', { recursive: true }));
+            process.exit(1);
+          }
+
+          const hash = crypto.createHash('sha512').update(fs.readFileSync(signed)).digest('base64');
+          const count = (yml.match(/sha512:/g) || []).length;
+          if (count !== 1) {
+            console.error('sha512 inattendu dans latest.yml:', count);
+            process.exit(1);
+          }
+          yml = yml.replace(/sha512:\s*\S+/, 'sha512: ' + hash);
+          fs.writeFileSync(latestPath, yml);
+          console.log('latest.yml mis à jour pour', fname);
+          EOF
+
+          shopt -s nullglob
+          mapfile -t exes < <(find signed-win -type f -name '*.exe')
+          if [ ${#exes[@]} -eq 0 ]; then
+            echo "Aucun exe signé trouvé" >&2
+            exit 1
+          fi
+          zips=(dist/*.zip)
+          gh release upload "v${VERSION}" "${exes[@]}" dist/latest.yml ${zips[@]+"${zips[@]}"} --clobber
+
       - name: Upload latest.yml for Auto-Update (Windows)
-        if: matrix.os == 'windows-latest'
+        if: matrix.os == 'windows-latest' && vars.SIGNPATH_ORGANIZATION_ID == ''
         run: |
           gh release upload v${{ needs.prepare-release.outputs.version }} dist/latest.yml --clobber
         env:

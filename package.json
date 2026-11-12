@@ -75,7 +75,8 @@
     "win": {
       "signtoolOptions": {
         "publisherName": [
-          "spartan_arbinger"
+          "spartan_arbinger",
+          "SignPath Foundation"
         ]
       },
       "target": [
