@@ -29,7 +29,8 @@ let io = null;
 
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 
-import { initLaunchDarkly, getLDClient, getFeatureFlag, getAllFeatureFlags, disableLaunchDarkly, isLaunchDarklyEnabled } from './launchdarkly.js';
+import { initLaunchDarkly, getLDClient, getFeatureFlag, getAllFeatureFlags, disableLaunchDarkly, isLaunchDarklyEnabled, getLaunchDarklyStatus, FROZEN_FLAGS_100 } from './launchdarkly.js';
+import { registerMcpRoutes } from './mcp.js';
 
 const require = createRequire(import.meta.url);
 const pkg = require('../package.json');
@@ -1608,16 +1609,24 @@ web.post("/tag", function (req, res) {
 });
 
 
-web.get("/delete", function (req, res) {
-  const fileData = db.getFile(req.query.id);
-  if (!fileData) return res.status(404).send("Video not found");
+const getBase = () => base;
+
+const deleteVideo = (id) => {
+  const fileData = db.getFile(id);
+  if (!fileData) return null;
   const filePath = path.join(base, fileData.fileName);
   if (fs.existsSync(filePath)) fs.rmSync(filePath);
   const gzPath = filePath + '.zip';
   if (fs.existsSync(gzPath)) fs.rmSync(gzPath);
-  db.removeFile(req.query.id);
+  db.removeFile(id);
   db.save();
   cleanupOrphanedThumbnails();
+  return fileData;
+};
+
+web.get("/delete", function (req, res) {
+  const deleted = deleteVideo(req.query.id);
+  if (!deleted) return res.status(404).send("Video not found");
   res.redirect("/");
 });
 
@@ -2409,15 +2418,14 @@ web.get("/api/unzip-permanent", async (req, res) => {
   }
 });
 
-web.get("/api/clear-cache", async (req, res) => {
+const clearCache = async () => {
   let clearedVideos = 0;
-  const now = Date.now();
-  
+
   // 1. Vider le cache des suggestions YouTube
   suggestionCache.clear();
-  
+
   // 2. Vider les vidéos décompressées inactives
-  for (const [filePath, lastAccessTime] of decompressedFiles.entries()) {
+  for (const [filePath] of decompressedFiles.entries()) {
     if (!ongoingDecompressions.has(filePath)) {
       try {
         const gzPath = filePath + '.zip';
@@ -2444,7 +2452,12 @@ web.get("/api/clear-cache", async (req, res) => {
     log.error(`Erreur vidage cache Chromium: ${e.message}`);
   }
 
-  res.json({ success: true, message: `Cache vidé avec succès ! (${clearedVideos} vidéos temporaires supprimées)`, clearedVideos });
+  return { message: `Cache vidé avec succès ! (${clearedVideos} vidéos temporaires supprimées)`, clearedVideos };
+};
+
+web.get("/api/clear-cache", async (req, res) => {
+  const result = await clearCache();
+  res.json({ success: true, ...result });
 });
 
 // Nettoyage régulier des vidéos décompressées inactives depuis plus de 5 minutes
@@ -2469,6 +2482,21 @@ setInterval(() => {
     }
   }
 }, 60000); // Exécuté toutes les minutes
+
+registerMcpRoutes(web, {
+  db,
+  download,
+  checkChannelsForNewVideos,
+  clearCache,
+  deleteVideo,
+  getBase,
+  getConfig: () => config,
+  appVersion: pkg.version,
+  getLaunchDarklyStatus,
+  getAllFeatureFlags,
+  FROZEN_FLAGS_100,
+});
+log.info('Routes MCP enregistrées (POST /mcp, GET /api/mcp/tools, POST /api/mcp/call)');
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
