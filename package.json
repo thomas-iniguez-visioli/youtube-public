@@ -1,6 +1,6 @@
 {
   "name": "youtube",
-  "version": "1.17.10",
+  "version": "2.0.0",
   "type": "module",
   "description": "youtube local",
   "main": "src/index.js",
@@ -34,7 +34,8 @@
     "rollbar": "^4.0.0",
     "socket.io": "^4.4.1",
     "unzipper": "^0.12.3",
-    "uuid": "^14.0.2"
+    "uuid": "^14.0.2",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4.3.3",
@@ -61,8 +62,7 @@
     "win": {
       "signtoolOptions": {
         "publisherName": [
-          "spartan_arbinger",
-          "SignPath Foundation"
+          "spartan_arbinger"
         ]
       },
       "target": [
