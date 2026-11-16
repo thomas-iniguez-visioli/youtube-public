@@ -68,6 +68,8 @@ jobs:
 
       - name: Install dependencies
         run: bun install
+      # LaunchDarkly reste câblée pour les futurs flags (les flags historiques
+      # sont gelés à 100% dans src/launchdarkly.js et ne passent plus par LD).
       - name: Setup LaunchDarkly config
         shell: bash
         env:
@@ -120,6 +122,11 @@ jobs:
 
       - name: Sign with SignPath
         if: matrix.os == 'windows-latest' && vars.SIGNPATH_ORGANIZATION_ID != ''
+        id: signpath
+        # Non bloquant : si SignPath refuse le runner (ex. "Trusted build system is
+        # not allowed to log into the organization"), on bascule sur le build
+        # self-signed via le step fallback ci-dessous.
+        continue-on-error: true
         uses: signpath/github-action-submit-signing-request@v3
         with:
           api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
@@ -131,7 +138,7 @@ jobs:
           output-artifact-directory: signed-win
 
       - name: Publish signed assets (SignPath)
-        if: matrix.os == 'windows-latest' && vars.SIGNPATH_ORGANIZATION_ID != ''
+        if: matrix.os == 'windows-latest' && vars.SIGNPATH_ORGANIZATION_ID != '' && steps.signpath.outcome == 'success'
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
@@ -188,12 +195,30 @@ jobs:
             exit 1
           fi
           zips=(dist/*.zip)
-          gh release upload "v${VERSION}" "${exes[@]}" dist/latest.yml ${zips[@]+"${zips[@]}"} --clobber
+          for i in 1 2 3; do
+            gh release upload "v${VERSION}" "${exes[@]}" dist/latest.yml ${zips[@]+"${zips[@]}"} --clobber && break
+            echo "gh release upload (tentative $i) a echoue, retry dans 15s..." >&2
+            sleep 15
+          done
+
+      - name: Build Electron app (self-signed, fallback si SignPath echoue)
+        if: matrix.os == 'windows-latest' && vars.SIGNPATH_ORGANIZATION_ID != '' && steps.signpath.outcome != 'success'
+        run: bunx electron-builder --publish always
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+          GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
 
       - name: Upload latest.yml for Auto-Update (Windows)
-        if: matrix.os == 'windows-latest' && vars.SIGNPATH_ORGANIZATION_ID == ''
+        if: matrix.os == 'windows-latest' && (vars.SIGNPATH_ORGANIZATION_ID == '' || steps.signpath.outcome != 'success')
         run: |
-          gh release upload v${{ needs.prepare-release.outputs.version }} dist/latest.yml --clobber
+          for i in 1 2 3; do
+            gh release upload v${{ needs.prepare-release.outputs.version }} dist/latest.yml --clobber && break
+            echo "upload latest.yml (tentative $i) a echoue, retry dans 15s..." >&2
+            sleep 15
+          done
         env:
           GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
 
@@ -201,7 +226,11 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           zip -r youtube-downloader-extension.zip extension/
-          gh release upload v${{ needs.prepare-release.outputs.version }} youtube-downloader-extension.zip --clobber
+          for i in 1 2 3; do
+            gh release upload v${{ needs.prepare-release.outputs.version }} youtube-downloader-extension.zip --clobber && break
+            echo "upload extension zip (tentative $i) a echoue, retry dans 15s..." >&2
+            sleep 15
+          done
         env:
           GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
 

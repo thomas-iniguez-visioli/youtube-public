@@ -44,6 +44,18 @@ let disabled = false;
 let disabledReason = null;
 let retryTimer = null;
 
+// Flags historiquement gérés dans LaunchDarkly (rollouts progressifs / A-B).
+// Ils sont désormais gelés à 100% : la valeur servie est toujours la variation
+// "on" (true) et LaunchDarkly n'est plus jamais contacté.
+export const FROZEN_FLAGS_100 = Object.freeze({
+  'ab-tubearchivist-ui': true,
+  'enable-tubearchivist-features': true,
+  'enable-auto-subtitles': true,
+  'enable-comments-archive': true,
+  'enable-channel-autosync': true,
+  'enable-notch-toast': true,
+});
+
 /**
  * Calculate exponential backoff delay
  */
@@ -237,9 +249,10 @@ export async function initLaunchDarkly() {
     return initializationPromise;
   }
 
-  if (!launchDarklyConfig || !launchDarklyConfig.clientSideId || launchDarklyConfig.clientSideId.trim() === '') {
-    disableLaunchDarkly('clientSideId absent ou vide');
-    // Load cached flags even when disabled
+  initializationPromise = (async () => {
+    // Les flags historiques sont gelés à 100% (FROZEN_FLAGS_100) : aucun appel
+    // réseau vers LaunchDarkly, on se contente du cache local pour l'affichage.
+    disableLaunchDarkly('flags gelés à 100% : LaunchDarkly n\'est plus contacté');
     try {
       cachedFlags = await loadCachedFlags();
     } catch (err) {
@@ -247,30 +260,6 @@ export async function initLaunchDarkly() {
       cachedFlags = {};
     }
     return null;
-  }
-
-  initializationPromise = (async () => {
-    try {
-      // Load cached flags first for immediate availability
-      cachedFlags = await loadCachedFlags();
-
-      if (disabled) {
-        log.info(`LaunchDarkly désactivé avant initialisation : ${disabledReason}`);
-        return null;
-      }
-
-      const user = { key: 'anonymous-user', anonymous: true };
-      await initializeWithRetry(
-        launchDarklyConfig.clientSideId.trim(),
-        user,
-        {}
-      );
-      return ldClient;
-    } catch (err) {
-      log.error(`Échec de l'initialisation de LaunchDarkly : ${err.message}`);
-      disableLaunchDarkly(err.message);
-      return null;
-    }
   })();
 
   return initializationPromise;
@@ -289,6 +278,11 @@ export function getFeatureFlag(key, defaultValue = false) {
   if (typeof key !== 'string' || key.trim() === '') {
     log.warn(`Clé de feature flag invalide: ${key}`);
     return defaultValue;
+  }
+
+  // Flags gelés à 100% : toujours la variation "on", sans passer par LaunchDarkly.
+  if (Object.prototype.hasOwnProperty.call(FROZEN_FLAGS_100, key)) {
+    return FROZEN_FLAGS_100[key];
   }
 
   try {
@@ -331,15 +325,15 @@ export function getAllFeatureFlags() {
       return state;
     }
 
-    // Return cached flags if client not ready
+    // Return cached flags if client not ready (les flags gelés à 100% priment)
     if (cachedFlags && typeof cachedFlags === 'object') {
-      return { ...cachedFlags };
+      return { ...cachedFlags, ...FROZEN_FLAGS_100 };
     }
   } catch (err) {
     log.warn(`Erreur lors de la récupération de l'état des feature flags : ${err.message}`);
   }
 
-  return {};
+  return { ...FROZEN_FLAGS_100 };
 }
 
 /**
