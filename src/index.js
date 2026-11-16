@@ -412,15 +412,19 @@ function setupElectronLogForwarding() {
         ? message.data
         : new Error(String(message.data || message.text || 'Erreur inconnue dans electron-log'));
     }
-
+    function logMemoryUsage () {
+  const memUsage = process.memoryUsage()
+  return `[memory] rss: ${Math.round(memUsage.rss / 1024 / 1024)} MB, heapTotal: ${Math.round(memUsage.heapTotal / 1024 / 1024)} MB, heapUsed: ${Math.round(memUsage.heapUsed / 1024 / 1024)} MB, external: ${Math.round(memUsage.external / 1024 / 1024)} MB`
+}
     // Envoyer l'erreur à Rollbar avec des métadonnées utiles
     rollbar.error(errorToReport, {
       context: {
         transport: message.transport ? message.transport.name : 'inconnu',
         scope: message.scope || 'default',
         level: message.level,
+        memoryUsage: logMemoryUsage(),
         // Ajoute d'autres métadonnées pertinentes pour ton projet
-        app: 'YouTube Downloader Extension',
+        app: 'YouTube Downloader ',
         version: pkg.version,
       },
     });
